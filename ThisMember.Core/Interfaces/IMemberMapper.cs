@@ -11,6 +11,8 @@ namespace ThisMember.Core.Interfaces
   {
     IMappingStrategy MappingStrategy { get; set; }
 
+    MapperOptions Options { get; set; }
+
     TDestination Map<TDestination>(object source) where TDestination : new();
 
     TSource Map<TSource>(TSource source) where TSource : new();

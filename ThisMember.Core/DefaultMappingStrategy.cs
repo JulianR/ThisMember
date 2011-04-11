@@ -9,6 +9,18 @@ using System.Linq.Expressions;
 
 namespace ThisMember.Core
 {
+
+  public class IncompatibleMappingException : Exception
+  {
+    public PropertyOrFieldInfo MissingMember { get; set; }
+
+    public IncompatibleMappingException(PropertyOrFieldInfo member) : base(string.Format("Member {0} cannot be mapped", member))
+    {
+      this.MissingMember = member;
+    }
+
+  }
+
   public class DefaultMappingStrategy : IMappingStrategy
   {
     private readonly Dictionary<TypePair, ProposedTypeMapping> mappingCache = new Dictionary<TypePair, ProposedTypeMapping>();
@@ -96,7 +108,13 @@ namespace ThisMember.Core
           //continue;
         }
 
-        if (sourceProperties.TryGetValue(destinationProperty.Name, out sourceProperty)
+        if (!sourceProperties.TryGetValue(destinationProperty.Name, out sourceProperty) 
+          && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember)
+        {
+          throw new IncompatibleMappingException(destinationProperty);
+        }
+
+        if (sourceProperty != null
           && destinationProperty.PropertyType.IsAssignableFrom(sourceProperty.PropertyType))
         {
 
@@ -185,10 +203,7 @@ namespace ThisMember.Core
         }
       }
 
-      lock (syncRoot)
-      {
-        mappingCache.Add(pair, typeMapping);
-      }
+      mappingCache[pair] = typeMapping;
 
       return typeMapping;
     }

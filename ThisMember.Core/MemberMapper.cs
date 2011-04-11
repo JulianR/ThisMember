@@ -24,8 +24,7 @@ namespace ThisMember.Core
 
   public class MemberMapper : IMemberMapper
   {
-
-    private readonly MapperOptions options;
+    public MapperOptions Options { get; set; }
 
     public MemberMapper(MapperOptions options = null, IMappingStrategy strategy = null, IMapGenerator generator = null)
     {
@@ -33,7 +32,7 @@ namespace ThisMember.Core
 
       this.MappingStrategy.MapGenerator = generator ?? new CompiledMapGenerator();
 
-      this.options = options ?? MapperOptions.Default;
+      this.Options = options ?? MapperOptions.Default;
     }
 
     private Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
@@ -51,11 +50,11 @@ namespace ThisMember.Core
 
       var destination = new TDestination();
 
-      if (options.BeforeMapping != null) options.BeforeMapping();
+      if (Options.BeforeMapping != null) Options.BeforeMapping(this, pair);
 
       var result = (TDestination)map.MappingFunction.DynamicInvoke(source, destination);
 
-      if (options.AfterMapping != null) options.AfterMapping();
+      if (Options.AfterMapping != null) Options.AfterMapping(this, pair, result);
 
       return result;
     }
@@ -100,11 +99,11 @@ namespace ThisMember.Core
       {
         map = MappingStrategy.CreateMap(pair).FinalizeMap();
       }
-      if (options.BeforeMapping != null) options.BeforeMapping();
+      if (Options.BeforeMapping != null) Options.BeforeMapping(this, pair);
 
       var result = ((Func<TSource, TDestination, TDestination>)map.MappingFunction)(source, destination);
 
-      if (options.AfterMapping != null) options.AfterMapping();
+      if (Options.AfterMapping != null) Options.AfterMapping(this, pair, result);
 
       return result;
 
@@ -121,7 +120,6 @@ namespace ThisMember.Core
       var destination = new TSource();
 
       return Map(source, destination);
-
     }
 
     public IMappingStrategy MappingStrategy { get; set; }

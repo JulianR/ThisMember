@@ -8,7 +8,7 @@ namespace ThisMember.Core.Interfaces
 {
   public class PropertyOrFieldInfo
   {
-    private MemberInfo _member;
+    private MemberInfo member;
 
     public PropertyOrFieldInfo(MemberInfo member)
     {
@@ -20,14 +20,14 @@ namespace ThisMember.Core.Interfaces
         throw new ArgumentException("member");
       }
 
-      _member = member;
+      member = member;
     }
 
     public Type PropertyOrFieldType
     {
       get
       {
-        return _member.MemberType == MemberTypes.Property ? ((PropertyInfo)_member).PropertyType : ((FieldInfo)_member).FieldType;
+        return member.MemberType == MemberTypes.Property ? ((PropertyInfo)member).PropertyType : ((FieldInfo)member).FieldType;
       }
     }
 
@@ -35,7 +35,7 @@ namespace ThisMember.Core.Interfaces
     {
       get
       {
-        return _member.Name;
+        return member.Name;
       }
     }
 
@@ -43,7 +43,7 @@ namespace ThisMember.Core.Interfaces
     {
       var other = obj as PropertyOrFieldInfo;
 
-      return !object.ReferenceEquals(other, null) && other._member.Equals(_member);
+      return !object.ReferenceEquals(other, null) && other.member.Equals(member);
     }
 
     public static bool operator ==(PropertyOrFieldInfo left, PropertyOrFieldInfo right)
@@ -68,7 +68,7 @@ namespace ThisMember.Core.Interfaces
 
     public override int GetHashCode()
     {
-      return _member.GetHashCode();
+      return member.GetHashCode();
     }
 
     public static implicit operator PropertyOrFieldInfo(MemberInfo member)
@@ -78,7 +78,7 @@ namespace ThisMember.Core.Interfaces
 
     public static implicit operator MemberInfo(PropertyOrFieldInfo member)
     {
-      return member._member;
+      return member.member;
     }
 
     public static implicit operator PropertyOrFieldInfo(PropertyInfo member)
@@ -89,6 +89,11 @@ namespace ThisMember.Core.Interfaces
     public static implicit operator PropertyOrFieldInfo(FieldInfo member)
     {
       return new PropertyOrFieldInfo(member);
+    }
+
+    public override string ToString()
+    {
+      return this.member.ToString();
     }
 
   }
