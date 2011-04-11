@@ -11,9 +11,9 @@ namespace ThisMember.Core
 {
   public class DefaultMappingStrategy : IMappingStrategy
   {
-    private Dictionary<TypePair, ProposedTypeMapping> mappingCache = new Dictionary<TypePair, ProposedTypeMapping>();
+    private readonly Dictionary<TypePair, ProposedTypeMapping> mappingCache = new Dictionary<TypePair, ProposedTypeMapping>();
 
-    private byte[] syncRoot = new byte[0];
+    private readonly byte[] syncRoot = new byte[0];
 
     public IMapGenerator MapGenerator { get; set; }
 
@@ -204,7 +204,12 @@ namespace ThisMember.Core
       map.SourceType = pair.SourceType;
       map.DestinationType = pair.DestinationType;
 
-      var mapping = GetTypeMapping(pair, options, customMapping);
+      ProposedTypeMapping mapping;
+
+      if (!this.mappingCache.TryGetValue(pair, out mapping))
+      {
+        mapping = GetTypeMapping(pair, options, customMapping);
+      }
 
       map.ProposedTypeMapping = mapping;
       map.CustomMapping = CustomMapping.GetCustomMapping(typeof(TDestination), customMapping);
@@ -222,7 +227,12 @@ namespace ThisMember.Core
       map.SourceType = pair.SourceType;
       map.DestinationType = pair.DestinationType;
 
-      var mapping = GetTypeMapping(pair, options);
+      ProposedTypeMapping mapping;
+
+      if (!this.mappingCache.TryGetValue(pair, out mapping))
+      {
+        mapping = GetTypeMapping(pair, options);
+      }
 
       map.ProposedTypeMapping = mapping;
 

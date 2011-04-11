@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ThisMember.Core.Interfaces;
-using Ninject;
 using System.Linq.Expressions;
 
 namespace ThisMember.Core
