@@ -1,0 +1,5 @@
+*.dll 
+*/bin/*
+*/obj/*
+TestResults/*
+*.testsettings
