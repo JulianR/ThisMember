@@ -11,7 +11,7 @@ using ThisMember.Core.Exceptions;
 namespace ThisMember.Core
 {
 
-  
+
 
   public class DefaultMappingStrategy : IMappingStrategy
   {
@@ -28,7 +28,7 @@ namespace ThisMember.Core
       this.mapper = mapper;
     }
 
-    private ProposedTypeMapping GetTypeMapping(TypePair pair, MappingOptions options = null, Expression customMapping = null)
+    private ProposedTypeMapping GetTypeMapping(TypePair pair, MappingOptions options = null, CustomMapping customMapping = null)
     {
       var typeMapping = new ProposedTypeMapping();
 
@@ -59,55 +59,71 @@ namespace ThisMember.Core
 
       var destinationProperties = (from p in destinationType.GetProperties()
                                    where p.CanWrite && !p.GetIndexParameters().Any()
-                                   select p);
+                                   select (PropertyOrFieldInfo)p)
+                                   .Union(from f in destinationType.GetFields()
+                                          where !f.IsStatic
+                                          select (PropertyOrFieldInfo)f);
 
-      HashSet<string> customProperties = new HashSet<string>();
 
-      if (customMapping != null)
-      {
-        var lambda = customMapping as LambdaExpression;
+      //HashSet<string> customProperties = new HashSet<string>();
 
-        if (lambda == null) throw new ArgumentException("Only LambdaExpression is allowed here");
+      //if (customMapping != null)
+      //{
+      //  var lambda = customMapping as LambdaExpression;
 
-        var newType = lambda.Body as NewExpression;
+      //  if (lambda == null) throw new ArgumentException("Only LambdaExpression is allowed here");
 
-        if (newType == null) throw new ArgumentException("Only NewExpression is allowed to specify a custom mapping");
+      //  var newType = lambda.Body as NewExpression;
 
-        customProperties = new HashSet<string>(newType.Members.Select(m => m.Name));
+      //  if (newType == null) throw new ArgumentException("Only NewExpression is allowed to specify a custom mapping");
 
-        foreach (var member in newType.Members)
-        {
-          PropertyInfo prop;
-          //if (destinationProperties.TryGetValue(member.Name, out prop))
-          //{
-          //  Console.WriteLine(prop);
-          //}
-        }
+      //  customProperties = new HashSet<string>(newType.Members.Select(m => m.Name));
 
-      }
+      //  foreach (var member in newType.Members)
+      //  {
+      //    PropertyInfo prop;
+      //    //if (destinationProperties.TryGetValue(member.Name, out prop))
+      //    //{
+      //    //  Console.WriteLine(prop);
+      //    //}
+      //  }
+
+      //}
 
 
       var sourceProperties = (from p in sourceType.GetProperties()
                               where p.CanRead && !p.GetIndexParameters().Any()
-                              select p).ToDictionary(k => k.Name);
+                              select (PropertyOrFieldInfo)p)
+                              .Union(from f in sourceType.GetFields()
+                                     where !f.IsStatic
+                                     select (PropertyOrFieldInfo)f)
+                              .ToDictionary(k => k.Name);
 
       foreach (var destinationProperty in destinationProperties)
       {
-        PropertyInfo sourceProperty;
+        PropertyOrFieldInfo sourceProperty;
 
-        if (customProperties.Contains(destinationProperty.Name))
+        //if (customProperties.Contains(destinationProperty.Name))
         {
           //continue;
         }
 
-        if (!sourceProperties.TryGetValue(destinationProperty.Name, out sourceProperty) 
+        Expression customExpression = null;
+
+        if (customMapping != null)
+        {
+          customExpression = customMapping.GetExpressionForMember(destinationProperty);
+        }
+
+        if (!sourceProperties.TryGetValue(destinationProperty.Name, out sourceProperty)
+          && customExpression == null
           && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember)
         {
           throw new IncompatibleMappingException(destinationProperty);
         }
 
         if (sourceProperty != null
-          && destinationProperty.PropertyType.IsAssignableFrom(sourceProperty.PropertyType))
+          && destinationProperty.PropertyOrFieldType.IsAssignableFrom(sourceProperty.PropertyOrFieldType))
         {
 
           if (options != null)
@@ -136,12 +152,12 @@ namespace ThisMember.Core
         else if (sourceProperty != null)
         {
 
-          if (typeof(IEnumerable).IsAssignableFrom(sourceProperty.PropertyType)
-            && typeof(IEnumerable).IsAssignableFrom(destinationProperty.PropertyType))
+          if (typeof(IEnumerable).IsAssignableFrom(sourceProperty.PropertyOrFieldType)
+            && typeof(IEnumerable).IsAssignableFrom(destinationProperty.PropertyOrFieldType))
           {
 
-            var typeOfSourceEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(sourceProperty.PropertyType);
-            var typeOfDestinationEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(destinationProperty.PropertyType);
+            var typeOfSourceEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(sourceProperty.PropertyOrFieldType);
+            var typeOfDestinationEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(destinationProperty.PropertyOrFieldType);
 
             if (typeOfDestinationEnumerable == typeOfSourceEnumerable)
             {
@@ -163,7 +179,7 @@ namespace ThisMember.Core
 
               if (!mappingCache.TryGetValue(complexPair, out complexTypeMapping))
               {
-                complexTypeMapping = GetTypeMapping(complexPair, options);
+                complexTypeMapping = GetTypeMapping(complexPair, options, customMapping);
               }
 
               complexTypeMapping = complexTypeMapping.Clone();
@@ -176,13 +192,13 @@ namespace ThisMember.Core
           }
           else
           {
-            var complexPair = new TypePair(sourceProperty.PropertyType, destinationProperty.PropertyType);
+            var complexPair = new TypePair(sourceProperty.PropertyOrFieldType, destinationProperty.PropertyOrFieldType);
 
             ProposedTypeMapping complexTypeMapping;
 
             if (!mappingCache.TryGetValue(complexPair, out complexTypeMapping))
             {
-              complexTypeMapping = GetTypeMapping(complexPair, options);
+              complexTypeMapping = GetTypeMapping(complexPair, options, customMapping);
             }
 
             complexTypeMapping = complexTypeMapping.Clone();
@@ -193,6 +209,17 @@ namespace ThisMember.Core
             typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
           }
         }
+        else if (customExpression != null)
+        {
+          typeMapping.ProposedMappings.Add
+          (
+            new ProposedMemberMapping
+            {
+              SourceMember = null,
+              DestinationMember = destinationProperty
+            }
+          );
+        }
       }
 
       mappingCache[pair] = typeMapping;
@@ -200,7 +227,7 @@ namespace ThisMember.Core
       return typeMapping;
     }
 
-    public ProposedMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null)
+    public ProposedMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMappingExpression = null)
     {
       var map = new ProposedMap<TSource, TDestination>(this.mapper);
 
@@ -213,13 +240,20 @@ namespace ThisMember.Core
 
       ProposedTypeMapping mapping;
 
+      CustomMapping customMapping = null;
+
+      if (customMappingExpression != null)
+      {
+        customMapping = CustomMapping.GetCustomMapping(typeof(TDestination), customMappingExpression);
+      }
+
       if (!this.mappingCache.TryGetValue(pair, out mapping))
       {
         mapping = GetTypeMapping(pair, options, customMapping);
       }
 
       map.ProposedTypeMapping = mapping;
-      map.CustomMapping = CustomMapping.GetCustomMapping(typeof(TDestination), customMapping);
+      map.CustomMapping = customMapping;
 
       return map;
     }
