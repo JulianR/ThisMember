@@ -22,6 +22,35 @@ namespace ThisMember.Test
       public string ID { get; set; }
     }
 
+    private class Address
+    {
+      public string Street { get; set; }
+      public string HouseNumber { get; set; }
+      public string ZipCode { get; set; }
+      public string City { get; set; }
+    }
+
+    private class EmailAddress
+    {
+      public string Address { get; set; }
+    }
+
+    private class Customer
+    {
+      public int CustomerID { get; set; }
+      public string FirstName { get; set; }
+      public string LastName { get; set; }
+      public Address Address { get; set; }
+      public EmailAddress EmailAddress { get; set; }
+
+    }
+
+    private class SimpleCustomerDto
+    {
+      public string FullName { get; set; }
+      public string AddressLine { get; set; }
+      public string EmailAddress { get; set; }
+    }
 
     [TestMethod]
     public void ToStringIsCalledWhenTypesDoNotMatch()
@@ -83,6 +112,29 @@ namespace ThisMember.Test
       };
 
       var dest = mapper.Map<Source[], List<Destination>>(new[] { src });
+    }
+
+    [TestMethod]
+    public void NavigationPropertiesDoNotThrowWhenNull()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<Customer, SimpleCustomerDto>(customMapping: src =>
+      new
+      {
+        AddressLine = src.Address.City
+      }).FinalizeMap();
+
+      var customer = new Customer
+      {
+        Address = new Address
+        {
+          City = "test"
+        }
+      };
+
+
+
     }
   }
 }

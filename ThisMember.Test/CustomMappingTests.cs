@@ -57,7 +57,7 @@ namespace ThisMember.Test
     }
 
     [TestMethod]
-    public void NavigationPropertiesDoNotThrowWhenNull()
+    public void NonMatchingMembesAreMappedWhenCustomMappingIsPresent()
     {
       var mapper = new MemberMapper();
 
@@ -67,6 +67,17 @@ namespace ThisMember.Test
         AddressLine = src.Address.City
       }).FinalizeMap();
 
+      var customer = new Customer
+      {
+        Address = new Address
+        {
+          City = "test"
+        }
+      };
+
+      var dto = mapper.Map<Customer, SimpleCustomerDto>(customer);
+
+      Assert.AreEqual("test", dto.AddressLine);
 
     }
   }

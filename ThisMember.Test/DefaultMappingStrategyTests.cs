@@ -300,5 +300,30 @@ namespace ThisMember.Test
       Assert.IsTrue(ContainsMappingFor(proposition, expectation));
     }
 
+    public class SourceFields
+    {
+      public int ID = 10;
+    }
+
+    public class DestinationFields
+    {
+      public int ID;
+    }
+
+    [TestMethod]
+    public void FieldsAreMapped()
+    {
+      var mapper = new MemberMapper();
+
+      var proposition = mapper.CreateMap<SourceFields, DestinationFields>();
+
+      var expectation = new ExpectedMappings<SourceFields, DestinationFields>();
+
+      expectation.Add(t => t.ID, t => t.ID);
+
+      Assert.IsTrue(ContainsMappingFor(proposition, expectation));
+
+    }
+
   }
 }
