@@ -8,11 +8,63 @@ using System.Linq.Expressions;
 using System.Reflection.Emit;
 using System.Collections;
 using ThisMember.Core.Exceptions;
+using System.Globalization;
 
 namespace ThisMember.Core
 {
   internal class CompiledMapGenerator : IMapGenerator
   {
+    private class MemberVisitor : ExpressionVisitor
+    {
+      private readonly IMemberMapper mapper;
+      public MemberVisitor(IMemberMapper mapper)
+      {
+        this.mapper = mapper;
+      }
+
+      private Expression ConvertToConditionals(Type conditionalReturnType, Expression expression, Expression newExpression)
+      {
+
+        var memberNode = (MemberExpression)expression;
+        if (newExpression == null)
+        {
+          newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
+            memberNode, Expression.Default(conditionalReturnType), conditionalReturnType);
+        }
+        else
+        {
+
+          if (memberNode.Expression.NodeType == ExpressionType.Parameter)
+          {
+            return newExpression;
+          }
+          else
+          {
+
+            newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
+              newExpression, Expression.Default(conditionalReturnType), conditionalReturnType);
+          }
+        }
+
+        return ConvertToConditionals(conditionalReturnType, memberNode.Expression, newExpression);
+
+      }
+
+      protected override Expression VisitMember(MemberExpression node)
+      {
+        if (mapper.Options.Safety.PerformNullChecksOnCustomMappings)
+        {
+          return ConvertToConditionals(node.Type, node, null);
+        }
+
+        return base.VisitMember(node);
+
+        //return Expression.Condition(Expression.NotEqual(node.Expression, Expression.Constant(null)), node, Expression.Default(node.Type), node.Type);
+
+        //return base.VisitMember(node);
+      }
+    }
+
     private class ParameterVisitor : ExpressionVisitor
     {
 
@@ -21,41 +73,6 @@ namespace ThisMember.Core
       {
         this.oldParam = oldParam;
         this.newParam = newParam;
-      }
-
-      private Expression ConvertToConditionals(Type conditionalReturnType, Expression expression, Expression newExpression)
-      {
-        if (expression.NodeType == ExpressionType.Parameter)
-        {
-          return newExpression;
-        }
-        else if (expression.NodeType == ExpressionType.MemberAccess)
-        {
-          var memberNode = (MemberExpression)expression;
-          if (newExpression == null)
-          {
-            newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
-              memberNode, Expression.Default(conditionalReturnType), conditionalReturnType);
-          }
-          else
-          {
-            newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
-              newExpression, Expression.Default(conditionalReturnType), conditionalReturnType);
-          }
-
-          return ConvertToConditionals(conditionalReturnType, memberNode.Expression, newExpression);
-        }
-        return null;
-      }
-
-      protected override Expression VisitMember(MemberExpression node)
-      {
-
-        return VisitConditional((ConditionalExpression)ConvertToConditionals(node.Type, node, null));
-
-        //return Expression.Condition(Expression.NotEqual(node.Expression, Expression.Constant(null)), node, Expression.Default(node.Type), node.Type);
-
-        //return base.VisitMember(node);
       }
 
       protected override Expression VisitParameter(ParameterExpression node)
@@ -128,12 +145,15 @@ namespace ThisMember.Core
 
       if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
       {
-        var visitor = new ParameterVisitor(customMapping.Parameter, source);
+        var paramVisitor = new ParameterVisitor(customMapping.Parameter, source);
 
-        customExpression = visitor.Visit(customExpression);
+        var memberVisitor = new MemberVisitor(this.mapper);
+
+        customExpression = memberVisitor.Visit(customExpression);
+
+        customExpression = paramVisitor.Visit(customExpression);
 
         assignSourceToDest = Expression.Assign(destMember, customExpression);
-
       }
       else
       {
@@ -406,6 +426,57 @@ namespace ThisMember.Core
 
     }
 
+    private static bool TypeReceivesSpecialTreatment(Type type)
+    {
+      return type == typeof(string) || type == typeof(DateTime);
+    }
+
+    private Expression HandleSpecialType(Type sourceType, Type destinationType, ParameterExpression complexSource)
+    {
+      if (destinationType == typeof(string))
+      {
+        return HandleStringDestination(sourceType, complexSource);
+      }
+      else if (destinationType == typeof(DateTime) && sourceType == typeof(string))
+      {
+        return HandleDateTimeDestination(complexSource);
+      }
+
+      return null;
+    }
+
+    private Expression HandleDateTimeDestination(ParameterExpression complexSource)
+    {
+      if (mapper.Options.Conventions.DateTime.ParseStringsToDateTime)
+      {
+        var culture = mapper.Options.Conventions.DateTime.ParseCulture ?? CultureInfo.CurrentCulture;
+
+        var cultureExpression = Expression.New(typeof(CultureInfo).GetConstructor(new[] { typeof(string) }), Expression.Constant(culture.Name)); 
+
+        var parseMethod = typeof(DateTime).GetMethod("Parse", new[] { typeof(string), typeof(IFormatProvider) });
+
+        return Expression.Call(null, parseMethod, complexSource, cultureExpression);
+      }
+      else
+      {
+        throw new CodeGenerationException("Cannot map System.String to System.DateTime");
+      }
+    }
+
+    private Expression HandleStringDestination(Type sourceType, ParameterExpression complexSource)
+    {
+      if (mapper.Options.Conventions.CallToStringWhenDestinationIsString)
+      {
+        var callToStringOnSource = Expression.Call(complexSource, typeof(object).GetMethod("ToString", Type.EmptyTypes));
+
+        return callToStringOnSource;
+      }
+      else
+      {
+        throw new CodeGenerationException("Cannot map {0} to System.String", sourceType);
+      }
+    }
+
     private void BuildNonCollectionComplexTypeMappingExpressions(ParameterExpression source, ParameterExpression destination, ProposedTypeMapping complexTypeMapping, List<Expression> expressions, List<ParameterExpression> newParams)
     {
 
@@ -424,20 +495,21 @@ namespace ThisMember.Core
 
       var newType = complexTypeMapping.DestinationMember.PropertyOrFieldType;
 
-      // String gets special treatment, if you try to map a non-string type to string
-      // then by default we simply call .ToString() on the source member. 
-      if (newType == typeof(string))
+      if (TypeReceivesSpecialTreatment(newType))
       {
-        if (mapper.Options.Conventions.CallToStringWhenDestinationIsString)
-        {
-          var callToStringOnSource = Expression.Call(complexSource, typeof(object).GetMethod("ToString", Type.EmptyTypes));
-
-          ifNotNullBlock.Add(Expression.Assign(Expression.PropertyOrField(destination, complexTypeMapping.DestinationMember.Name), callToStringOnSource));
-        }
-        else
-        {
-          throw new CodeGenerationException("Cannot map {0} to System.String", complexTypeMapping.SourceMember.PropertyOrFieldType);
-        }
+        ifNotNullBlock.Add
+        (
+          Expression.Assign
+          (
+            Expression.PropertyOrField(destination, complexTypeMapping.DestinationMember.Name),
+            HandleSpecialType
+            (
+              complexTypeMapping.SourceMember.PropertyOrFieldType,
+              newType,
+              complexSource
+            )
+          )
+        );
       }
       else
       {

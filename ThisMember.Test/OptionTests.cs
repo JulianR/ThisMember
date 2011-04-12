@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ThisMember.Core;
 using ThisMember.Core.Exceptions;
+using System.Globalization;
 
 namespace ThisMember.Test
 {
@@ -133,18 +134,105 @@ namespace ThisMember.Test
 
       var customer = new Customer
       {
-        Address = new Address
-        {
-          City = "test",
-          Foo = new Foo
-          {
-            Bar = "test"
-          }
-        }
+        //Address = new Address
+        //{
+        //  City = "test",
+        //  Foo = new Foo
+        //  {
+        //    Bar = "test"
+        //  }
+        //}
       };
 
+      var dto = mapper.Map<Customer, SimpleCustomerDto>(customer);
+    }
 
+    [TestMethod]
+    [ExpectedException(typeof(NullReferenceException))]
+    public void NavigationPropertiesThrowsWhenNullWithSafetyDisabled()
+    {
+      var mapper = new MemberMapper();
 
+      mapper.Options.Safety.PerformNullChecksOnCustomMappings = false;
+
+      mapper.CreateMap<Customer, SimpleCustomerDto>(customMapping: src =>
+      new
+      {
+        AddressLine = src.Address.Foo.Bar
+      }).FinalizeMap();
+
+      var customer = new Customer
+      {
+        //Address = new Address
+        //{
+        //  City = "test",
+        //  Foo = new Foo
+        //  {
+        //    Bar = "test"
+        //  }
+        //}
+      };
+
+      var dto = mapper.Map<Customer, SimpleCustomerDto>(customer);
+    }
+
+    public class StringSource
+    {
+      public string Date { get; set; }
+    }
+
+    public class DateTimeDestination
+    {
+      public DateTime Date { get; set; }
+    }
+
+    [TestMethod]
+    public void StringIsParsedToDateTime()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Conventions.DateTime.ParseStringsToDateTime = true;
+      mapper.Options.Conventions.DateTime.ParseCulture = new CultureInfo("en-US");
+
+      var result = mapper.Map<StringSource, DateTimeDestination>(new StringSource { Date = "12-31-2001" });
+
+      Assert.AreEqual(new DateTime(2001, 12, 31), result.Date);
+
+    }
+
+    [TestMethod]
+    public void StringIsParsedToDateTimeWithDifferentCulture()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Conventions.DateTime.ParseStringsToDateTime = true;
+      mapper.Options.Conventions.DateTime.ParseCulture = new CultureInfo("nl-NL");
+
+      var result = mapper.Map<StringSource, DateTimeDestination>(new StringSource { Date = "31-12-2001" });
+
+      Assert.AreEqual(new DateTime(2001, 12, 31), result.Date);
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(CodeGenerationException))]
+    public void ExceptionIsThrownWithMappingToDateTimeTurnedOff()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Conventions.DateTime.ParseStringsToDateTime = false;
+
+      var result = mapper.Map<StringSource, DateTimeDestination>(new StringSource { Date = "31-12-2001" });
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(FormatException))]
+    public void ExceptionIsThrownWithInvalidFormat()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Conventions.DateTime.ParseStringsToDateTime = true;
+
+      var result = mapper.Map<StringSource, DateTimeDestination>(new StringSource { Date = "3a1-31-2001abc" });
     }
   }
 }
