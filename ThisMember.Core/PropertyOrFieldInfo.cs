@@ -20,7 +20,7 @@ namespace ThisMember.Core.Interfaces
         throw new ArgumentException("member");
       }
 
-      member = member;
+      this.member = member;
     }
 
     public Type PropertyOrFieldType
