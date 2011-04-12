@@ -6,20 +6,12 @@ using ThisMember.Core.Interfaces;
 using System.Reflection;
 using System.Collections;
 using System.Linq.Expressions;
+using ThisMember.Core.Exceptions;
 
 namespace ThisMember.Core
 {
 
-  public class IncompatibleMappingException : Exception
-  {
-    public PropertyOrFieldInfo MissingMember { get; set; }
-
-    public IncompatibleMappingException(PropertyOrFieldInfo member) : base(string.Format("Member {0} cannot be mapped", member))
-    {
-      this.MissingMember = member;
-    }
-
-  }
+  
 
   public class DefaultMappingStrategy : IMappingStrategy
   {

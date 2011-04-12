@@ -4,23 +4,10 @@ using System.Linq;
 using System.Text;
 using ThisMember.Core.Interfaces;
 using System.Linq.Expressions;
+using ThisMember.Core.Exceptions;
 
 namespace ThisMember.Core
 {
-
-  public class MapNotFoundException : Exception
-  {
-
-    public Type SourceType { get; set; }
-
-    public Type DestinationType { get; set; }
-    public MapNotFoundException(Type source, Type destination)
-      : base(string.Format("No mapping between {0} and {1} exists", source, destination))
-    {
-      this.SourceType = source;
-      this.DestinationType = destination;
-    }
-  }
 
   public class MemberMapper : IMemberMapper
   {
@@ -30,7 +17,7 @@ namespace ThisMember.Core
     {
       this.MappingStrategy = strategy ?? new DefaultMappingStrategy(this);
 
-      this.MappingStrategy.MapGenerator = generator ?? new CompiledMapGenerator();
+      this.MappingStrategy.MapGenerator = generator ?? new CompiledMapGenerator(this);
 
       this.Options = options ?? MapperOptions.Default;
     }
