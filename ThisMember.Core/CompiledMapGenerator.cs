@@ -90,7 +90,6 @@ namespace ThisMember.Core
 
     private void BuildSimpleTypeMappingExpressions(ParameterExpression source, ParameterExpression destination, ProposedMemberMapping member, List<Expression> expressions, List<ParameterExpression> newParams, CustomMapping customMapping = null)
     {
-      Expression sourceExpression = Expression.PropertyOrField(source, member.SourceMember.Name);
       var destMember = Expression.PropertyOrField(destination, member.DestinationMember.Name);
       
       BinaryExpression assignSourceToDest;
@@ -108,6 +107,7 @@ namespace ThisMember.Core
       }
       else
       {
+        Expression sourceExpression = Expression.PropertyOrField(source, member.SourceMember.Name);
         assignSourceToDest = Expression.Assign(destMember, sourceExpression);
       }
 
