@@ -23,9 +23,39 @@ namespace ThisMember.Core
         this.newParam = newParam;
       }
 
+      private Expression ConvertToConditionals(Type conditionalReturnType, Expression expression, Expression newExpression)
+      {
+        if (expression.NodeType == ExpressionType.Parameter)
+        {
+          return newExpression;
+        }
+        else if (expression.NodeType == ExpressionType.MemberAccess)
+        {
+          var memberNode = (MemberExpression)expression;
+          if (newExpression == null)
+          {
+            newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
+              memberNode, Expression.Default(conditionalReturnType), conditionalReturnType);
+          }
+          else
+          {
+            newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
+              newExpression, Expression.Default(conditionalReturnType), conditionalReturnType);
+          }
+
+          return ConvertToConditionals(conditionalReturnType, memberNode.Expression, newExpression);
+        }
+        return null;
+      }
+
       protected override Expression VisitMember(MemberExpression node)
       {
-        return base.VisitMember(node);
+
+        return VisitConditional((ConditionalExpression)ConvertToConditionals(node.Type, node, null));
+
+        //return Expression.Condition(Expression.NotEqual(node.Expression, Expression.Constant(null)), node, Expression.Default(node.Type), node.Type);
+
+        //return base.VisitMember(node);
       }
 
       protected override Expression VisitParameter(ParameterExpression node)
@@ -91,7 +121,7 @@ namespace ThisMember.Core
     private void BuildSimpleTypeMappingExpressions(ParameterExpression source, ParameterExpression destination, ProposedMemberMapping member, List<Expression> expressions, List<ParameterExpression> newParams, CustomMapping customMapping = null)
     {
       var destMember = Expression.PropertyOrField(destination, member.DestinationMember.Name);
-      
+
       BinaryExpression assignSourceToDest;
 
       Expression customExpression;
@@ -265,7 +295,7 @@ namespace ThisMember.Core
       {
         var addMethod = destinationCollectionType.GetMethod("Add", new[] { destinationCollectionElementType });
         var callAddOnDestinationCollection = Expression.Call(destinationCollection, addMethod, destinationCollectionItem);
-        
+
         // destination.Add(destinationItem);
         assignItemToDestination = callAddOnDestinationCollection;
 
@@ -364,7 +394,7 @@ namespace ThisMember.Core
       }
 
       // destination.Collection = newCollection OR return destination, if destination is enumerable itself
-      Expression accessDestinationCollection = complexTypeMapping.DestinationMember != null ? (Expression) Expression.MakeMemberAccess(destination, complexTypeMapping.DestinationMember) : destination;
+      Expression accessDestinationCollection = complexTypeMapping.DestinationMember != null ? (Expression)Expression.MakeMemberAccess(destination, complexTypeMapping.DestinationMember) : destination;
 
       var assignDestinationCollection = Expression.Assign(accessDestinationCollection, destinationCollection);
 

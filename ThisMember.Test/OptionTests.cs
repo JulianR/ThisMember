@@ -22,12 +22,18 @@ namespace ThisMember.Test
       public string ID { get; set; }
     }
 
+    private class Foo
+    {
+      public string Bar { get; set; }
+    }
+
     private class Address
     {
       public string Street { get; set; }
       public string HouseNumber { get; set; }
       public string ZipCode { get; set; }
       public string City { get; set; }
+      public Foo Foo { get; set; }
     }
 
     private class EmailAddress
@@ -122,14 +128,18 @@ namespace ThisMember.Test
       mapper.CreateMap<Customer, SimpleCustomerDto>(customMapping: src =>
       new
       {
-        AddressLine = src.Address.City
+        AddressLine = src.Address.Foo.Bar
       }).FinalizeMap();
 
       var customer = new Customer
       {
         Address = new Address
         {
-          City = "test"
+          City = "test",
+          Foo = new Foo
+          {
+            Bar = "test"
+          }
         }
       };
 
