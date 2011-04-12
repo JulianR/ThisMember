@@ -33,11 +33,11 @@ namespace ThisMember.Core.Interfaces
 
     bool HasMap(Type source, Type destination);
 
-    MemberMap GetMap<TSource, TDestination>();
+    MemberMap<TSource, TDestination> GetMap<TSource, TDestination>();
 
     MemberMap GetMap(Type source, Type destination);
 
-    bool TryGetMap<TSource, TDestination>(out MemberMap map);
+    bool TryGetMap<TSource, TDestination>(out MemberMap<TSource, TDestination> map);
 
     bool TryGetMap(Type source, Type destination, out MemberMap map);
 

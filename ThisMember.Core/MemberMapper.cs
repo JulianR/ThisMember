@@ -131,7 +131,7 @@ namespace ThisMember.Core
       return this.maps.ContainsKey(new TypePair(source, destination));
     }
 
-    public MemberMap GetMap<TSource, TDestination>()
+    public MemberMap<TSource, TDestination> GetMap<TSource, TDestination>()
     {
       MemberMap map;
 
@@ -139,7 +139,10 @@ namespace ThisMember.Core
       {
         throw new MapNotFoundException(typeof(TSource), typeof(TDestination));
       }
-      return map;
+
+      var genericMap = map as MemberMap<TSource, TDestination>;
+
+      return genericMap ?? map.ToGeneric<TSource, TDestination>();
 
     }
 
@@ -154,12 +157,24 @@ namespace ThisMember.Core
       return map;
     }
 
-    public bool TryGetMap<TSource, TDestination>(out MemberMap map)
+    public bool TryGetMap<TSource, TDestination>(out MemberMap<TSource, TDestination> map)
     {
-      if (!this.maps.TryGetValue(new TypePair(typeof(TSource), typeof(TDestination)), out map))
+      MemberMap nonGeneric;
+
+      if (!this.maps.TryGetValue(new TypePair(typeof(TSource), typeof(TDestination)), out nonGeneric))
       {
+        map = nonGeneric as MemberMap<TSource, TDestination>;
+
+        if (map == null)
+        {
+          map = map.ToGeneric<TSource, TDestination>();
+        } 
+
         return false;
       }
+
+      map = null;
+
       return true;
     }
 
