@@ -45,7 +45,7 @@ namespace ThisMember.Core
 
     }
 
-    public static readonly MapperOptions Default = new MapperOptions();
+    //public static readonly MapperOptions Default = new MapperOptions();
 
   }
 

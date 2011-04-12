@@ -19,7 +19,7 @@ namespace ThisMember.Core
 
       this.MappingStrategy.MapGenerator = generator ?? new CompiledMapGenerator(this);
 
-      this.Options = options ?? MapperOptions.Default;
+      this.Options = options ?? new MapperOptions();
     }
 
     private Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
