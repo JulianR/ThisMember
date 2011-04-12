@@ -55,5 +55,19 @@ namespace ThisMember.Test
       }).FinalizeMap();
 
     }
+
+    [TestMethod]
+    public void NavigationPropertiesDoNotThrowWhenNull()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<Customer, SimpleCustomerDto>(customMapping: src =>
+      new
+      {
+        AddressLine = src.Address.City
+      }).FinalizeMap();
+
+
+    }
   }
 }
