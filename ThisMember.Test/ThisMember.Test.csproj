@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="CompilationTests.cs" />
     <Compile Include="ComplexMappingTests.cs" />
+    <Compile Include="ConstructorTests.cs" />
     <Compile Include="CustomMappingTests.cs" />
     <Compile Include="DefaultMappingStrategyTests.cs" />
     <Compile Include="DefaultMemberMapperEnumerableTests.cs" />

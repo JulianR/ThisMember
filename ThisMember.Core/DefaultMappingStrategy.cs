@@ -57,10 +57,10 @@ namespace ThisMember.Core
 
 
 
-      var destinationProperties = (from p in destinationType.GetProperties()
+      var destinationProperties = (from p in destinationType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                                    where p.CanWrite && !p.GetIndexParameters().Any()
                                    select (PropertyOrFieldInfo)p)
-                                   .Union(from f in destinationType.GetFields()
+                                   .Union(from f in destinationType.GetFields(BindingFlags.Public)
                                           where !f.IsStatic
                                           select (PropertyOrFieldInfo)f);
 
@@ -115,11 +115,16 @@ namespace ThisMember.Core
           customExpression = customMapping.GetExpressionForMember(destinationProperty);
         }
 
+
         if (!sourceProperties.TryGetValue(destinationProperty.Name, out sourceProperty)
           && customExpression == null
-          && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember)
+          && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember
+          && !mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
         {
           throw new IncompatibleMappingException(destinationProperty);
+        }
+        else if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
+        {
         }
 
         if (sourceProperty != null

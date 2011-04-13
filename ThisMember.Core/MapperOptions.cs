@@ -84,6 +84,12 @@ namespace ThisMember.Core
     public bool CallToStringWhenDestinationIsString { get; set; }
 
     public MapperDateTimeOptions DateTime { get; set; }
+
+    /// <summary>
+    /// Attempts to map hierarchies such as order.Customer.Name to destination.CustomerName.
+    /// </summary>
+    public bool AutomaticallyFlattenHierarchies { get; set; }
+
   }
 
   public class MapperSafetyOptions

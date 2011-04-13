@@ -14,6 +14,13 @@ namespace ThisMember.Core
 {
   internal class CompiledMapGenerator : IMapGenerator
   {
+
+    private class SourceAndDestinationParameter
+    {
+      public ParameterExpression Source { get; set; }
+      public ParameterExpression Destination { get; set; }
+    }
+
     private class MemberVisitor : ExpressionVisitor
     {
       private readonly IMemberMapper mapper;
@@ -119,28 +126,47 @@ namespace ThisMember.Core
       return "i#" + currentID++;
     }
 
-    private void BuildTypeMappingExpressions(ParameterExpression source, ParameterExpression destination, ProposedTypeMapping typeMapping, List<Expression> expressions, List<ParameterExpression> newParams, CustomMapping customMapping = null)
+    private void BuildTypeMappingExpressions
+    (
+      SourceAndDestinationParameter rootParams,
+      ProposedMap map, ParameterExpression source, 
+      ParameterExpression destination, 
+      ProposedTypeMapping typeMapping, 
+      List<Expression> expressions, 
+      List<ParameterExpression> newParams, 
+      CustomMapping customMapping = null
+    )
     {
 
       foreach (var member in typeMapping.ProposedMappings)
       {
-        BuildSimpleTypeMappingExpressions(source, destination, member, expressions, newParams, customMapping);
+        BuildSimpleTypeMappingExpressions(rootParams, map, source, destination, member, expressions, newParams, customMapping);
       }
 
       foreach (var complexTypeMapping in typeMapping.ProposedTypeMappings)
       {
         if (typeMapping.IsEnumerable || CollectionTypeHelper.IsEnumerable(complexTypeMapping))
         {
-          BuildCollectionComplexTypeMappingExpressions(source, destination, complexTypeMapping, expressions, newParams);
+          BuildCollectionComplexTypeMappingExpressions(rootParams, map, source, destination, complexTypeMapping, expressions, newParams);
         }
         else
         {
-          BuildNonCollectionComplexTypeMappingExpressions(source, destination, complexTypeMapping, expressions, newParams);
+          BuildNonCollectionComplexTypeMappingExpressions(rootParams, map, source, destination, complexTypeMapping, expressions, newParams);
         }
       }
     }
 
-    private void BuildSimpleTypeMappingExpressions(ParameterExpression source, ParameterExpression destination, ProposedMemberMapping member, List<Expression> expressions, List<ParameterExpression> newParams, CustomMapping customMapping = null)
+    private void BuildSimpleTypeMappingExpressions
+    (
+      SourceAndDestinationParameter rootParams, 
+      ProposedMap map, 
+      ParameterExpression source, 
+      ParameterExpression destination, 
+      ProposedMemberMapping member, 
+      List<Expression> expressions, 
+      List<ParameterExpression> newParams, 
+      CustomMapping customMapping = null
+    )
     {
       var destMember = Expression.PropertyOrField(destination, member.DestinationMember.Name);
 
@@ -169,7 +195,16 @@ namespace ThisMember.Core
       expressions.Add(assignSourceToDest);
     }
 
-    private void BuildCollectionComplexTypeMappingExpressions(ParameterExpression source, ParameterExpression destination, ProposedTypeMapping complexTypeMapping, List<Expression> expressions, List<ParameterExpression> newParams)
+    private void BuildCollectionComplexTypeMappingExpressions
+    (
+      SourceAndDestinationParameter rootParams,
+      ProposedMap map, 
+      ParameterExpression source, 
+      ParameterExpression destination, 
+      ProposedTypeMapping complexTypeMapping, 
+      List<Expression> expressions, 
+      List<ParameterExpression> newParams
+    )
     {
 
 
@@ -286,7 +321,7 @@ namespace ThisMember.Core
       // so we have to create a new item and do additional mapping (most likely).
       if (!sourceElementSameAsDestination)
       {
-        var createNewDestinationCollectionItem = Expression.New(destinationCollectionElementType);
+        var createNewDestinationCollectionItem = GetConstructorForType(map, destinationCollectionElementType, rootParams.Source, rootParams.Destination);
         // var destinationItem = new DestinationItem();
         assignNewItemToDestinationItem = Expression.Assign(destinationCollectionItem, createNewDestinationCollectionItem);
       }
@@ -351,7 +386,7 @@ namespace ThisMember.Core
 
         expressionsInsideLoop.Add(assignNewItemToDestinationItem);
 
-        BuildTypeMappingExpressions(sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, newParams);
+        BuildTypeMappingExpressions(rootParams, map, sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, newParams);
 
         expressionsInsideLoop.Add(assignItemToDestination);
 
@@ -395,7 +430,7 @@ namespace ThisMember.Core
         expressionsInsideLoop.Add(assignCurrent);
         expressionsInsideLoop.Add(assignNewItemToDestinationItem);
 
-        BuildTypeMappingExpressions(sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, newParams);
+        BuildTypeMappingExpressions(rootParams, map, sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, newParams);
 
         expressionsInsideLoop.Add(assignItemToDestination);
 
@@ -482,7 +517,61 @@ namespace ThisMember.Core
       }
     }
 
-    private void BuildNonCollectionComplexTypeMappingExpressions(ParameterExpression source, ParameterExpression destination, ProposedTypeMapping complexTypeMapping, List<Expression> expressions, List<ParameterExpression> newParams)
+    private Expression GetConstructorForType(ProposedMap map, Type t, ParameterExpression source, ParameterExpression destination)
+    {
+      LambdaExpression constructor = map.GetConstructor(t);
+
+      if (constructor == null)
+      {
+        constructor = mapper.GetConstructor(t);
+      }
+
+      if (constructor == null)
+      {
+
+        var parameterlessCtor = t.GetConstructor(Type.EmptyTypes);
+
+        if (parameterlessCtor == null)
+        {
+          throw new CodeGenerationException("No parameterless constructor defined for type {0} and no custom constructor provided either.", t);
+        }
+
+        return Expression.New(t);
+      }
+      else
+      {
+
+        if (constructor.Body.Type != t)
+        {
+          throw new CodeGenerationException("Invalid LambdaExpression as constructor: does not return type {0}", t);
+        }
+
+        if (constructor.Parameters.Count == 2)
+        {
+          // TSource is always before TDestination
+          var oldSrc = constructor.Parameters[0];
+          var oldDest = constructor.Parameters[1];
+
+          var srcVisitor = new ParameterVisitor(oldSrc, source);
+          var destVisitor = new ParameterVisitor(oldDest, destination);
+
+          constructor = (LambdaExpression) destVisitor.Visit(srcVisitor.Visit(constructor));
+
+          return constructor.Body;
+        }
+        else if (constructor.Parameters.Count == 0)
+        {
+          return constructor.Body;
+        }
+        else
+        {
+          throw new CodeGenerationException("Invalid LambdaExpression as constructor: {0} is an invalid amount of parameters", constructor.Parameters.Count);
+        }
+      }
+
+    }
+
+    private void BuildNonCollectionComplexTypeMappingExpressions(SourceAndDestinationParameter rootParams, ProposedMap map, ParameterExpression source, ParameterExpression destination, ProposedTypeMapping complexTypeMapping, List<Expression> expressions, List<ParameterExpression> newParams)
     {
 
       ParameterExpression complexSource = null, complexDest = null;
@@ -519,9 +608,9 @@ namespace ThisMember.Core
       else
       {
         // var destinationType = new DestinationType();
-        ifNotNullBlock.Add(Expression.Assign(complexDest, Expression.New(newType)));
+        ifNotNullBlock.Add(Expression.Assign(complexDest, GetConstructorForType(map, newType,rootParams.Source, rootParams.Destination)));
 
-        BuildTypeMappingExpressions(complexSource, complexDest, complexTypeMapping, ifNotNullBlock, newParams);
+        BuildTypeMappingExpressions(rootParams, map, complexSource, complexDest, complexTypeMapping, ifNotNullBlock, newParams);
 
         // destination.Member = destinationType;
         ifNotNullBlock.Add(Expression.Assign(Expression.PropertyOrField(destination, complexTypeMapping.DestinationMember.Name), complexDest));
@@ -650,7 +739,13 @@ namespace ThisMember.Core
         condition = Expression.NotEqual(source, Expression.Constant(null));
       }
 
-      BuildTypeMappingExpressions(source, destination, proposedMap.ProposedTypeMapping, assignments, newParams, proposedMap.CustomMapping);
+      var tuple = new SourceAndDestinationParameter
+      {
+        Source = source,
+        Destination = destination
+      };
+
+      BuildTypeMappingExpressions(tuple, proposedMap, source, destination, proposedMap.ProposedTypeMapping, assignments, newParams, proposedMap.CustomMapping);
 
       var block = Expression.Block(assignments);
 

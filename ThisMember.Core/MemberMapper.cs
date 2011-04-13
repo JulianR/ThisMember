@@ -168,7 +168,7 @@ namespace ThisMember.Core
         if (map == null)
         {
           map = map.ToGeneric<TSource, TDestination>();
-        } 
+        }
 
         return false;
       }
@@ -192,5 +192,27 @@ namespace ThisMember.Core
       this.maps.Clear();
       this.MappingStrategy.ClearMapCache();
     }
+
+    private Dictionary<Type, LambdaExpression> constructorCache = new Dictionary<Type, LambdaExpression>();
+
+    public IMemberMapper AddCustomConstructor<T>(Expression<Func<T>> ctor)
+    {
+      constructorCache[typeof(T)] = ctor;
+      return this;
+    }
+
+    public IMemberMapper AddCustomConstructor(Type type, LambdaExpression ctor)
+    {
+      constructorCache[type] = ctor;
+      return this;
+    }
+
+    public LambdaExpression GetConstructor(Type t)
+    {
+      LambdaExpression e;
+      constructorCache.TryGetValue(t, out e);
+      return e;
+    }
+
   }
 }

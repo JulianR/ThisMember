@@ -26,6 +26,8 @@ namespace ThisMember.Core
       this.mapper = mapper;
     }
 
+    protected Dictionary<Type, LambdaExpression> constructorCache = new Dictionary<Type, LambdaExpression>();
+
     public MemberMap FinalizeMap()
     {
       var map = new MemberMap();
@@ -37,6 +39,25 @@ namespace ThisMember.Core
       mapper.RegisterMap(map);
 
       return map;
+    }
+
+    public ProposedMap WithConstructorFor<T>(LambdaExpression constructor)
+    {
+      constructorCache[typeof(T)] = constructor;
+      return this;
+    }
+
+    public ProposedMap WithConstructorFor(Type type, LambdaExpression constructor)
+    {
+      constructorCache[type] = constructor;
+      return this;
+    }
+
+    public LambdaExpression GetConstructor(Type type)
+    {
+      LambdaExpression e;
+      constructorCache.TryGetValue(type, out e);
+      return e;
     }
 
     public ProposedTypeMapping ProposedTypeMapping { get; set; }
@@ -54,6 +75,12 @@ namespace ThisMember.Core
     public ProposedMap<TSource, TDestination> AddExpression<TSourceReturn, TDestinationReturn>(Expression<Func<TSource, TSourceReturn>> source, Expression<Func<TDestination, TDestinationReturn>> destination) where TDestinationReturn : TSourceReturn
     {
       throw new NotImplementedException();
+    }
+
+    public ProposedMap<TSource, TDestination> WithConstructorFor<T>(Expression<Func<TSource, TDestination, T>> constructor)
+    {
+      constructorCache.Add(typeof(T), constructor);
+      return this;
     }
   }
 }

@@ -50,5 +50,11 @@ namespace ThisMember.Core.Interfaces
 
     void ClearMapCache();
 
+    IMemberMapper AddCustomConstructor<T>(Expression<Func<T>> ctor);
+
+    IMemberMapper AddCustomConstructor(Type type, LambdaExpression ctor);
+
+    LambdaExpression GetConstructor(Type t);
+
   }
 }

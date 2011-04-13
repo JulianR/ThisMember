@@ -134,14 +134,25 @@ namespace ThisMember.Test
 
       var customer = new Customer
       {
-        //Address = new Address
-        //{
-        //  City = "test",
-        //  Foo = new Foo
-        //  {
-        //    Bar = "test"
-        //  }
-        //}
+      };
+
+      var dto = mapper.Map<Customer, SimpleCustomerDto>(customer);
+    }
+
+    [TestMethod]
+    public void NavigationPropertiesDoNotThrowWhenNull_2()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<Customer, SimpleCustomerDto>(customMapping: src =>
+      new
+      {
+        AddressLine = src.Address.Foo.Bar
+      }).FinalizeMap();
+
+      var customer = new Customer
+      {
+        Address = new Address()
       };
 
       var dto = mapper.Map<Customer, SimpleCustomerDto>(customer);
@@ -163,14 +174,6 @@ namespace ThisMember.Test
 
       var customer = new Customer
       {
-        //Address = new Address
-        //{
-        //  City = "test",
-        //  Foo = new Foo
-        //  {
-        //    Bar = "test"
-        //  }
-        //}
       };
 
       var dto = mapper.Map<Customer, SimpleCustomerDto>(customer);
