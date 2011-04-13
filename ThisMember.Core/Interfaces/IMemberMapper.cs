@@ -11,6 +11,11 @@ namespace ThisMember.Core.Interfaces
   {
     IMappingStrategy MappingStrategy { get; set; }
 
+    /// <summary>
+    /// Allows you to set various options with regards to mapping and map generation.
+    /// </summary>
+    /// <remarks>Note that any option you change on how maps are generated may not have any effect on the maps that 
+    /// have already been generated. Those are changed only after you call CreateMap again or call ClearMapCache.</remarks>
     MapperOptions Options { get; set; }
 
     TDestination Map<TDestination>(object source) where TDestination : new();
@@ -21,13 +26,13 @@ namespace ThisMember.Core.Interfaces
 
     TDestination Map<TSource, TDestination>(TSource source, TDestination destination);
 
-    ProposedMap CreateMap(Type source, Type destination, MappingOptions options = null);
+    ProposedMap CreateMapProposal(Type source, Type destination, MappingOptions options = null);
 
-    ProposedMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null);
+    ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null);
 
-    MemberMap CreateAndFinalizeMap(Type source, Type destination, MappingOptions options = null);
+    MemberMap CreateMap(Type source, Type destination, MappingOptions options = null);
 
-    MemberMap<TSource, TDestination> CreateAndFinalizeMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null);
+    MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null);
 
     bool HasMap<TSource, TDestination>();
 
@@ -42,6 +47,8 @@ namespace ThisMember.Core.Interfaces
     bool TryGetMap(Type source, Type destination, out MemberMap map);
 
     void RegisterMap(MemberMap map);
+
+    void ClearMapCache();
 
   }
 }

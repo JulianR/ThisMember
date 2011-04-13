@@ -39,7 +39,7 @@ namespace ThisMember.Benchmarks
     {
       var mapper = new MemberMapper();
 
-      var map = mapper.CreateAndFinalizeMap<Customer, CustomerDto>(customMapping: src => new
+      var map = mapper.CreateMap<Customer, CustomerDto>(customMapping: src => new
       {
         FullName = src.FirstName + " " + src.LastName,
         OrderCount = src.Orders.Count,

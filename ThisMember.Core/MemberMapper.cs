@@ -58,14 +58,14 @@ namespace ThisMember.Core
       return Map(source, destination);
     }
 
-    public ProposedMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null)
+    public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null)
     {
       var proposedMap = this.MappingStrategy.CreateMap<TSource, TDestination>(options, customMapping);
 
       return proposedMap;
     }
 
-    public ProposedMap CreateMap(Type source, Type destination, MappingOptions options = null)
+    public ProposedMap CreateMapProposal(Type source, Type destination, MappingOptions options = null)
     {
 
       var pair = new TypePair(source, destination);
@@ -111,14 +111,14 @@ namespace ThisMember.Core
 
     public IMappingStrategy MappingStrategy { get; set; }
 
-    public MemberMap CreateAndFinalizeMap(Type source, Type destination, MappingOptions options = null)
+    public MemberMap CreateMap(Type source, Type destination, MappingOptions options = null)
     {
-      return CreateMap(source, destination, options).FinalizeMap();
+      return CreateMapProposal(source, destination, options).FinalizeMap();
     }
 
-    public MemberMap<TSource, TDestination> CreateAndFinalizeMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null)
+    public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null)
     {
-      return CreateMap<TSource, TDestination>(options, customMapping).FinalizeMap().ToGeneric<TSource, TDestination>();
+      return CreateMapProposal<TSource, TDestination>(options, customMapping).FinalizeMap().ToGeneric<TSource, TDestination>();
     }
 
     public bool HasMap<TSource, TDestination>()
@@ -185,6 +185,12 @@ namespace ThisMember.Core
         return false;
       }
       return true;
+    }
+
+    public void ClearMapCache()
+    {
+      this.maps.Clear();
+      this.MappingStrategy.ClearMapCache();
     }
   }
 }

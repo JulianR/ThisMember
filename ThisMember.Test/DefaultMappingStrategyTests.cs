@@ -224,7 +224,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposition = mapper.CreateMap(typeof(ListSourceType), typeof(ListDestinationType));
+      var proposition = mapper.CreateMapProposal(typeof(ListSourceType), typeof(ListDestinationType));
 
       var expectation = new ExpectedMappings<ListSourceType, ListDestinationType>();
 
@@ -238,7 +238,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposition = mapper.CreateMap(typeof(ListSourceType), typeof(ArrayDestinationType));
+      var proposition = mapper.CreateMapProposal(typeof(ListSourceType), typeof(ArrayDestinationType));
 
       var expectation = new ExpectedMappings<ListSourceType, ArrayDestinationType>();
 
@@ -272,7 +272,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposition = mapper.CreateMap(typeof(ListComplexSourceType), typeof(ListComplexDestinationType));
+      var proposition = mapper.CreateMapProposal(typeof(ListComplexSourceType), typeof(ListComplexDestinationType));
 
       var expectation = new ExpectedMappings<ListComplexSourceType, ListComplexDestinationType>();
 
@@ -291,7 +291,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposition = mapper.CreateMap(typeof(IEnumerableComplexSourceType), typeof(ListComplexDestinationType));
+      var proposition = mapper.CreateMapProposal(typeof(IEnumerableComplexSourceType), typeof(ListComplexDestinationType));
 
       var expectation = new ExpectedMappings<IEnumerableComplexSourceType, ListComplexDestinationType>();
 
@@ -315,7 +315,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposition = mapper.CreateMap<SourceFields, DestinationFields>();
+      var proposition = mapper.CreateMapProposal<SourceFields, DestinationFields>();
 
       var expectation = new ExpectedMappings<SourceFields, DestinationFields>();
 

@@ -293,7 +293,7 @@ namespace ThisMember.Benchmarks
 
       var mapper = new MemberMapper();
 
-      var map = mapper.CreateMap(typeof(ComplexSourceType), typeof(ComplexDestinationType)).FinalizeMap();
+      var map = mapper.CreateMapProposal(typeof(ComplexSourceType), typeof(ComplexDestinationType)).FinalizeMap();
 
       var source = new ComplexSourceType
       {

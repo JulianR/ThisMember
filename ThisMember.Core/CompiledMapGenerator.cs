@@ -30,6 +30,11 @@ namespace ThisMember.Core
         {
           newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
             memberNode, Expression.Default(conditionalReturnType), conditionalReturnType);
+
+          if (memberNode.Expression.NodeType == ExpressionType.Parameter)
+          {
+            return newExpression;
+          }
         }
         else
         {

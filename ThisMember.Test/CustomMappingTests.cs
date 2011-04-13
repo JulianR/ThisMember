@@ -46,13 +46,33 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMap<Customer, SimpleCustomerDto>(customMapping: c =>
+      mapper.CreateMapProposal<Customer, SimpleCustomerDto>(customMapping: c =>
       new
       {
-        FullName = c.FirstName + " " + c.LastName,
+        FullName = c.FirstName + " " + c.LastName.ToString(),
         AddressLine = c.Address.Street + " " + c.Address.HouseNumber,
         EmailAddress = c.EmailAddress.Address
       }).FinalizeMap();
+
+      var customer = new Customer
+      {
+        FirstName = "Test",
+        LastName = "Test",
+        EmailAddress = new EmailAddress
+        {
+          Address = "test@test.com"
+        },
+        CustomerID = 1,
+        Address = new Address
+        {
+          Street = "test",
+          HouseNumber = "10",
+          ZipCode = "1111AB",
+          City = "test"
+        }
+      };
+
+      var dto = mapper.Map<Customer, SimpleCustomerDto>(customer);
 
     }
 
@@ -61,7 +81,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMap<Customer, SimpleCustomerDto>(customMapping: src =>
+      mapper.CreateMapProposal<Customer, SimpleCustomerDto>(customMapping: src =>
       new
       {
         AddressLine = src.Address.City

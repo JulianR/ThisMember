@@ -281,5 +281,11 @@ namespace ThisMember.Core
 
     }
 
+
+
+    public void ClearMapCache()
+    {
+      this.mappingCache.Clear();
+    }
   }
 }

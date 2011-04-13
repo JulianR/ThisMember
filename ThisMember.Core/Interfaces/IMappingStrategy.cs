@@ -17,5 +17,7 @@ namespace ThisMember.Core.Interfaces
     ProposedMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null);
 
     IMapGenerator MapGenerator { get; set; }
+
+    void ClearMapCache();
   }
 }

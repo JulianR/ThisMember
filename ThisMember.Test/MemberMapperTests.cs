@@ -22,13 +22,42 @@ namespace ThisMember.Test
       public int ID { get; set; }
       public string Name { get; set; }
     }
+    [TestMethod]
+    public void ClearMapCacheIsRespected()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<SourceType, DestinationType>(customMapping: src => new
+      {
+        ID = src.ID * 10,
+        Name = src.Name + src.Name
+      });
+
+      var source = new SourceType
+      {
+        ID = 10,
+        Name = "x"
+      };
+
+      var result = mapper.Map<DestinationType>(source);
+
+      Assert.AreEqual(100, result.ID);
+      Assert.AreEqual("xx", result.Name);
+
+      mapper.ClearMapCache();
+
+      result = mapper.Map<DestinationType>(source);
+
+      Assert.AreEqual(10, result.ID);
+      Assert.AreEqual("x", result.Name);
+    }
 
     [TestMethod]
     public void ExpectedMembersAreMapped()
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMap(typeof(SourceType), typeof(DestinationType)).FinalizeMap();
+      mapper.CreateMapProposal(typeof(SourceType), typeof(DestinationType)).FinalizeMap();
 
       var source = new SourceType
       {
@@ -172,7 +201,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposed = mapper.CreateMap(typeof(ComplexSourceType), typeof(ComplexDestinationType),
+      var proposed = mapper.CreateMapProposal(typeof(ComplexSourceType), typeof(ComplexDestinationType),
       (s, p, option) =>
       {
         if (s.Name == "Name")
@@ -206,7 +235,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposed = mapper.CreateMap(typeof(NestedSourceType), typeof(NestedDestinationType),
+      var proposed = mapper.CreateMapProposal(typeof(NestedSourceType), typeof(NestedDestinationType),
       (s, p, option) =>
       {
         if (s.Name == "Name")
