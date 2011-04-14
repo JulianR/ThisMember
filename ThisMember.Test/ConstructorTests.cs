@@ -19,8 +19,10 @@ namespace ThisMember.Test
     {
       public NestedDestinationType(int id)
       {
-        this.ID = id;
+        this.OtherID = id;
       }
+
+      public int OtherID { get; set; }
 
       public int ID { get; set; }
     }
@@ -53,7 +55,74 @@ namespace ThisMember.Test
       };
 
       var result = mapper.Map<SourceType, DestinationType>(source);
+      Assert.AreEqual(1, result.Foo.OtherID);
+      Assert.AreEqual(10, result.Foo.ID);
+    }
 
+    [TestMethod]
+    public void CustomConstructorOnMapperIsRespected()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.AddCustomConstructor<NestedDestinationType>(() => new NestedDestinationType(1));
+
+      var source = new SourceType
+      {
+        Foo = new NestedSourceType
+        {
+          ID = 10
+        }
+      };
+
+      var result = mapper.Map<SourceType, DestinationType>(source);
+      Assert.AreEqual(1, result.Foo.OtherID);
+      Assert.AreEqual(10, result.Foo.ID);
+    }
+
+    [TestMethod]
+    public void CustomConstructorOnProposalTakesPrecedence()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.AddCustomConstructor<NestedDestinationType>(() => new NestedDestinationType(1));
+
+      mapper.CreateMapProposal<SourceType, DestinationType>()
+      .WithConstructorFor<NestedDestinationType>((src, dest) => new NestedDestinationType(2))
+      .FinalizeMap();
+
+      var source = new SourceType
+      {
+        Foo = new NestedSourceType
+        {
+          ID = 10
+        }
+      };
+
+      var result = mapper.Map<SourceType, DestinationType>(source);
+      Assert.AreEqual(2, result.Foo.OtherID);
+      Assert.AreEqual(10, result.Foo.ID);
+    }
+
+    [TestMethod]
+    public void ParamsCanBeUsedWithCustomConstructor()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMapProposal<SourceType, DestinationType>()
+      .WithConstructorFor<NestedDestinationType>((src, dest) => new NestedDestinationType(src.Foo.ID * 2))
+      .FinalizeMap();
+
+      var source = new SourceType
+      {
+        Foo = new NestedSourceType
+        {
+          ID = 10
+        }
+      };
+
+      var result = mapper.Map<SourceType, DestinationType>(source);
+      Assert.AreEqual(source.Foo.ID * 2, result.Foo.OtherID);
+      Assert.AreEqual(10, result.Foo.ID);
     }
   }
 }
