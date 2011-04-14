@@ -9,6 +9,9 @@ using System.Reflection.Emit;
 using System.Collections;
 using ThisMember.Core.Exceptions;
 using System.Globalization;
+using System.Security;
+using System.Security.Permissions;
+using System.Security.Policy;
 
 namespace ThisMember.Core
 {
@@ -673,6 +676,16 @@ namespace ThisMember.Core
       {
         if (moduleBuilder == null)
         {
+          //var ps = new PermissionSet(PermissionState.None);
+          //ps.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution | SecurityPermissionFlag.Infrastructure));
+          //ps.AddPermission(new ReflectionPermission(ReflectionPermissionFlag.RestrictedMemberAccess));
+          
+          //var domain = AppDomain.CreateDomain("MemberMapper",
+          //  null,
+          //  new AppDomainSetup { ApplicationBase = Environment.CurrentDirectory },
+          //  ps,
+          //  typeof(Type).Assembly.Evidence.GetHostEvidence<StrongName>());
+
           var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("ThisMemberFunctionsAssembly_" + Guid.NewGuid().ToString("N")), AssemblyBuilderAccess.Run);
 
           moduleBuilder = assemblyBuilder.DefineDynamicModule("Module");

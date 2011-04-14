@@ -124,5 +124,32 @@ namespace ThisMember.Test
       Assert.AreEqual(source.Foo.ID * 2, result.Foo.OtherID);
       Assert.AreEqual(10, result.Foo.ID);
     }
+
+    public static NestedDestinationType Inject()
+    {
+      return new NestedDestinationType(8);
+    }
+
+    [TestMethod]
+    public void CustomConstructorsAllowDependencyInjection()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMapProposal<SourceType, DestinationType>()
+      .WithConstructorFor<NestedDestinationType>((src, dest) => Inject())
+      .FinalizeMap();
+
+      var source = new SourceType
+      {
+        Foo = new NestedSourceType
+        {
+          ID = 10
+        }
+      };
+
+      var result = mapper.Map<SourceType, DestinationType>(source);
+      Assert.AreEqual(8, result.Foo.OtherID);
+      Assert.AreEqual(10, result.Foo.ID);
+    }
   }
 }
