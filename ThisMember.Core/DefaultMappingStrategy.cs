@@ -60,7 +60,7 @@ namespace ThisMember.Core
       var destinationProperties = (from p in destinationType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                                    where p.CanWrite && !p.GetIndexParameters().Any()
                                    select (PropertyOrFieldInfo)p)
-                                   .Union(from f in destinationType.GetFields(BindingFlags.Public)
+                                   .Union(from f in destinationType.GetFields()
                                           where !f.IsStatic
                                           select (PropertyOrFieldInfo)f);
 
