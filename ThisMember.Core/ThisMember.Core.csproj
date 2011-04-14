@@ -56,9 +56,11 @@
     <Compile Include="Exceptions\CodeGenerationException.cs" />
     <Compile Include="Exceptions\IncompatibleMappingException.cs" />
     <Compile Include="Exceptions\MapNotFoundException.cs" />
+    <Compile Include="IgnoreMember.cs" />
     <Compile Include="Interfaces\IMapGenerator.cs" />
     <Compile Include="Interfaces\IMappingStrategy.cs" />
     <Compile Include="Interfaces\IMemberMapper.cs" />
+    <Compile Include="MappingProfiles.cs" />
     <Compile Include="MapperOptions.cs" />
     <Compile Include="MappingOption.cs" />
     <Compile Include="DefaultMappingStrategy.cs" />

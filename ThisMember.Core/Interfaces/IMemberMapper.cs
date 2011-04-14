@@ -11,6 +11,8 @@ namespace ThisMember.Core.Interfaces
   {
     IMappingStrategy MappingStrategy { get; set; }
 
+    string Profile { get; set; }
+
     /// <summary>
     /// Allows you to set various options with regards to mapping and map generation.
     /// </summary>

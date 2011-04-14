@@ -214,5 +214,6 @@ namespace ThisMember.Core
       return e;
     }
 
+    public string Profile { get; set; }
   }
 }

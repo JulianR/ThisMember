@@ -619,7 +619,7 @@ namespace ThisMember.Core
         ifNotNullBlock.Add(Expression.Assign(Expression.PropertyOrField(destination, complexTypeMapping.DestinationMember.Name), complexDest));
       }
 
-      Expression equalToNull = null;
+      Expression equalToNull;
 
       // If it's a value type, then a null check is not necessary, simply make it a 
       // if(true) which will get eliminated by the JIT compiler.
@@ -759,6 +759,11 @@ namespace ThisMember.Core
       };
 
       BuildTypeMappingExpressions(tuple, proposedMap, source, destination, proposedMap.ProposedTypeMapping, assignments, newParams, proposedMap.CustomMapping);
+
+      if (!assignments.Any())
+      {
+        assignments.Add(Expression.Empty());
+      }
 
       var block = Expression.Block(assignments);
 

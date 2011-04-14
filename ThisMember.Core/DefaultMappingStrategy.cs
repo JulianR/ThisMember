@@ -101,6 +101,14 @@ namespace ThisMember.Core
 
       foreach (var destinationProperty in destinationProperties)
       {
+
+        var ignoreAttribute = destinationProperty.GetCustomAttributes(typeof(IgnoreMember), false).SingleOrDefault() as IgnoreMember;
+
+        if (ignoreAttribute != null && (string.IsNullOrEmpty(ignoreAttribute.Profile) || ignoreAttribute.Profile == mapper.Profile))
+        {
+          continue;
+        }
+
         PropertyOrFieldInfo sourceProperty;
 
         //if (customProperties.Contains(destinationProperty.Name))
@@ -126,6 +134,10 @@ namespace ThisMember.Core
         else if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
         {
         }
+
+        
+
+
 
         if (sourceProperty != null
           && destinationProperty.PropertyOrFieldType.IsAssignableFrom(sourceProperty.PropertyOrFieldType))

@@ -21,7 +21,7 @@ namespace ThisMember.Test
 
     private class EmailAddress
     {
-      public string Address { get;set;}
+      public string Address { get; set; }
     }
 
     private class Customer
@@ -46,13 +46,12 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMapProposal<Customer, SimpleCustomerDto>(customMapping: c =>
-      new
+      mapper.CreateMap<Customer, SimpleCustomerDto>(customMapping: c => new
       {
         FullName = c.FirstName + " " + c.LastName.ToString(),
         AddressLine = c.Address.Street + " " + c.Address.HouseNumber,
         EmailAddress = c.EmailAddress.Address
-      }).FinalizeMap();
+      });
 
       var customer = new Customer
       {
@@ -73,6 +72,17 @@ namespace ThisMember.Test
       };
 
       var dto = mapper.Map<Customer, SimpleCustomerDto>(customer);
+
+    }
+
+    [TestMethod]
+    public void CustomMappingAddedLaterIsRespected()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMapProposal<Customer, SimpleCustomerDto>()
+        .AddMapping(c => c.Address.Street + " " + c.Address.HouseNumber, c => c.AddressLine)
+        .FinalizeMap();
 
     }
 

@@ -39,6 +39,11 @@ namespace ThisMember.Core.Interfaces
       }
     }
 
+    public object[] GetCustomAttributes(Type attributeType, bool inherit)
+    {
+      return member.GetCustomAttributes(attributeType, inherit);
+    }
+
     public override bool Equals(object obj)
     {
       var other = obj as PropertyOrFieldInfo;
