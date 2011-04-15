@@ -10,9 +10,6 @@ using ThisMember.Core.Exceptions;
 
 namespace ThisMember.Core
 {
-
-
-
   public class DefaultMappingStrategy : IMappingStrategy
   {
     private readonly Dictionary<TypePair, ProposedTypeMapping> mappingCache = new Dictionary<TypePair, ProposedTypeMapping>();

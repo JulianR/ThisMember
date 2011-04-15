@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using ThisMember.Core;
 using System.Diagnostics;
+using AutoMapper;
 
 namespace ThisMember.Benchmarks
 {
@@ -39,12 +40,26 @@ namespace ThisMember.Benchmarks
     {
       var mapper = new MemberMapper();
 
-      var map = mapper.CreateMap<Customer, CustomerDto>(customMapping: src => new
+      mapper.Options.Safety.PerformNullChecksOnCustomMappings = false;
+
+      var sw = Stopwatch.StartNew();
+
+      var map = mapper.CreateMap<Customer, CustomerDto>(customMapping: src => new CustomerDto
       {
         FullName = src.FirstName + " " + src.LastName,
         OrderCount = src.Orders.Count,
         OrderAmount = src.Orders.Sum(o => o.Amount)
       });
+
+      sw.Stop();
+
+      Console.WriteLine("Compiling the map took: " + sw.Elapsed);
+
+      Mapper.CreateMap<Customer, CustomerDto>()
+      .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FirstName + " " + src.LastName))
+      .ForMember(dest => dest.OrderCount, opt => opt.MapFrom(src => src.Orders.Count))
+      .ForMember(dest => dest.OrderAmount, opt => opt.MapFrom(src => src.Orders.Sum(o => o.Amount)));
+
 
       var mappingFunc = map.MappingFunction;
 
@@ -70,8 +85,8 @@ namespace ThisMember.Benchmarks
         }
       };
 
-      var sw = Stopwatch.StartNew();
-
+      sw.Restart();
+      
       for (var i = 0; i < 1000000; i++)
       {
         Dto = new CustomerDto();
@@ -108,6 +123,17 @@ namespace ThisMember.Benchmarks
       sw.Stop();
 
       Console.WriteLine("ThisMember fast: " + sw.Elapsed);
+
+      sw.Restart();
+
+      for (var i = 0; i < 1000000; i++)
+      {
+        Dto = Mapper.Map<Customer, CustomerDto>(customer);
+      }
+
+      sw.Stop();
+
+      Console.WriteLine("AutoMapper: " + sw.Elapsed);
 
     }
   }

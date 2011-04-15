@@ -40,9 +40,23 @@ namespace ThisMember.Core.Interfaces
 
       var newType = lambda.Body as NewExpression;
 
-      if (newType == null) throw new ArgumentException("Only NewExpression is allowed to specify a custom mapping");
+      CustomMapping mapping;
 
-      var mapping = GetCustomMappingFromNewExpression(destinationType, newType);
+      if (newType != null)
+      {
+        mapping = GetCustomMappingFromNewExpression(destinationType, newType);
+      }
+
+      var memberInit = lambda.Body as MemberInitExpression;
+
+      if (memberInit != null)
+      {
+        mapping = GetCustomMappingFromMemberInitExpression(destinationType, memberInit);
+      }
+      else
+      {
+        throw new ArgumentException("Only MemberInit and NewExpression are allowed to specify custom mappings");
+      }
 
       mapping.Parameter = lambda.Parameters.First();
 
@@ -67,6 +81,42 @@ namespace ThisMember.Core.Interfaces
       }
 
       return expression;
+    }
+    private static CustomMapping GetCustomMappingFromMemberInitExpression(Type destinationType, MemberInitExpression expression)
+    {
+      var newMapping = new CustomMapping();
+
+      newMapping.DestinationType = destinationType;
+
+      foreach (MemberAssignment assignment in expression.Bindings)
+      {
+        var member = assignment.Member;
+        var argument = assignment.Expression;
+
+        var memberOnDestination = destinationType.GetMember(member.Name).FirstOrDefault();
+
+        if (memberOnDestination == null)
+        {
+          throw new ArgumentException(string.Format("Member {0} does not exist on type {1}", member.Name, destinationType.Name));
+        }
+
+        var memberExpression = new MemberExpressionTuple();
+
+        memberExpression.Member = memberOnDestination;
+
+        if (argument is NewExpression)
+        {
+          newMapping.CustomMappings.Add(GetCustomMappingFromNewExpression(memberExpression.Member.PropertyOrFieldType, (NewExpression)argument));
+        }
+        else
+        {
+          memberExpression.Expression = argument;
+        }
+
+        newMapping.Members.Add(memberExpression);
+      }
+
+      return newMapping;
     }
 
     private static CustomMapping GetCustomMappingFromNewExpression(Type destinationType, NewExpression expression)
