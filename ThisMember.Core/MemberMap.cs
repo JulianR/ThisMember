@@ -37,16 +37,7 @@ namespace ThisMember.Core
       set;
     }
 
-    public MemberMap<TSource, TDestination> ToGeneric<TSource, TDestination>()
-    {
-      var map = new MemberMap<TSource, TDestination>();
-
-      map.DestinationType = this.DestinationType;
-      map.SourceType = this.SourceType;
-      map.MappingFunction = (Func<TSource, TDestination, TDestination>) this.MappingFunction;
-
-      return map;
-    }
+    
 
     public IMapGenerator MapGenerator
     {

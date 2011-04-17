@@ -109,7 +109,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposition = mapper.MappingStrategy.CreateMap(new TypePair(typeof(Poco_From), typeof(Poco_To)));
+      var proposition = mapper.MappingStrategy.CreateMapProposal(new TypePair(typeof(Poco_From), typeof(Poco_To)));
 
       proposition.FinalizeMap();
 
@@ -147,7 +147,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposition = mapper.MappingStrategy.CreateMap(new TypePair(typeof(IPocoOneProperty_From), typeof(PocoOneProperty_To)));
+      var proposition = mapper.MappingStrategy.CreateMapProposal(new TypePair(typeof(IPocoOneProperty_From), typeof(PocoOneProperty_To)));
 
       var expectation = new ExpectedMappings<IPocoOneProperty_From, PocoOneProperty_To>();
 
@@ -164,7 +164,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposition = mapper.MappingStrategy.CreateMap(
+      var proposition = mapper.MappingStrategy.CreateMapProposal(
         new TypePair(typeof(Poco_From), typeof(Poco_To)),
         (s, m, option) =>
         {
@@ -191,7 +191,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var proposition = mapper.MappingStrategy.CreateMap(new TypePair(typeof(IPocoOneProperty_From), typeof(PocoOneProperty_To)));
+      var proposition = mapper.MappingStrategy.CreateMapProposal(new TypePair(typeof(IPocoOneProperty_From), typeof(PocoOneProperty_To)));
 
       var map = proposition.FinalizeMap();
 

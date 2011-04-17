@@ -24,6 +24,17 @@ namespace ThisMember.Core
 
     private Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
 
+    private static MemberMap<TSource, TDestination> ToGenericMemberMap<TSource, TDestination>(MemberMap map)
+    {
+      var newMap = new MemberMap<TSource, TDestination>();
+
+      newMap.DestinationType = map.DestinationType;
+      newMap.SourceType = map.SourceType;
+      newMap.MappingFunction = (Func<TSource, TDestination, TDestination>)map.MappingFunction;
+
+      return newMap;
+    }
+
     public TDestination Map<TDestination>(object source) where TDestination : new()
     {
       var pair = new TypePair(source.GetType(), typeof(TDestination));
@@ -32,7 +43,7 @@ namespace ThisMember.Core
 
       if (!this.maps.TryGetValue(pair, out map))
       {
-        map = MappingStrategy.CreateMap(pair).FinalizeMap();
+        map = MappingStrategy.CreateMapProposal(pair).FinalizeMap();
       }
 
       var destination = new TDestination();
@@ -60,7 +71,7 @@ namespace ThisMember.Core
 
     public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null)
     {
-      var proposedMap = this.MappingStrategy.CreateMap<TSource, TDestination>(options, customMapping);
+      var proposedMap = this.MappingStrategy.CreateMapProposal<TSource, TDestination>(options, customMapping);
 
       return proposedMap;
     }
@@ -70,7 +81,7 @@ namespace ThisMember.Core
 
       var pair = new TypePair(source, destination);
 
-      var proposedMap = this.MappingStrategy.CreateMap(pair, options);
+      var proposedMap = this.MappingStrategy.CreateMapProposal(pair, options);
 
       return proposedMap;
 
@@ -84,7 +95,7 @@ namespace ThisMember.Core
 
       if (!this.maps.TryGetValue(pair, out map))
       {
-        map = MappingStrategy.CreateMap(pair).FinalizeMap();
+        map = MappingStrategy.CreateMapProposal(pair).FinalizeMap();
       }
       if (Options.BeforeMapping != null) Options.BeforeMapping(this, pair);
 
@@ -118,7 +129,7 @@ namespace ThisMember.Core
 
     public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null)
     {
-      return CreateMapProposal<TSource, TDestination>(options, customMapping).FinalizeMap().ToGeneric<TSource, TDestination>();
+      return ToGenericMemberMap<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(options, customMapping).FinalizeMap());
     }
 
     public bool HasMap<TSource, TDestination>()
@@ -142,8 +153,7 @@ namespace ThisMember.Core
 
       var genericMap = map as MemberMap<TSource, TDestination>;
 
-      return genericMap ?? map.ToGeneric<TSource, TDestination>();
-
+      return genericMap ?? ToGenericMemberMap<TSource, TDestination>(map);
     }
 
     public MemberMap GetMap(Type source, Type destination)
@@ -167,7 +177,7 @@ namespace ThisMember.Core
 
         if (map == null)
         {
-          map = map.ToGeneric<TSource, TDestination>();
+          map = ToGenericMemberMap<TSource, TDestination>(map);
         }
 
         return false;

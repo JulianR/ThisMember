@@ -670,25 +670,30 @@ namespace ThisMember.Core
       }
     }
 
+    private static byte[] syncRoot = new byte[0];
+
     private static Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
     {
       if (IsPublicClass(sourceType) && IsPublicClass(destinationType))
       {
-        if (moduleBuilder == null)
+        lock (syncRoot)
         {
-          //var ps = new PermissionSet(PermissionState.None);
-          //ps.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution | SecurityPermissionFlag.Infrastructure));
-          //ps.AddPermission(new ReflectionPermission(ReflectionPermissionFlag.RestrictedMemberAccess));
-          
-          //var domain = AppDomain.CreateDomain("MemberMapper",
-          //  null,
-          //  new AppDomainSetup { ApplicationBase = Environment.CurrentDirectory },
-          //  ps,
-          //  typeof(Type).Assembly.Evidence.GetHostEvidence<StrongName>());
+          if (moduleBuilder == null)
+          {
+            //var ps = new PermissionSet(PermissionState.None);
+            //ps.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution | SecurityPermissionFlag.Infrastructure));
+            //ps.AddPermission(new ReflectionPermission(ReflectionPermissionFlag.RestrictedMemberAccess));
 
-          var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("ThisMemberFunctionsAssembly_" + Guid.NewGuid().ToString("N")), AssemblyBuilderAccess.Run);
+            //var domain = AppDomain.CreateDomain("MemberMapper",
+            //  null,
+            //  new AppDomainSetup { ApplicationBase = Environment.CurrentDirectory },
+            //  ps,
+            //  typeof(Type).Assembly.Evidence.GetHostEvidence<StrongName>());
 
-          moduleBuilder = assemblyBuilder.DefineDynamicModule("Module");
+            var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("ThisMemberFunctionsAssembly_" + Guid.NewGuid().ToString("N")), AssemblyBuilderAccess.Run);
+
+            moduleBuilder = assemblyBuilder.DefineDynamicModule("Module");
+          }
         }
 
         var typeBuilder = moduleBuilder.DefineType(string.Format("From_{0}_to_{1}_{2}", sourceType.Name, destinationType.Name, Guid.NewGuid().ToString("N"), TypeAttributes.Public));
@@ -758,7 +763,7 @@ namespace ThisMember.Core
         Destination = destination
       };
 
-      BuildTypeMappingExpressions(tuple, proposedMap, source, destination, proposedMap.ProposedTypeMapping, assignments, newParams, proposedMap.CustomMapping);
+      BuildTypeMappingExpressions(tuple, proposedMap, source, destination, proposedMap.ProposedTypeMapping, assignments, newParams, proposedMap.ProposedTypeMapping.CustomMapping);
 
       if (!assignments.Any())
       {

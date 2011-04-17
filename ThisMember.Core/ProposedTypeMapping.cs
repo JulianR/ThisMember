@@ -12,6 +12,8 @@ namespace ThisMember.Core
     public PropertyOrFieldInfo SourceMember { get; set; }
     public PropertyOrFieldInfo DestinationMember { get; set; }
 
+    public CustomMapping CustomMapping { get; set; }
+
     public ProposedTypeMapping()
     {
       ProposedMappings = new List<ProposedMemberMapping>();

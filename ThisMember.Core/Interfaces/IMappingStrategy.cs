@@ -12,9 +12,9 @@ namespace ThisMember.Core.Interfaces
 
   public interface IMappingStrategy
   {
-    ProposedMap CreateMap(TypePair pair, MappingOptions options = null);
+    ProposedMap CreateMapProposal(TypePair pair, MappingOptions options = null);
 
-    ProposedMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null);
+    ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null);
 
     IMapGenerator MapGenerator { get; set; }
 

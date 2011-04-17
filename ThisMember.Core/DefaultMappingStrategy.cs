@@ -241,7 +241,7 @@ namespace ThisMember.Core
       return typeMapping;
     }
 
-    public ProposedMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMappingExpression = null)
+    public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMappingExpression = null)
     {
       var map = new ProposedMap<TSource, TDestination>(this.mapper);
 
@@ -252,8 +252,6 @@ namespace ThisMember.Core
       map.SourceType = pair.SourceType;
       map.DestinationType = pair.DestinationType;
 
-      ProposedTypeMapping mapping;
-
       CustomMapping customMapping = null;
 
       if (customMappingExpression != null)
@@ -261,18 +259,16 @@ namespace ThisMember.Core
         customMapping = CustomMapping.GetCustomMapping(typeof(TDestination), customMappingExpression);
       }
 
-      if (!this.mappingCache.TryGetValue(pair, out mapping))
-      {
-        mapping = GetTypeMapping(pair, options, customMapping);
-      }
+      ProposedTypeMapping mapping = GetTypeMapping(pair, options, customMapping);
+
+      mapping.CustomMapping = customMapping;
 
       map.ProposedTypeMapping = mapping;
-      map.CustomMapping = customMapping;
 
       return map;
     }
 
-    public ProposedMap CreateMap(TypePair pair, MappingOptions options = null)
+    public ProposedMap CreateMapProposal(TypePair pair, MappingOptions options = null)
     {
 
       var map = new ProposedMap(this.mapper);

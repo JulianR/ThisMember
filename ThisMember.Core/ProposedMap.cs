@@ -15,7 +15,7 @@ namespace ThisMember.Core
     public Type SourceType { get; set; }
     public Type DestinationType { get; set; }
 
-    public CustomMapping CustomMapping { get; set; }
+    //public CustomMapping CustomMapping { get; set; }
 
     public IMapGenerator MapGenerator { get; set; }
 

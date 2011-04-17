@@ -42,14 +42,13 @@ namespace ThisMember.Core.Interfaces
 
       CustomMapping mapping;
 
+      MemberInitExpression memberInit;
+
       if (newType != null)
       {
         mapping = GetCustomMappingFromNewExpression(destinationType, newType);
       }
-
-      var memberInit = lambda.Body as MemberInitExpression;
-
-      if (memberInit != null)
+      else if ((memberInit = lambda.Body as MemberInitExpression) != null)
       {
         mapping = GetCustomMappingFromMemberInitExpression(destinationType, memberInit);
       }
