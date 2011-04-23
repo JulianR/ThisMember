@@ -14,9 +14,10 @@ namespace ThisMember.Core
   {
     private readonly Dictionary<TypePair, ProposedTypeMapping> mappingCache = new Dictionary<TypePair, ProposedTypeMapping>();
 
-    private readonly byte[] syncRoot = new byte[0];
+    private readonly Dictionary<TypePair, CustomMapping> customMappingCache = new Dictionary<TypePair, CustomMapping>();
 
-    public IMapGenerator MapGenerator { get; set; }
+
+    private readonly byte[] syncRoot = new byte[0];
 
     private readonly IMemberMapper mapper;
 
@@ -130,9 +131,10 @@ namespace ThisMember.Core
         }
         else if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
         {
+          throw new NotImplementedException("Sorry, this hasn't been implemented yet");
         }
 
-        
+
 
 
 
@@ -201,6 +203,12 @@ namespace ThisMember.Core
               complexTypeMapping.DestinationMember = destinationProperty;
               complexTypeMapping.SourceMember = sourceProperty;
 
+              CustomMapping customMappingForType;
+
+              customMappingCache.TryGetValue(complexPair, out customMappingForType);
+
+              complexTypeMapping.CustomMapping = customMappingForType;
+
               typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
             }
           }
@@ -219,6 +227,12 @@ namespace ThisMember.Core
 
             complexTypeMapping.DestinationMember = destinationProperty;
             complexTypeMapping.SourceMember = sourceProperty;
+
+            CustomMapping customMappingForType;
+
+            customMappingCache.TryGetValue(complexPair, out customMappingForType);
+
+            complexTypeMapping.CustomMapping = customMappingForType;
 
             typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
           }
@@ -247,7 +261,7 @@ namespace ThisMember.Core
 
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-      map.MapGenerator = this.MapGenerator;
+      map.MapGenerator = mapper.MapGenerator;
 
       map.SourceType = pair.SourceType;
       map.DestinationType = pair.DestinationType;
@@ -257,6 +271,7 @@ namespace ThisMember.Core
       if (customMappingExpression != null)
       {
         customMapping = CustomMapping.GetCustomMapping(typeof(TDestination), customMappingExpression);
+        customMappingCache[pair] = customMapping;
       }
 
       ProposedTypeMapping mapping = GetTypeMapping(pair, options, customMapping);
@@ -273,7 +288,7 @@ namespace ThisMember.Core
 
       var map = new ProposedMap(this.mapper);
 
-      map.MapGenerator = this.MapGenerator;
+      map.MapGenerator = mapper.MapGenerator;
 
       map.SourceType = pair.SourceType;
       map.DestinationType = pair.DestinationType;

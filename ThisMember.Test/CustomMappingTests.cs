@@ -110,5 +110,46 @@ namespace ThisMember.Test
       Assert.AreEqual("test", dto.AddressLine);
 
     }
+
+    public class NestedSourceType
+    {
+      public string Test { get; set; }
+      public int ID { get; set; }
+    }
+
+    public class SourceType
+    {
+      public NestedSourceType Nested { get; set; }
+    }
+
+    public class NestedDestinationType
+    {
+      public string Testing { get; set; }
+    }
+
+    public class DestinationType
+    {
+      public NestedDestinationType Nested { get; set; }
+    }
+
+    [TestMethod]
+    public void CustomMappingsAreReused()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<NestedSourceType, NestedDestinationType>(customMapping: src => new NestedDestinationType
+      {
+        Testing = src.Test + " " + src.ID
+      });
+
+      mapper.CreateMap<SourceType, DestinationType>();
+
+      var source = new SourceType { Nested = new NestedSourceType { Test = "test", ID = 10 } };
+
+      var result = mapper.Map<SourceType, DestinationType>(source);
+
+      Assert.AreEqual("test 10", result.Nested.Testing);
+
+    }
   }
 }

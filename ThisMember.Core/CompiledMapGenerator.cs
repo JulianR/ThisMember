@@ -389,7 +389,7 @@ namespace ThisMember.Core
 
         expressionsInsideLoop.Add(assignNewItemToDestinationItem);
 
-        BuildTypeMappingExpressions(rootParams, map, sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, newParams);
+        BuildTypeMappingExpressions(rootParams, map, sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, newParams, complexTypeMapping.CustomMapping);
 
         expressionsInsideLoop.Add(assignItemToDestination);
 
@@ -433,7 +433,7 @@ namespace ThisMember.Core
         expressionsInsideLoop.Add(assignCurrent);
         expressionsInsideLoop.Add(assignNewItemToDestinationItem);
 
-        BuildTypeMappingExpressions(rootParams, map, sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, newParams);
+        BuildTypeMappingExpressions(rootParams, map, sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, newParams, complexTypeMapping.CustomMapping);
 
         expressionsInsideLoop.Add(assignItemToDestination);
 
@@ -613,7 +613,7 @@ namespace ThisMember.Core
         // var destinationType = new DestinationType();
         ifNotNullBlock.Add(Expression.Assign(complexDest, GetConstructorForType(map, newType,rootParams.Source, rootParams.Destination)));
 
-        BuildTypeMappingExpressions(rootParams, map, complexSource, complexDest, complexTypeMapping, ifNotNullBlock, newParams);
+        BuildTypeMappingExpressions(rootParams, map, complexSource, complexDest, complexTypeMapping, ifNotNullBlock, newParams, complexTypeMapping.CustomMapping);
 
         // destination.Member = destinationType;
         ifNotNullBlock.Add(Expression.Assign(Expression.PropertyOrField(destination, complexTypeMapping.DestinationMember.Name), complexDest));

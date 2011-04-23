@@ -20,6 +20,8 @@ namespace ThisMember.Core.Interfaces
     /// have already been generated. Those are changed only after you call CreateMap again or call ClearMapCache.</remarks>
     MapperOptions Options { get; set; }
 
+    IMapGenerator MapGenerator { get; set; }
+
     TDestination Map<TDestination>(object source) where TDestination : new();
 
     TSource Map<TSource>(TSource source) where TSource : new();
