@@ -35,7 +35,13 @@ namespace ThisMember.Core
       private Expression ConvertToConditionals(Type conditionalReturnType, Expression expression, Expression newExpression)
       {
 
-        var memberNode = (MemberExpression)expression;
+        var memberNode = expression as MemberExpression;
+
+        if (memberNode == null)
+        {
+          return newExpression ?? expression;
+        }
+
         if (newExpression == null)
         {
           newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
@@ -171,6 +177,22 @@ namespace ThisMember.Core
       CustomMapping customMapping = null
     )
     {
+      ParameterVisitor paramVisitor;
+
+      if (member.Ignored)
+      {
+        return;
+      }
+
+      Expression condition = null;
+
+      if (member.Condition != null)
+      {
+        paramVisitor = new ParameterVisitor(member.Condition.Parameters.Single(), rootParams.Source);
+
+        condition = paramVisitor.Visit(member.Condition.Body);
+      }
+
       var destMember = Expression.PropertyOrField(destination, member.DestinationMember.Name);
 
       BinaryExpression assignSourceToDest;
@@ -179,7 +201,7 @@ namespace ThisMember.Core
 
       if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
       {
-        var paramVisitor = new ParameterVisitor(customMapping.Parameter, source);
+        paramVisitor = new ParameterVisitor(customMapping.Parameter, source);
 
         var memberVisitor = new MemberVisitor(this.mapper);
 
@@ -195,7 +217,15 @@ namespace ThisMember.Core
         assignSourceToDest = Expression.Assign(destMember, sourceExpression);
       }
 
-      expressions.Add(assignSourceToDest);
+      if (condition != null)
+      {
+        var ifCondition = Expression.IfThen(condition, assignSourceToDest);
+        expressions.Add(ifCondition);
+      }
+      else
+      {
+        expressions.Add(assignSourceToDest);
+      }
     }
 
     private void BuildCollectionComplexTypeMappingExpressions
@@ -209,7 +239,10 @@ namespace ThisMember.Core
       List<ParameterExpression> newParams
     )
     {
-
+      if (complexTypeMapping.Ignored)
+      {
+        return;
+      }
 
       Type sourceMemberPropertyType, destinationMemberPropertyType;
 
@@ -463,7 +496,19 @@ namespace ThisMember.Core
 
       ifNotNullBlock.Add(assignDestinationCollection);
 
-      var ifNotNullCheck = Expression.IfThen(Expression.NotEqual(accessSourceCollection, Expression.Constant(null)), Expression.Block(ifNotNullBlock));
+
+      Expression condition = Expression.NotEqual(accessSourceCollection, Expression.Constant(null));
+
+      if (complexTypeMapping.Condition != null)
+      {
+        var visitor = new ParameterVisitor(complexTypeMapping.Condition.Parameters.Single(), rootParams.Source);
+
+        condition = Expression.AndAlso(condition, visitor.Visit(complexTypeMapping.Condition.Body));
+
+      }
+
+      var ifNotNullCheck = Expression.IfThen(condition, Expression.Block(ifNotNullBlock));
+
 
       expressions.Add(ifNotNullCheck);
 
@@ -577,6 +622,11 @@ namespace ThisMember.Core
     private void BuildNonCollectionComplexTypeMappingExpressions(SourceAndDestinationParameter rootParams, ProposedMap map, ParameterExpression source, ParameterExpression destination, ProposedTypeMapping complexTypeMapping, List<Expression> expressions, List<ParameterExpression> newParams)
     {
 
+      if (complexTypeMapping.Ignored)
+      {
+        return;
+      }
+
       ParameterExpression complexSource = null, complexDest = null;
 
       complexSource = Expression.Parameter(complexTypeMapping.SourceMember.PropertyOrFieldType, GetParameterName(complexTypeMapping.SourceMember));
@@ -619,20 +669,28 @@ namespace ThisMember.Core
         ifNotNullBlock.Add(Expression.Assign(Expression.PropertyOrField(destination, complexTypeMapping.DestinationMember.Name), complexDest));
       }
 
-      Expression equalToNull;
+      Expression condition;
 
       // If it's a value type, then a null check is not necessary, simply make it a 
       // if(true) which will get eliminated by the JIT compiler.
       if (!complexTypeMapping.SourceMember.PropertyOrFieldType.IsValueType)
       {
-        equalToNull = Expression.NotEqual(Expression.Property(source, complexTypeMapping.SourceMember.Name), Expression.Constant(null));
+        condition = Expression.NotEqual(Expression.Property(source, complexTypeMapping.SourceMember.Name), Expression.Constant(null));
       }
       else
       {
-        equalToNull = Expression.Constant(true);
+        condition = Expression.Constant(true);
       }
 
-      var ifNotNullCheck = Expression.IfThen(equalToNull, Expression.Block(ifNotNullBlock));
+      if (complexTypeMapping.Condition != null)
+      {
+        var visitor = new ParameterVisitor(complexTypeMapping.Condition.Parameters.Single(), rootParams.Source);
+
+        condition = Expression.AndAlso(condition, visitor.Visit(complexTypeMapping.Condition.Body));
+
+      }
+
+      var ifNotNullCheck = Expression.IfThen(condition, Expression.Block(ifNotNullBlock));
 
       expressions.Add(ifNotNullCheck);
 

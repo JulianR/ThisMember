@@ -4,13 +4,18 @@ using System.Linq;
 using System.Text;
 using ThisMember.Core.Interfaces;
 using System.Reflection;
+using System.Linq.Expressions;
 
 namespace ThisMember.Core
 {
-  public class ProposedMemberMapping
+  public class ProposedMemberMapping : IMappingProposition
   {
     public PropertyOrFieldInfo SourceMember { get; set; }
     public PropertyOrFieldInfo DestinationMember { get; set; }
+
+    public bool Ignored { get; set; }
+
+    public LambdaExpression Condition { get; set; }
 
     public override bool Equals(object obj)
     {

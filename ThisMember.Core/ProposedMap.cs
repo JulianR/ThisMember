@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Collections;
 using System.Reflection.Emit;
+using ThisMember.Core.Exceptions;
 
 namespace ThisMember.Core
 {
@@ -82,5 +83,51 @@ namespace ThisMember.Core
       constructorCache.Add(typeof(T), constructor);
       return this;
     }
+
+    private IMappingProposition GetMemberMappingForMember(ProposedTypeMapping mapping, PropertyOrFieldInfo member)
+    {
+      foreach (var memberMapping in mapping.ProposedMappings)
+      {
+        if (memberMapping.DestinationMember != null && memberMapping.DestinationMember.Equals(member))
+        {
+          return memberMapping;
+        }
+      }
+
+      IMappingProposition result = null;
+
+      foreach (var typeMapping in mapping.ProposedTypeMappings)
+      {
+
+        if (typeMapping.DestinationMember != null && typeMapping.DestinationMember.Equals(member))
+        {
+          return typeMapping;
+        }
+
+        result = GetMemberMappingForMember(typeMapping, member);
+      }
+
+      return result;
+    }
+
+    public MappingPropositionModifier<TSource, TDestination> ForMember<TMemberType>(Expression<Func<TDestination, TMemberType>> expression)
+    {
+      var memberExpression = expression.Body as MemberExpression;
+
+      if (memberExpression == null)
+      {
+        throw new ArgumentException("Expression must be of type MemberExpression");
+      }
+
+      var mapping = GetMemberMappingForMember(this.ProposedTypeMapping, memberExpression.Member);
+
+      if (mapping == null)
+      {
+        throw new MemberNotFoundException(memberExpression.Member);
+      }
+
+      return new MappingPropositionModifier<TSource, TDestination>(this, mapping);
+    }
+
   }
 }

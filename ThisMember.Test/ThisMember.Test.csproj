@@ -57,6 +57,7 @@
     <Compile Include="MemberMapperTests.cs" />
     <Compile Include="OptionTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ProposedMapMutationTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ThisMember.Core\ThisMember.Core.csproj">

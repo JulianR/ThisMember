@@ -18,13 +18,13 @@ namespace ThisMember.Test
 
     public class DestinationType
     {
-      [IgnoreMember]
+      [IgnoreMemberAttribute]
       public int ID { get; set; }
     }
 
     public class DestinationTypeWithProfile
     {
-      [IgnoreMember(Profile = "update")]
+      [IgnoreMemberAttribute(Profile = "update")]
       public int ID { get; set; }
     }
 

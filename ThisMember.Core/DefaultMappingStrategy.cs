@@ -63,32 +63,6 @@ namespace ThisMember.Core
                                           select (PropertyOrFieldInfo)f);
 
 
-      //HashSet<string> customProperties = new HashSet<string>();
-
-      //if (customMapping != null)
-      //{
-      //  var lambda = customMapping as LambdaExpression;
-
-      //  if (lambda == null) throw new ArgumentException("Only LambdaExpression is allowed here");
-
-      //  var newType = lambda.Body as NewExpression;
-
-      //  if (newType == null) throw new ArgumentException("Only NewExpression is allowed to specify a custom mapping");
-
-      //  customProperties = new HashSet<string>(newType.Members.Select(m => m.Name));
-
-      //  foreach (var member in newType.Members)
-      //  {
-      //    PropertyInfo prop;
-      //    //if (destinationProperties.TryGetValue(member.Name, out prop))
-      //    //{
-      //    //  Console.WriteLine(prop);
-      //    //}
-      //  }
-
-      //}
-
-
       var sourceProperties = (from p in sourceType.GetProperties()
                               where p.CanRead && !p.GetIndexParameters().Any()
                               select (PropertyOrFieldInfo)p)
@@ -100,7 +74,7 @@ namespace ThisMember.Core
       foreach (var destinationProperty in destinationProperties)
       {
 
-        var ignoreAttribute = destinationProperty.GetCustomAttributes(typeof(IgnoreMember), false).SingleOrDefault() as IgnoreMember;
+        var ignoreAttribute = destinationProperty.GetCustomAttributes(typeof(IgnoreMemberAttribute), false).SingleOrDefault() as IgnoreMemberAttribute;
 
         if (ignoreAttribute != null && (string.IsNullOrEmpty(ignoreAttribute.Profile) || ignoreAttribute.Profile == mapper.Profile))
         {
@@ -108,11 +82,6 @@ namespace ThisMember.Core
         }
 
         PropertyOrFieldInfo sourceProperty;
-
-        //if (customProperties.Contains(destinationProperty.Name))
-        {
-          //continue;
-        }
 
         Expression customExpression = null;
 

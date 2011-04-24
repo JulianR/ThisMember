@@ -79,7 +79,7 @@ namespace ThisMember.ConsoleHost
       {
         //ID = src.IDs.Count + 100 + i,
         ID = (from x in Enumerable.Range(0,100)
-              select x).Sum(),
+              select x).Sum() + i,
         Name = src.Name.Length.ToString() + " " + src.Name
       }).FinalizeMap();
 
