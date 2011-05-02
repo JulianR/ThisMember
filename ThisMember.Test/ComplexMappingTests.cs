@@ -12,38 +12,38 @@ namespace ThisMember.Test
   {
 
 
-    class Foo
+    public class Foo
     {
       public string Z { get; set; }
     }
 
-    class Bar
+    public class Bar
     {
       public string Z { get; set; }
     }
 
-    class SourceElement
+    public class SourceElement
     {
       public int X { get; set; }
 
       public List<Foo> Collection { get; set; }
     }
 
-    class DestinationElement
+    public class DestinationElement
     {
       public int X { get; set; }
 
       public List<Bar> Collection { get; set; }
     }
 
-    class SourceType
+    public class SourceType
     {
       public int ID { get; set; }
       public string Name { get; set; }
       public IList<SourceElement> IDs { get; set; }
     }
 
-    class DestinationType
+    public class DestinationType
     {
       public int ID { get; set; }
       public string Name { get; set; }
@@ -54,6 +54,8 @@ namespace ThisMember.Test
     public void Test()
     {
       var mapper = new MemberMapper();
+
+      mapper.Options.Safety.PerformNullChecksOnCustomMappings = false;
 
       int i = 2;
 

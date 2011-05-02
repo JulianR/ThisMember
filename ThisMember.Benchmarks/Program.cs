@@ -12,7 +12,6 @@ namespace ThisMember.Benchmarks
 {
   public class Program
   {
-
     private static Func<ComplexSourceType, ComplexDestinationType, ComplexDestinationType> GetFunc()
     {
       return (src, dest) =>
@@ -54,9 +53,9 @@ namespace ThisMember.Benchmarks
 
       //var lambda = Expression.Lambda<Action>(outerBlock);
 
-      Comparisons.Benchmark();
+      Benchmark();
       Console.WriteLine();
-      Comparisons.Benchmark();
+      Benchmark();
 
       //Foobar();
       //Console.WriteLine();
@@ -288,12 +287,18 @@ namespace ThisMember.Benchmarks
 
     }
 
+    public volatile static Func<ComplexSourceType, ComplexDestinationType, ComplexDestinationType> f;
+
     static void Benchmark()
     {
 
       var mapper = new MemberMapper();
 
-      var map = mapper.CreateMapProposal(typeof(ComplexSourceType), typeof(ComplexDestinationType)).FinalizeMap();
+      var map = mapper.CreateMapProposal<ComplexSourceType, ComplexDestinationType>(customMapping: src => new ComplexDestinationType
+      {
+        ID = Enumerable.Range(0, 100000).Count()
+      }).FinalizeMap();
+
 
       var source = new ComplexSourceType
       {
@@ -305,14 +310,14 @@ namespace ThisMember.Benchmarks
         }
       };
 
-      Func<ComplexSourceType, ComplexDestinationType, ComplexDestinationType> f = (src, dest) =>
+      f = (src, dest) =>
       {
         dest.ID = src.ID;
         if (src.Complex != null)
         {
           var complexSource = src.Complex;
           var complexDestination = new NestedDestinationType();
-          complexDestination.ID = complexSource.ID;
+          complexDestination.ID = Enumerable.Range(0, 100000).Count();
           complexDestination.Name = complexSource.Name;
           dest.Complex = complexDestination;
         }
@@ -321,7 +326,9 @@ namespace ThisMember.Benchmarks
 
       var sw = Stopwatch.StartNew();
 
-      for (int i = 0; i < 1000000; i++)
+      const int iterations = 100;
+
+      for (int i = 0; i < iterations; i++)
       {
         Foo = new ComplexDestinationType();
 
@@ -330,7 +337,7 @@ namespace ThisMember.Benchmarks
         {
           var complexSource = source.Complex;
           var complexDestination = new NestedDestinationType();
-          complexDestination.ID = complexSource.ID;
+          complexDestination.ID = Enumerable.Range(0, 100000).Count();
           complexDestination.Name = complexSource.Name;
           Foo.Complex = complexDestination;
         }
@@ -338,29 +345,29 @@ namespace ThisMember.Benchmarks
 
       sw.Stop();
 
-      Console.WriteLine(sw.Elapsed);
+      Console.WriteLine("Manual " + sw.Elapsed);
 
       sw.Restart();
 
-      for (int i = 0; i < 1000000; i++)
+      for (int i = 0; i < iterations; i++)
       {
         Foo = f(source, new ComplexDestinationType());
       }
 
       sw.Stop();
 
-      Console.WriteLine(sw.Elapsed);
+      Console.WriteLine("Func " + sw.Elapsed);
 
       sw.Restart();
 
-      for (int i = 0; i < 1000000; i++)
+      for (int i = 0; i < iterations; i++)
       {
         Foo = mapper.Map<ComplexSourceType, ComplexDestinationType>(source);
       }
 
       sw.Stop();
 
-      Console.WriteLine(sw.Elapsed);
+      Console.WriteLine("Map " + sw.Elapsed);
 
       var func = (Func<ComplexSourceType, ComplexDestinationType, ComplexDestinationType>)map.MappingFunction;
 
@@ -368,14 +375,14 @@ namespace ThisMember.Benchmarks
 
       sw.Restart();
 
-      for (int i = 0; i < 1000000; i++)
+      for (int i = 0; i < iterations; i++)
       {
         Foo = func(source, new ComplexDestinationType());
       }
 
       sw.Stop();
 
-      Console.WriteLine(sw.Elapsed);
+      Console.WriteLine("Map 1 " + sw.Elapsed);
 
     }
   }

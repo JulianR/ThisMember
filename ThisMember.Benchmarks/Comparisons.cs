@@ -36,6 +36,12 @@ namespace ThisMember.Benchmarks
 
     public static CustomerDto Dto;
 
+    public static decimal Foo(Func<decimal> func)
+    {
+      //Console.ReadLine();
+      return func();
+    }
+
     public static void Benchmark()
     {
       var mapper = new MemberMapper();
@@ -44,11 +50,25 @@ namespace ThisMember.Benchmarks
 
       var sw = Stopwatch.StartNew();
 
+      Func<Customer, CustomerDto, CustomerDto> man = (source, destination) =>
+      {
+        destination.CustomerID = source.CustomerID;
+        destination.FirstName = source.FirstName;
+        destination.LastName = source.LastName;
+        destination.FullName = source.FirstName + " " + source.LastName;
+        //destination.OrderCount = source.Orders.Count;
+        destination.OrderCount = Enumerable.Range(0, 10).Sum();
+
+        return destination;
+      };
+
       var map = mapper.CreateMap<Customer, CustomerDto>(customMapping: src => new CustomerDto
       {
         FullName = src.FirstName + " " + src.LastName,
-        OrderCount = src.Orders.Count,
-        OrderAmount = src.Orders.Sum(o => o.Amount)
+        OrderCount = Enumerable.Range(0, 10).Sum()
+        //OrderCount = src.Orders.Count,
+        //OrderAmount = src.Orders.Sum(o => o.Amount)
+        //OrderAmount = Foo(() => src.Orders.Sum(o =>o.Amount))
       });
 
       sw.Stop();
@@ -57,8 +77,8 @@ namespace ThisMember.Benchmarks
 
       Mapper.CreateMap<Customer, CustomerDto>()
       .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FirstName + " " + src.LastName))
-      .ForMember(dest => dest.OrderCount, opt => opt.MapFrom(src => src.Orders.Count))
-      .ForMember(dest => dest.OrderAmount, opt => opt.MapFrom(src => src.Orders.Sum(o => o.Amount)));
+      .ForMember(dest => dest.OrderCount, opt => opt.MapFrom(src => src.Orders.Count));
+      //.ForMember(dest => dest.OrderAmount, opt => opt.MapFrom(src => src.Orders.Sum(o => o.Amount)));
 
 
       var mappingFunc = map.MappingFunction;
@@ -90,12 +110,13 @@ namespace ThisMember.Benchmarks
       for (var i = 0; i < 1000000; i++)
       {
         Dto = new CustomerDto();
-
+        Dto.CustomerID = customer.CustomerID;
         Dto.FirstName = customer.FirstName;
         Dto.LastName = customer.LastName;
         Dto.FullName = customer.FirstName + " " + customer.LastName;
-        Dto.OrderCount = customer.Orders.Count;
-        Dto.OrderAmount = customer.Orders.Sum(o => o.Amount);
+        //Dto.OrderCount = customer.Orders.Count;
+        Dto.OrderCount = Enumerable.Range(0, 10).Sum();
+        //Dto.OrderAmount = customer.Orders.Sum(o => o.Amount);
       }
 
       sw.Stop();
@@ -128,12 +149,25 @@ namespace ThisMember.Benchmarks
 
       for (var i = 0; i < 1000000; i++)
       {
+        Dto = man(customer, new CustomerDto());
+      }
+
+      sw.Stop();
+
+      Console.WriteLine("Man: " + sw.Elapsed);
+
+      sw.Restart();
+
+      for (var i = 0; i < 1000000; i++)
+      {
         Dto = Mapper.Map<Customer, CustomerDto>(customer);
       }
 
       sw.Stop();
 
       Console.WriteLine("AutoMapper: " + sw.Elapsed);
+
+      
 
     }
   }
