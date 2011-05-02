@@ -162,9 +162,12 @@ namespace ThisMember.Core
 
               ProposedTypeMapping complexTypeMapping;
 
-              if (!mappingCache.TryGetValue(complexPair, out complexTypeMapping))
+              lock (syncRoot)
               {
-                complexTypeMapping = GetTypeMapping(complexPair, options, customMapping);
+                if (!mappingCache.TryGetValue(complexPair, out complexTypeMapping))
+                {
+                  complexTypeMapping = GetTypeMapping(complexPair, options, customMapping);
+                }
               }
 
               complexTypeMapping = complexTypeMapping.Clone();
@@ -187,9 +190,12 @@ namespace ThisMember.Core
 
             ProposedTypeMapping complexTypeMapping;
 
-            if (!mappingCache.TryGetValue(complexPair, out complexTypeMapping))
+            lock (syncRoot)
             {
-              complexTypeMapping = GetTypeMapping(complexPair, options, customMapping);
+              if (!mappingCache.TryGetValue(complexPair, out complexTypeMapping))
+              {
+                complexTypeMapping = GetTypeMapping(complexPair, options, customMapping);
+              }
             }
 
             complexTypeMapping = complexTypeMapping.Clone();
@@ -219,7 +225,10 @@ namespace ThisMember.Core
         }
       }
 
-      mappingCache[pair] = typeMapping;
+      lock (syncRoot)
+      {
+        mappingCache[pair] = typeMapping;
+      }
 
       return typeMapping;
     }
@@ -264,9 +273,12 @@ namespace ThisMember.Core
 
       ProposedTypeMapping mapping;
 
-      if (!this.mappingCache.TryGetValue(pair, out mapping))
+      lock (syncRoot)
       {
-        mapping = GetTypeMapping(pair, options);
+        if (!this.mappingCache.TryGetValue(pair, out mapping))
+        {
+          mapping = GetTypeMapping(pair, options);
+        }
       }
 
       map.ProposedTypeMapping = mapping;
@@ -274,8 +286,6 @@ namespace ThisMember.Core
       return map;
 
     }
-
-
 
     public void ClearMapCache()
     {

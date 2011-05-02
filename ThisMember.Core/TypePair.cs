@@ -25,5 +25,10 @@ namespace ThisMember.Core
     {
       return this.SourceType.GetHashCode();
     }
+
+    public override string ToString()
+    {
+      return "Source: " + SourceType + ", Destination: " + DestinationType;
+    }
   }
 }
