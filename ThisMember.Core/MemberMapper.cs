@@ -61,12 +61,7 @@ namespace ThisMember.Core
 
     public TDestination Map<TSource, TDestination>(TSource source) where TDestination : new()
     {
-      TDestination destination = default(TDestination);
-
-      if (source != null)
-      {
-        destination = new TDestination();
-      }
+      TDestination destination = new TDestination();
 
       return Map(source, destination);
     }
@@ -91,6 +86,11 @@ namespace ThisMember.Core
 
     public TDestination Map<TSource, TDestination>(TSource source, TDestination destination)
     {
+      if (destination == null)
+      {
+        throw new ArgumentNullException("destination");
+      }
+
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
       MemberMap map;

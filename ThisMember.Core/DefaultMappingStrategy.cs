@@ -103,12 +103,20 @@ namespace ThisMember.Core
           throw new NotImplementedException("Sorry, this hasn't been implemented yet");
         }
 
+        Type nullableType = null;
 
-
-
+        if (sourceProperty != null && sourceProperty.PropertyOrFieldType.IsNullableValueType())
+        {
+          nullableType = sourceProperty.PropertyOrFieldType.GetGenericArguments().Single();
+        }
 
         if (sourceProperty != null
-          && destinationProperty.PropertyOrFieldType.IsAssignableFrom(sourceProperty.PropertyOrFieldType))
+          &&
+          (
+          (destinationProperty.PropertyOrFieldType.IsAssignableFrom(sourceProperty.PropertyOrFieldType))
+          || (sourceProperty.PropertyOrFieldType.IsNullableValueType() && destinationProperty.PropertyOrFieldType.IsAssignableFrom(nullableType)
+          ))
+          )
         {
 
           if (options != null)

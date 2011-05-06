@@ -40,7 +40,8 @@ namespace ThisMember.Core
 
       Safety = new MapperSafetyOptions
       {
-        PerformNullChecksOnCustomMappings = true
+        PerformNullChecksOnCustomMappings = true,
+        IfSourceIsNull = SourceObjectNullOptions.ReturnNullWhenSourceIsNull
       };
 
     }
@@ -92,6 +93,22 @@ namespace ThisMember.Core
 
   }
 
+  public enum SourceObjectNullOptions
+  {
+    /// <summary>
+    /// If the source object is null, return null.
+    /// </summary>
+    ReturnNullWhenSourceIsNull,
+    /// <summary>
+    /// ThisMember will not perform a null-check and simply crash and burn if the source is null.
+    /// </summary>
+    AllowNullReferenceExceptionWhenSourceIsNull, 
+    /// <summary>
+    /// If the source object is null, return a valid destination object anyway.
+    /// </summary>
+    ReturnDestinationObject
+  }
+
   public class MapperSafetyOptions
   {
     /// <summary>
@@ -102,5 +119,13 @@ namespace ThisMember.Core
     /// </summary>
     /// <remarks>Defaults to true.</remarks>
     public bool PerformNullChecksOnCustomMappings { get; set; }
+
+
+    /// <summary>
+    /// What ThisMember should do when the source object you pass in is null. 
+    /// </summary>
+    /// <remarks>Defaults to ReturnNullWhenSourceIsNull.</remarks>
+    public SourceObjectNullOptions IfSourceIsNull { get; set; } 
+
   }
 }

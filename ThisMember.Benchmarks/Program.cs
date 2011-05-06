@@ -305,6 +305,8 @@ namespace ThisMember.Benchmarks
         }
       };
 
+      source = null;
+
       Func<ComplexSourceType, ComplexDestinationType, ComplexDestinationType> f = (src, dest) =>
       {
         dest.ID = src.ID;

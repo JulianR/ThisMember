@@ -55,9 +55,11 @@
     <Compile Include="IgnoreAttributeTests.cs" />
     <Compile Include="MappingProfilesTests.cs" />
     <Compile Include="MemberMapperTests.cs" />
+    <Compile Include="NullableValueTypesTests.cs" />
     <Compile Include="OptionTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProposedMapMutationTests.cs" />
+    <Compile Include="SourceNullTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ThisMember.Core\ThisMember.Core.csproj">
