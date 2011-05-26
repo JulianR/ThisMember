@@ -109,6 +109,15 @@ namespace ThisMember.Core
     /// <remarks>Defaults to true.</remarks>
     public bool IgnoreMemberAttributeShouldBeRespected { get; set; }
 
+    /// <summary>
+    /// If the destination contains a complex mapping, say, customer.Address and an existing
+    /// Customer is passed in as the destination with a non-null value for Address, then that existing
+    /// object is used, with the source object being applied over it, instead of a new instance of Address
+    /// being used. 
+    /// </summary>
+    /// <remarks>Defaults to true.</remarks>
+    public bool ReuseNonNullComplexMembersOnDestination { get; set; }
+
   }
 
   public enum SourceObjectNullOptions

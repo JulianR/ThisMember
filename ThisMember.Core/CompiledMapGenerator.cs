@@ -138,11 +138,11 @@ namespace ThisMember.Core
     private void BuildTypeMappingExpressions
     (
       SourceAndDestinationParameter rootParams,
-      ProposedMap map, ParameterExpression source, 
-      ParameterExpression destination, 
-      ProposedTypeMapping typeMapping, 
-      List<Expression> expressions, 
-      List<ParameterExpression> newParams, 
+      ProposedMap map, ParameterExpression source,
+      ParameterExpression destination,
+      ProposedTypeMapping typeMapping,
+      List<Expression> expressions,
+      List<ParameterExpression> newParams,
       CustomMapping customMapping = null
     )
     {
@@ -165,7 +165,7 @@ namespace ThisMember.Core
       }
     }
 
-   
+
 
     private BinaryExpression AssignSimpleProperty(MemberExpression destination, Expression source)
     {
@@ -187,13 +187,13 @@ namespace ThisMember.Core
 
     private void BuildSimpleTypeMappingExpressions
     (
-      SourceAndDestinationParameter rootParams, 
-      ProposedMap map, 
-      ParameterExpression source, 
-      ParameterExpression destination, 
-      ProposedMemberMapping member, 
-      List<Expression> expressions, 
-      List<ParameterExpression> newParams, 
+      SourceAndDestinationParameter rootParams,
+      ProposedMap map,
+      ParameterExpression source,
+      ParameterExpression destination,
+      ProposedMemberMapping member,
+      List<Expression> expressions,
+      List<ParameterExpression> newParams,
       CustomMapping customMapping = null
     )
     {
@@ -251,11 +251,11 @@ namespace ThisMember.Core
     private void BuildCollectionComplexTypeMappingExpressions
     (
       SourceAndDestinationParameter rootParams,
-      ProposedMap map, 
-      ParameterExpression source, 
-      ParameterExpression destination, 
-      ProposedTypeMapping complexTypeMapping, 
-      List<Expression> expressions, 
+      ProposedMap map,
+      ParameterExpression source,
+      ParameterExpression destination,
+      ProposedTypeMapping complexTypeMapping,
+      List<Expression> expressions,
       List<ParameterExpression> newParams
     )
     {
@@ -559,7 +559,7 @@ namespace ThisMember.Core
       {
         var culture = mapper.Options.Conventions.DateTime.ParseCulture ?? CultureInfo.CurrentCulture;
 
-        var cultureExpression = Expression.New(typeof(CultureInfo).GetConstructor(new[] { typeof(string) }), Expression.Constant(culture.Name)); 
+        var cultureExpression = Expression.New(typeof(CultureInfo).GetConstructor(new[] { typeof(string) }), Expression.Constant(culture.Name));
 
         var parseMethod = typeof(DateTime).GetMethod("Parse", new[] { typeof(string), typeof(IFormatProvider) });
 
@@ -623,7 +623,7 @@ namespace ThisMember.Core
           var srcVisitor = new ParameterVisitor(oldSrc, source);
           var destVisitor = new ParameterVisitor(oldDest, destination);
 
-          constructor = (LambdaExpression) destVisitor.Visit(srcVisitor.Visit(constructor));
+          constructor = (LambdaExpression)destVisitor.Visit(srcVisitor.Visit(constructor));
 
           return constructor.Body;
         }
@@ -662,13 +662,15 @@ namespace ThisMember.Core
 
       var newType = complexTypeMapping.DestinationMember.PropertyOrFieldType;
 
+      var accessDestinationMember = Expression.PropertyOrField(destination, complexTypeMapping.DestinationMember.Name);
+
       if (TypeReceivesSpecialTreatment(newType))
       {
         ifNotNullBlock.Add
         (
           Expression.Assign
           (
-            Expression.PropertyOrField(destination, complexTypeMapping.DestinationMember.Name),
+            accessDestinationMember,
             HandleSpecialType
             (
               complexTypeMapping.SourceMember.PropertyOrFieldType,
@@ -681,7 +683,26 @@ namespace ThisMember.Core
       else
       {
         // var destinationType = new DestinationType();
-        ifNotNullBlock.Add(Expression.Assign(complexDest, GetConstructorForType(map, newType,rootParams.Source, rootParams.Destination)));
+        Expression assignDestType;
+
+        var destinationMemberCtor = GetConstructorForType(map, newType, rootParams.Source, rootParams.Destination);
+
+        if (mapper.Options.Conventions.ReuseNonNullComplexMembersOnDestination)
+        {
+          var checkIfDestMemberIsNotNull = Expression.NotEqual(accessDestinationMember, Expression.Constant(null));
+
+          assignDestType = Expression.Assign(complexDest,
+            Expression.Condition(checkIfDestMemberIsNotNull,
+              accessDestinationMember,
+              destinationMemberCtor));
+        }
+        else
+        {
+          assignDestType = Expression.Assign(complexDest, destinationMemberCtor);
+
+        }
+
+        ifNotNullBlock.Add(assignDestType);
 
         BuildTypeMappingExpressions(rootParams, map, complexSource, complexDest, complexTypeMapping, ifNotNullBlock, newParams, complexTypeMapping.CustomMapping);
 
@@ -850,9 +871,9 @@ namespace ThisMember.Core
 
       var block = Expression.Block(assignments);
 
-      Expression ifSourceIsNull =  Expression.Default(proposedMap.DestinationType);
+      Expression ifSourceIsNull = Expression.Default(proposedMap.DestinationType);
 
-      if(mapper.Options.Safety.IfSourceIsNull == SourceObjectNullOptions.AllowNullReferenceExceptionWhenSourceIsNull)
+      if (mapper.Options.Safety.IfSourceIsNull == SourceObjectNullOptions.AllowNullReferenceExceptionWhenSourceIsNull)
       {
         condition = Expression.Constant(true);
       }

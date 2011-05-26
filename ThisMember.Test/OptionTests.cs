@@ -237,5 +237,62 @@ namespace ThisMember.Test
 
       var result = mapper.Map<StringSource, DateTimeDestination>(new StringSource { Date = "3a1-31-2001abc" });
     }
+
+    private class ReuseSourceType
+    {
+      public ReuseNestedSourceType Foo { get; set; }
+      public string Name { get; set; }
+    }
+
+    private class ReuseNestedSourceType
+    {
+      public int ID { get; set; }
+      public string Bar { get; set; }
+    }
+
+    private class ReuseDestinationType
+    {
+      public ReuseNestedDestinationType Foo { get; set; }
+      public string Name { get; set; }
+    }
+
+    private class ReuseNestedDestinationType
+    {
+      [IgnoreMember]
+      public int ID { get; set; }
+
+      public string Bar { get; set; }
+    }
+
+    [TestMethod]
+    public void ReuseNonNullMembersIsRespected()
+    {
+      var mapper = new MemberMapper();
+      mapper.Options.Conventions.ReuseNonNullComplexMembersOnDestination = true;
+
+      var source = new ReuseSourceType
+      {
+        Name = "test",
+        Foo = new ReuseNestedSourceType
+        {
+          ID = 1,
+          Bar = "Foo"
+        }
+      };
+
+      var destination = new ReuseDestinationType
+      {
+        Foo = new ReuseNestedDestinationType
+        {
+          ID = 15
+        }
+      };
+
+      var result = mapper.Map<ReuseSourceType, ReuseDestinationType>(source, destination);
+
+      Assert.AreEqual(15, result.Foo.ID);
+      Assert.AreEqual("Foo", result.Foo.Bar);
+
+    }
   }
 }
