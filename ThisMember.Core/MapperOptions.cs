@@ -10,13 +10,13 @@ namespace ThisMember.Core
   public class MapperOptions
   {
     public Action<IMemberMapper, TypePair> BeforeMapping { get; set; }
-    public Action<IMemberMapper, TypePair, object>  AfterMapping { get; set; }
+    public Action<IMemberMapper, TypePair, object> AfterMapping { get; set; }
 
     public MapperStrictnessOptions Strictness { get; set; }
 
     public MapperConventionOptions Conventions { get; set; }
 
-    public MapperSafetyOptions Safety { get; set; } 
+    public MapperSafetyOptions Safety { get; set; }
 
     public MapperOptions()
     {
@@ -35,13 +35,18 @@ namespace ThisMember.Core
         {
           ParseCulture = null,
           ParseStringsToDateTime = true
-        }
+        },
+        AutomaticallyFlattenHierarchies = false,
+        MakeCloneIfDestinationIsTheSameAsSource = true,
+        IgnoreMemberAttributeShouldBeRespected = true
       };
 
       Safety = new MapperSafetyOptions
       {
         PerformNullChecksOnCustomMappings = true,
-        IfSourceIsNull = SourceObjectNullOptions.ReturnNullWhenSourceIsNull
+        IfSourceIsNull = SourceObjectNullOptions.ReturnNullWhenSourceIsNull,
+        DoNotCompileToDynamicAssembly = false,
+        IfRecursiveRelationshipIsDetected = RecursivePropertyOptions.IgnoreRecursiveProperties
       };
 
     }
@@ -89,7 +94,20 @@ namespace ThisMember.Core
     /// <summary>
     /// Attempts to map hierarchies such as order.Customer.Name to destination.CustomerName.
     /// </summary>
+    /// <remarks>NOT SUPPORTED YET.</remarks>
     public bool AutomaticallyFlattenHierarchies { get; set; }
+
+    /// <summary>
+    /// If the source type is the same as the destination type, make a deep clone
+    /// </summary>
+    /// <remarks>Defaults to true.</remarks>
+    public bool MakeCloneIfDestinationIsTheSameAsSource { get; set; }
+
+    /// <summary>
+    /// When set to true, the [IgnoreMember] attribute should be respected by ThisMember. When set to false, the attribute gets ignored.
+    /// </summary>
+    /// <remarks>Defaults to true.</remarks>
+    public bool IgnoreMemberAttributeShouldBeRespected { get; set; }
 
   }
 
@@ -102,11 +120,24 @@ namespace ThisMember.Core
     /// <summary>
     /// ThisMember will not perform a null-check and simply crash and burn if the source is null.
     /// </summary>
-    AllowNullReferenceExceptionWhenSourceIsNull, 
+    AllowNullReferenceExceptionWhenSourceIsNull,
     /// <summary>
     /// If the source object is null, return a valid destination object anyway.
     /// </summary>
     ReturnDestinationObject
+  }
+
+  public enum RecursivePropertyOptions
+  {
+    /// <summary>
+    /// Skip over properties that would cause an infinite recursion.
+    /// </summary>
+    IgnoreRecursiveProperties,
+    /// <summary>
+    /// Throw an exception when a property is detected that could cause infinite recursion.
+    /// </summary>
+    ThrowIfRecursionIsDetected,
+
   }
 
   public class MapperSafetyOptions
@@ -125,7 +156,20 @@ namespace ThisMember.Core
     /// What ThisMember should do when the source object you pass in is null. 
     /// </summary>
     /// <remarks>Defaults to ReturnNullWhenSourceIsNull.</remarks>
-    public SourceObjectNullOptions IfSourceIsNull { get; set; } 
+    public SourceObjectNullOptions IfSourceIsNull { get; set; }
+
+    /// <summary>
+    /// Compiliation to a dynamic assembly can be turned off this way. Compiling to a dynamic assembly can result in faster code, but can cause problems when your 
+    /// custom mappings access private members or use closures. Try turning this off if you get strange exceptions.
+    /// </summary>
+    /// <remarks>Defaults to false.</remarks>
+    public bool DoNotCompileToDynamicAssembly { get; set; }
+
+    /// <summary>
+    /// What to do when a recursive relationship is detected. For example a User type that defines an Address that defines a User.
+    /// </summary>
+    /// <remarks>Defaults to IgnoreRecursiveProperties</remarks>
+    public RecursivePropertyOptions IfRecursiveRelationshipIsDetected { get; set; }
 
   }
 }

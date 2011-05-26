@@ -227,5 +227,11 @@ namespace ThisMember.Core
     }
 
     public string Profile { get; set; }
+
+
+    public TSource DeepClone<TSource>(TSource source) where TSource : new()
+    {
+      return Map<TSource, TSource>(source);
+    }
   }
 }

@@ -750,9 +750,9 @@ namespace ThisMember.Core
 
     private static byte[] syncRoot = new byte[0];
 
-    private static Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
+    private Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
     {
-      if (IsPublicClass(sourceType) && IsPublicClass(destinationType))
+      if (!this.mapper.Options.Safety.DoNotCompileToDynamicAssembly && IsPublicClass(sourceType) && IsPublicClass(destinationType))
       {
         lock (syncRoot)
         {
