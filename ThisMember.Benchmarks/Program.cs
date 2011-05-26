@@ -310,7 +310,9 @@ namespace ThisMember.Benchmarks
         }
       };
 
+      source = null;
       f = (src, dest) =>
+
       {
         dest.ID = src.ID;
         if (src.Complex != null)

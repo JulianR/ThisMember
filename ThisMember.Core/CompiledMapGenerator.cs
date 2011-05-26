@@ -165,6 +165,26 @@ namespace ThisMember.Core
       }
     }
 
+   
+
+    private BinaryExpression AssignSimpleProperty(MemberExpression destination, Expression source)
+    {
+      if (destination.Type.IsNullableValueType() && !source.Type.IsNullableValueType())
+      {
+        var nullableType = destination.Type.GetGenericArguments().Single();
+
+        source = Expression.New(destination.Type.GetConstructor(new[] { nullableType }), source);
+      }
+      else if (!destination.Type.IsNullableValueType() && source.Type.IsNullableValueType())
+      {
+        var nullableType = source.Type.GetGenericArguments().Single();
+
+        source = Expression.Condition(Expression.IsTrue(Expression.Property(source, "HasValue")), Expression.Property(source, "Value"), Expression.Default(nullableType));
+      }
+
+      return Expression.Assign(destination, source);
+    }
+
     private void BuildSimpleTypeMappingExpressions
     (
       SourceAndDestinationParameter rootParams, 
@@ -214,7 +234,7 @@ namespace ThisMember.Core
       else
       {
         Expression sourceExpression = Expression.PropertyOrField(source, member.SourceMember.Name);
-        assignSourceToDest = Expression.Assign(destMember, sourceExpression);
+        assignSourceToDest = AssignSimpleProperty(destMember, sourceExpression);
       }
 
       if (condition != null)
@@ -730,9 +750,9 @@ namespace ThisMember.Core
 
     private static byte[] syncRoot = new byte[0];
 
-    private static Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
+    private Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
     {
-      if (IsPublicClass(sourceType) && IsPublicClass(destinationType))
+      if (!this.mapper.Options.Safety.DoNotCompileToDynamicAssembly && IsPublicClass(sourceType) && IsPublicClass(destinationType))
       {
         lock (syncRoot)
         {
@@ -830,7 +850,18 @@ namespace ThisMember.Core
 
       var block = Expression.Block(assignments);
 
-      var conditionCheck = Expression.IfThen(condition, block);
+      Expression ifSourceIsNull =  Expression.Default(proposedMap.DestinationType);
+
+      if(mapper.Options.Safety.IfSourceIsNull == SourceObjectNullOptions.AllowNullReferenceExceptionWhenSourceIsNull)
+      {
+        condition = Expression.Constant(true);
+      }
+      else if (mapper.Options.Safety.IfSourceIsNull == SourceObjectNullOptions.ReturnNullWhenSourceIsNull)
+      {
+        ifSourceIsNull = Expression.Assign(destination, Expression.Default(proposedMap.DestinationType));
+      }
+
+      var conditionCheck = Expression.IfThenElse(condition, block, ifSourceIsNull);
 
       var outerBlock = Expression.Block(newParams, conditionCheck, destination);
 

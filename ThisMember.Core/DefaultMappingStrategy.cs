@@ -26,8 +26,19 @@ namespace ThisMember.Core
       this.mapper = mapper;
     }
 
+    private Stack<TypePair> _typeStack = new Stack<TypePair>();
+
     private ProposedTypeMapping GetTypeMapping(TypePair pair, MappingOptions options = null, CustomMapping customMapping = null)
     {
+      if (!_typeStack.Contains(pair))
+      {
+        _typeStack.Push(pair);
+      }
+      else
+      {
+        return null;
+      }
+
       var typeMapping = new ProposedTypeMapping();
 
       typeMapping.SourceMember = null;
@@ -73,12 +84,14 @@ namespace ThisMember.Core
 
       foreach (var destinationProperty in destinationProperties)
       {
-
-        var ignoreAttribute = destinationProperty.GetCustomAttributes(typeof(IgnoreMemberAttribute), false).SingleOrDefault() as IgnoreMemberAttribute;
-
-        if (ignoreAttribute != null && (string.IsNullOrEmpty(ignoreAttribute.Profile) || ignoreAttribute.Profile == mapper.Profile))
+        if (mapper.Options.Conventions.IgnoreMemberAttributeShouldBeRespected)
         {
-          continue;
+          var ignoreAttribute = destinationProperty.GetCustomAttributes(typeof(IgnoreMemberAttribute), false).SingleOrDefault() as IgnoreMemberAttribute;
+
+          if (ignoreAttribute != null && (string.IsNullOrEmpty(ignoreAttribute.Profile) || ignoreAttribute.Profile == mapper.Profile))
+          {
+            continue;
+          }
         }
 
         PropertyOrFieldInfo sourceProperty;
@@ -103,12 +116,29 @@ namespace ThisMember.Core
           throw new NotImplementedException("Sorry, this hasn't been implemented yet");
         }
 
+        Type nullableType = null;
+
+        if (sourceProperty != null && sourceProperty.PropertyOrFieldType.IsNullableValueType())
+        {
+          nullableType = sourceProperty.PropertyOrFieldType.GetGenericArguments().Single();
+        }
+
+        var canUseSimpleTypeMapping = sourceProperty != null;
+
+        if (canUseSimpleTypeMapping)
+        {
+          canUseSimpleTypeMapping &= (destinationProperty.PropertyOrFieldType.IsAssignableFrom(sourceProperty.PropertyOrFieldType))
+            || (sourceProperty.PropertyOrFieldType.IsNullableValueType() && destinationProperty.PropertyOrFieldType.IsAssignableFrom(nullableType));
 
 
+          if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+          {
+            canUseSimpleTypeMapping &= sourceProperty.PropertyOrFieldType.IsValueType || sourceProperty.PropertyOrFieldType == typeof(string);
+          }
+        }
 
 
-        if (sourceProperty != null
-          && destinationProperty.PropertyOrFieldType.IsAssignableFrom(sourceProperty.PropertyOrFieldType))
+        if (canUseSimpleTypeMapping)
         {
 
           if (options != null)
@@ -170,18 +200,21 @@ namespace ThisMember.Core
                 }
               }
 
-              complexTypeMapping = complexTypeMapping.Clone();
+              if (complexTypeMapping != null)
+              {
+                complexTypeMapping = complexTypeMapping.Clone();
 
-              complexTypeMapping.DestinationMember = destinationProperty;
-              complexTypeMapping.SourceMember = sourceProperty;
+                complexTypeMapping.DestinationMember = destinationProperty;
+                complexTypeMapping.SourceMember = sourceProperty;
 
-              CustomMapping customMappingForType;
+                CustomMapping customMappingForType;
 
-              customMappingCache.TryGetValue(complexPair, out customMappingForType);
+                customMappingCache.TryGetValue(complexPair, out customMappingForType);
 
-              complexTypeMapping.CustomMapping = customMappingForType;
+                complexTypeMapping.CustomMapping = customMappingForType;
 
-              typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
+                typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
+              }
             }
           }
           else
@@ -198,18 +231,22 @@ namespace ThisMember.Core
               }
             }
 
-            complexTypeMapping = complexTypeMapping.Clone();
+            if (complexTypeMapping != null)
+            {
 
-            complexTypeMapping.DestinationMember = destinationProperty;
-            complexTypeMapping.SourceMember = sourceProperty;
+              complexTypeMapping = complexTypeMapping.Clone();
 
-            CustomMapping customMappingForType;
+              complexTypeMapping.DestinationMember = destinationProperty;
+              complexTypeMapping.SourceMember = sourceProperty;
 
-            customMappingCache.TryGetValue(complexPair, out customMappingForType);
+              CustomMapping customMappingForType;
 
-            complexTypeMapping.CustomMapping = customMappingForType;
+              customMappingCache.TryGetValue(complexPair, out customMappingForType);
 
-            typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
+              complexTypeMapping.CustomMapping = customMappingForType;
+
+              typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
+            }
           }
         }
         else if (customExpression != null)
@@ -229,6 +266,8 @@ namespace ThisMember.Core
       {
         mappingCache[pair] = typeMapping;
       }
+
+      _typeStack.Pop();
 
       return typeMapping;
     }
