@@ -72,5 +72,42 @@ namespace ThisMember.Test
 
       Assert.AreNotEqual(10, result.ID);
     }
+
+    public class OtherSourceType
+    {
+      public int ID { get; set; }
+    }
+
+    public class OtherDestinationType
+    {
+      [IgnoreMemberAttribute(WhenSourceTypeIs = typeof(OtherSourceType))]
+      public int ID { get; set; }
+    }
+
+    [TestMethod]
+    public void IgnoreAttributeRespectsSourceTypeFilter()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new OtherSourceType
+      {
+        ID = 10
+      };
+
+      var result = mapper.Map<OtherSourceType, OtherDestinationType>(source);
+
+      Assert.AreNotEqual(10, result.ID);
+
+      var source1 = new SourceType
+      {
+        ID = 10
+      };
+
+      var result1 = mapper.Map<SourceType, OtherDestinationType>(source1);
+
+      Assert.AreEqual(10, result1.ID);
+
+
+    }
   }
 }

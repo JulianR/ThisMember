@@ -57,6 +57,7 @@
     <Compile Include="Exceptions\IncompatibleMappingException.cs" />
     <Compile Include="Exceptions\MapNotFoundException.cs" />
     <Compile Include="Exceptions\MemberNotFoundException.cs" />
+    <Compile Include="Exceptions\RecursiveRelationshipException.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="IgnoreMemberAttribute.cs" />
     <Compile Include="Interfaces\IMapGenerator.cs" />

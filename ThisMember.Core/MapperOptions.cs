@@ -38,7 +38,8 @@ namespace ThisMember.Core
         },
         AutomaticallyFlattenHierarchies = false,
         MakeCloneIfDestinationIsTheSameAsSource = true,
-        IgnoreMemberAttributeShouldBeRespected = true
+        IgnoreMemberAttributeShouldBeRespected = true,
+        ReuseNonNullComplexMembersOnDestination = true
       };
 
       Safety = new MapperSafetyOptions

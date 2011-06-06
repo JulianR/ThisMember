@@ -11,6 +11,14 @@ namespace ThisMember.Core
   [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
   public class IgnoreMemberAttribute : Attribute
   {
+    /// <summary>
+    /// The member is only ignored if the profile of the mapper matches this property.
+    /// </summary>
     public string Profile { get; set; }
+
+    /// <summary>
+    /// The member is only ignored if the source type in this mapping is of the specified type.
+    /// </summary>
+    public Type WhenSourceTypeIs { get; set; }
   }
 }

@@ -34,10 +34,15 @@ namespace ThisMember.Core
       {
         _typeStack.Push(pair);
       }
+      else if (mapper.Options.Safety.IfRecursiveRelationshipIsDetected == RecursivePropertyOptions.ThrowIfRecursionIsDetected)
+      {
+        throw new RecursiveRelationshipException(pair);
+      }
       else
       {
         return null;
       }
+
 
       var typeMapping = new ProposedTypeMapping();
 
@@ -88,9 +93,21 @@ namespace ThisMember.Core
         {
           var ignoreAttribute = destinationProperty.GetCustomAttributes(typeof(IgnoreMemberAttribute), false).SingleOrDefault() as IgnoreMemberAttribute;
 
-          if (ignoreAttribute != null && (string.IsNullOrEmpty(ignoreAttribute.Profile) || ignoreAttribute.Profile == mapper.Profile))
+          if (ignoreAttribute != null)
           {
-            continue;
+            var ignore = true;
+
+            if (!string.IsNullOrEmpty(ignoreAttribute.Profile))
+            {
+              ignore &= ignoreAttribute.Profile == mapper.Profile;
+            }
+
+            if (ignoreAttribute.WhenSourceTypeIs != null)
+            {
+              ignore &= ignoreAttribute.WhenSourceTypeIs == sourceType;
+            }
+
+            if (ignore) continue;
           }
         }
 
