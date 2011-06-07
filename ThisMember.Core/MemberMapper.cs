@@ -73,12 +73,12 @@ namespace ThisMember.Core
       return proposedMap;
     }
 
-    public ProposedMap CreateMapProposal(Type source, Type destination, MappingOptions options = null)
+    public ProposedMap CreateMapProposal(Type source, Type destination, MappingOptions options = null, LambdaExpression customMapping = null)
     {
 
       var pair = new TypePair(source, destination);
 
-      var proposedMap = this.MappingStrategy.CreateMapProposal(pair, options);
+      var proposedMap = this.MappingStrategy.CreateMapProposal(pair, options, customMapping);
 
       return proposedMap;
 
@@ -124,9 +124,9 @@ namespace ThisMember.Core
 
     public IMappingStrategy MappingStrategy { get; set; }
 
-    public MemberMap CreateMap(Type source, Type destination, MappingOptions options = null)
+    public MemberMap CreateMap(Type source, Type destination, MappingOptions options = null, LambdaExpression customMapping = null)
     {
-      return CreateMapProposal(source, destination, options).FinalizeMap();
+      return CreateMapProposal(source, destination, options, customMapping).FinalizeMap();
     }
 
     public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null)

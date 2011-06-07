@@ -23,6 +23,7 @@ namespace ThisMember.Core
     {
       ProposedMappings = new List<ProposedMemberMapping>();
       ProposedTypeMappings = new List<ProposedTypeMapping>();
+      IncompatibleMappings = new List<PropertyOrFieldInfo>();
     }
 
     public bool IsEnumerable { get; set; }
@@ -31,6 +32,8 @@ namespace ThisMember.Core
 
     public IList<ProposedMemberMapping> ProposedMappings { get; set; }
 
+    public IList<PropertyOrFieldInfo> IncompatibleMappings { get; set; }
+
     public ProposedTypeMapping Clone()
     {
       return new ProposedTypeMapping
@@ -38,7 +41,8 @@ namespace ThisMember.Core
         DestinationMember = this.DestinationMember,
         SourceMember = this.SourceMember,
         ProposedMappings = this.ProposedMappings,
-        ProposedTypeMappings = this.ProposedTypeMappings
+        ProposedTypeMappings = this.ProposedTypeMappings,
+        IncompatibleMappings = this.IncompatibleMappings
       };
     }
 
@@ -53,7 +57,7 @@ namespace ThisMember.Core
 
     public bool Equals(ProposedTypeMapping mapping)
     {
-      return this.DestinationMember == mapping.DestinationMember && this.SourceMember== mapping.SourceMember;
+      return this.DestinationMember == mapping.DestinationMember && this.SourceMember == mapping.SourceMember;
     }
 
     public override int GetHashCode()

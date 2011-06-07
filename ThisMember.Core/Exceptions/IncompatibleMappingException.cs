@@ -9,12 +9,9 @@ namespace ThisMember.Core.Exceptions
 {
   public class IncompatibleMappingException : Exception
   {
-    public PropertyOrFieldInfo MissingMember { get; set; }
-
-    public IncompatibleMappingException(PropertyOrFieldInfo member)
-      : base(string.Format("Member {0}.{1} cannot be mapped", ((MemberInfo)member).DeclaringType.Name, member.Name))
+    public IncompatibleMappingException(string message)
+      : base(message)
     {
-      this.MissingMember = member;
     }
 
   }

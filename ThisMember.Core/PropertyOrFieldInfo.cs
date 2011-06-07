@@ -39,6 +39,14 @@ namespace ThisMember.Core.Interfaces
       }
     }
 
+    public Type DeclaringType
+    {
+      get
+      {
+        return member.DeclaringType;
+      }
+    }
+
     public object[] GetCustomAttributes(Type attributeType, bool inherit)
     {
       return member.GetCustomAttributes(attributeType, inherit);

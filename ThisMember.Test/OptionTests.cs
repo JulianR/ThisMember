@@ -294,5 +294,83 @@ namespace ThisMember.Test
       Assert.AreEqual("Foo", result.Foo.Bar);
 
     }
+
+    class IncompatibleSource
+    {
+      public int ID { get; set; }
+    }
+
+    class IncompatibleDestination
+    {
+      public int Test { get; set; }
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(IncompatibleMappingException))]
+    public void ThrowsWhenTypesAreIncompatible()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember = true;
+
+      mapper.CreateMap<IncompatibleSource, IncompatibleDestination>();
+
+    }
+
+    [TestMethod]
+    public void DoesNotThrowWhenTypesAreIncompatibleButPropertyGetsIgnored()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember = true;
+
+      mapper.CreateMapProposal<IncompatibleSource, IncompatibleDestination>()
+        .ForMember(s => s.Test).Ignore().FinalizeMap();
+
+    }
+
+    class IncompatibleNestedSource
+    {
+      public int ID { get; set; }
+    }
+
+    class IncompatibleSourceWithNested
+    {
+      public IncompatibleNestedSource Foo { get; set; }
+    }
+
+    class IncompatibleNestedDestination
+    {
+      public int Test { get; set; }
+    }
+
+    class IncompatibleDestinationWithNested
+    {
+      public IncompatibleNestedDestination Foo { get; set; }
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(IncompatibleMappingException))]
+    public void ThrowsWhenTypesAreIncompatibleOnNestedMember()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember = true;
+
+      mapper.CreateMap<IncompatibleSourceWithNested, IncompatibleDestinationWithNested>();
+
+    }
+
+    [TestMethod]
+    public void DoesNotThrowWhenTypesAreIncompatibleButPropertyGetsIgnoredOnNestedMember()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember = true;
+
+      mapper.CreateMapProposal<IncompatibleSourceWithNested, IncompatibleDestinationWithNested>()
+        .ForMember(s => s.Foo.Test).Ignore().FinalizeMap();
+
+    }
   }
 }

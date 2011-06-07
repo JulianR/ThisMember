@@ -30,11 +30,11 @@ namespace ThisMember.Core.Interfaces
 
     TDestination Map<TSource, TDestination>(TSource source, TDestination destination);
 
-    ProposedMap CreateMapProposal(Type source, Type destination, MappingOptions options = null);
+    ProposedMap CreateMapProposal(Type source, Type destination, MappingOptions options = null, LambdaExpression customMapping = null);
 
     ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null);
 
-    MemberMap CreateMap(Type source, Type destination, MappingOptions options = null);
+    MemberMap CreateMap(Type source, Type destination, MappingOptions options = null, LambdaExpression customMapping = null);
 
     MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null);
 

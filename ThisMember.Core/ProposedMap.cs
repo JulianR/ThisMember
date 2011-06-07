@@ -31,6 +31,9 @@ namespace ThisMember.Core
 
     public MemberMap FinalizeMap()
     {
+
+      EnsureNoInvalidMappings();
+
       var map = new MemberMap();
 
       map.SourceType = this.SourceType;
@@ -40,6 +43,38 @@ namespace ThisMember.Core
       mapper.RegisterMap(map);
 
       return map;
+    }
+
+    private void EnsureNoInvalidMappings()
+    {
+      var invalidPropertyMappings = new List<PropertyOrFieldInfo>();
+
+      EnsureNoInvalidMappings(invalidPropertyMappings, this.ProposedTypeMapping);
+
+      if (invalidPropertyMappings.Any())
+      {
+        var sb = new StringBuilder();
+
+        sb.AppendLine("The following properties could not be mapped: ");
+
+        foreach (var property in invalidPropertyMappings)
+        {
+          sb.AppendLine(property.DeclaringType.Name + "." + property.Name + ", ");
+        }
+
+        throw new IncompatibleMappingException(sb.ToString());
+
+      }
+    }
+
+    private void EnsureNoInvalidMappings(List<PropertyOrFieldInfo> properties, ProposedTypeMapping typeMapping)
+    {
+      properties.AddRange(typeMapping.IncompatibleMappings);
+
+      foreach (var mapping in typeMapping.ProposedTypeMappings)
+      {
+        EnsureNoInvalidMappings(properties, mapping);
+      }
     }
 
     public ProposedMap WithConstructorFor<T>(LambdaExpression constructor)
@@ -86,6 +121,12 @@ namespace ThisMember.Core
 
     private IMappingProposition GetMemberMappingForMember(ProposedTypeMapping mapping, PropertyOrFieldInfo member)
     {
+
+      if (mapping.IncompatibleMappings.Contains(member))
+      {
+        return new IncompatibleMapping(mapping, member);
+      }
+
       foreach (var memberMapping in mapping.ProposedMappings)
       {
         if (memberMapping.DestinationMember != null && memberMapping.DestinationMember.Equals(member))
@@ -127,6 +168,42 @@ namespace ThisMember.Core
       }
 
       return new MappingPropositionModifier<TSource, TDestination>(this, mapping);
+    }
+
+    private class IncompatibleMapping : IMappingProposition
+    {
+      private PropertyOrFieldInfo _member;
+      private ProposedTypeMapping _mapping;
+
+      public IncompatibleMapping(ProposedTypeMapping mapping, PropertyOrFieldInfo member)
+      {
+        _mapping = mapping;
+        _member = member;
+      }
+
+      public bool Ignored
+      {
+        get
+        {
+          throw new MemberNotFoundException(_member);
+        }
+        set
+        {
+          _mapping.IncompatibleMappings.Remove(_member);
+        }
+      }
+
+      public LambdaExpression Condition
+      {
+        get
+        {
+          throw new MemberNotFoundException(_member);
+        }
+        set
+        {
+          throw new MemberNotFoundException(_member);
+        }
+      }
     }
 
   }

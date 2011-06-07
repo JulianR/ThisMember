@@ -126,7 +126,7 @@ namespace ThisMember.Core
           && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember
           && !mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
         {
-          throw new IncompatibleMappingException(destinationProperty);
+          typeMapping.IncompatibleMappings.Add(destinationProperty);
         }
         else if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
         {
@@ -317,7 +317,7 @@ namespace ThisMember.Core
       return map;
     }
 
-    public ProposedMap CreateMapProposal(TypePair pair, MappingOptions options = null)
+    public ProposedMap CreateMapProposal(TypePair pair, MappingOptions options = null, LambdaExpression customMappingExpression = null)
     {
 
       var map = new ProposedMap(this.mapper);
@@ -327,15 +327,17 @@ namespace ThisMember.Core
       map.SourceType = pair.SourceType;
       map.DestinationType = pair.DestinationType;
 
-      ProposedTypeMapping mapping;
+      CustomMapping customMapping = null;
 
-      lock (syncRoot)
+      if (customMappingExpression != null)
       {
-        if (!this.mappingCache.TryGetValue(pair, out mapping))
-        {
-          mapping = GetTypeMapping(pair, options);
-        }
+        customMapping = CustomMapping.GetCustomMapping(pair.DestinationType, customMappingExpression);
+        customMappingCache[pair] = customMapping;
       }
+
+      ProposedTypeMapping mapping  = GetTypeMapping(pair, options, customMapping);
+
+      mapping.CustomMapping = customMapping;
 
       map.ProposedTypeMapping = mapping;
 
