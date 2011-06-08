@@ -16,13 +16,28 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      var repo = new MapRepository();
+      var repo = new TestRepository();
 
       mapper.MapRepository = repo;
 
       var result = mapper.Map<SourceType, DestinationType>(new SourceType { ID = "1" });
 
       Assert.AreEqual(1, result.Test);
+
+    }
+
+    [TestMethod]
+    public void RepositoryIsUsedForNestedTypeWhenSupplied()
+    {
+      var mapper = new MemberMapper();
+
+      var repo = new TestRepository();
+
+      mapper.MapRepository = repo;
+
+      var result = mapper.Map<SourceTypeWithNested, DestinationTypeWithNested>(new SourceTypeWithNested { Foo = new SourceTypeNested { ID = "1" } });
+
+      Assert.AreEqual(1, result.Foo.Test);
 
     }
 
@@ -36,56 +51,48 @@ namespace ThisMember.Test
       public int Test { get; set; }
     }
 
-    private class MapRepository : IMapRepository
+    class SourceTypeWithNested
     {
+      public SourceTypeNested Foo { get; set; }
+    }
 
-      private Dictionary<TypePair, Func<IMemberMapper, MappingOptions, ProposedMap>> cache = new Dictionary<TypePair, Func<IMemberMapper, MappingOptions, ProposedMap>>();
+    class DestinationTypeWithNested
+    {
+      public DestinationTypeNested Foo { get; set; }
+    }
 
-      public MapRepository()
+    class SourceTypeNested
+    {
+      public string ID { get; set; }
+    }
+
+    class DestinationTypeNested
+    {
+      public int Test { get; set; }
+    }
+
+    private class TestRepository : MapRepositoryBase
+    {
+      protected override void InitMaps()
       {
-        CreateMap<SourceType, DestinationType>((mapper, options) =>
+        DefineMap<SourceType, DestinationType>((mapper, options) =>
+        {
+          return mapper.CreateMapProposal<SourceType, DestinationType>(customMapping: src => new DestinationType
           {
-            return mapper.CreateMapProposal<SourceType, DestinationType>(customMapping: src => new DestinationType
-            {
-              Test = int.Parse(src.ID)
-            });
+            Test = int.Parse(src.ID)
           });
-      }
+        });
 
-      private void CreateMap<TSource, TDestination>(Func<IMemberMapper, MappingOptions, ProposedMap> action)
-      {
-        cache.Add(new TypePair(typeof(TSource), typeof(TDestination)), action);
-      }
-
-      public bool TryGetMap(IMemberMapper mapper, MappingOptions options, TypePair pair, out ProposedMap map)
-      {
-        Func<IMemberMapper, MappingOptions, ProposedMap> action;
-        if (cache.TryGetValue(pair, out action))
+        DefineMap<SourceTypeNested, DestinationTypeNested>((mapper, options) =>
         {
-          map = action(mapper, options);
-          return true;
-        }
-
-        map = null;
-
-        return false;
-      }
-
-
-      public bool TryGetMap<TSource, TDestination>(IMemberMapper mapper, MappingOptions options, out ProposedMap<TSource, TDestination> map)
-      {
-        Func<IMemberMapper, MappingOptions, ProposedMap> action;
-        if (cache.TryGetValue(new TypePair(typeof(TSource), typeof(TDestination)), out action))
-        {
-          map = (ProposedMap<TSource, TDestination>)action(mapper, options);
-          return true;
-        }
-
-        map = null;
-
-        return false;
+          return mapper.CreateMapProposal<SourceTypeNested, DestinationTypeNested>(customMapping: src => new DestinationType
+          {
+            Test = int.Parse(src.ID)
+          });
+        });
       }
     }
+
 
 
   }

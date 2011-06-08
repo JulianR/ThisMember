@@ -7,20 +7,20 @@ using ThisMember.Core.Interfaces;
 namespace ThisMember.Core
 {
 
-  public enum MappingOptionState
+  public enum MemberOptionState
   {
     Default,
     Ignored
   }
 
-  public class MappingOption
+  public class MemberOption
   {
 
-    public MappingOptionState State { get; private set; }
+    public MemberOptionState State { get; private set; }
 
     public void IgnoreMember()
     {
-      State = MappingOptionState.Ignored;
+      State = MemberOptionState.Ignored;
     }
 
   }

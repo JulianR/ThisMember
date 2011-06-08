@@ -24,7 +24,7 @@ namespace ThisMember.Test
     [TestMethod]
     public void CallingNonExistentProfileCreatesIt()
     {
-      var profiles = new MappingProfiles();
+      var profiles = new MapCollection();
 
       var result = profiles["create"].Map<DestinationType>(new SourceType { ID = 10 });
 
@@ -34,7 +34,7 @@ namespace ThisMember.Test
     [TestMethod]
     public void SettingProfileSetsIt()
     {
-      var profiles = new MappingProfiles();
+      var profiles = new MapCollection();
 
       var mapper = new MemberMapper();
 

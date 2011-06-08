@@ -160,13 +160,13 @@ namespace ThisMember.Core
 
           if (options != null)
           {
-            var option = new MappingOption();
+            var option = new MemberOption();
 
             options(sourceProperty, destinationProperty, option);
 
             switch (option.State)
             {
-              case MappingOptionState.Ignored:
+              case MemberOptionState.Ignored:
                 continue;
             }
 
@@ -313,12 +313,15 @@ namespace ThisMember.Core
         customMappingCache[pair] = customMapping;
       }
 
-      //ProposedTypeMapping mapping = GetTypeMapping(pair, options, customMapping);
+      //var mapping = GetTypeMapping(pair, options, customMapping);
 
       var mapping = GetComplexTypeMapping(pair, options, customMapping, true);
 
 
-      mapping.CustomMapping = customMapping;
+      if (mapping.CustomMapping == null)
+      {
+        mapping.CustomMapping = customMapping;
+      }
 
       map.ProposedTypeMapping = mapping;
 
@@ -343,11 +346,14 @@ namespace ThisMember.Core
         customMappingCache[pair] = customMapping;
       }
 
-      //ProposedTypeMapping mapping  = GetTypeMapping(pair, options, customMapping);
+      //var mapping  = GetTypeMapping(pair, options, customMapping);
 
       var mapping = GetComplexTypeMapping(pair, options, customMapping, true);
 
-      mapping.CustomMapping = customMapping;
+      if (mapping.CustomMapping == null)
+      {
+        mapping.CustomMapping = customMapping;
+      }
 
       map.ProposedTypeMapping = mapping;
 

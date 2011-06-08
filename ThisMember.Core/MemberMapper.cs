@@ -75,13 +75,11 @@ namespace ThisMember.Core
 
     public ProposedMap CreateMapProposal(Type source, Type destination, MappingOptions options = null, LambdaExpression customMapping = null)
     {
-
       var pair = new TypePair(source, destination);
 
       var proposedMap = this.MappingStrategy.CreateMapProposal(pair, options, customMapping);
 
       return proposedMap;
-
     }
 
     public TDestination Map<TSource, TDestination>(TSource source, TDestination destination)

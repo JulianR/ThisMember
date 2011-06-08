@@ -69,6 +69,7 @@
     <Compile Include="MapperOptions.cs" />
     <Compile Include="MappingOption.cs" />
     <Compile Include="DefaultMappingStrategy.cs" />
+    <Compile Include="MapRepositoryBase.cs" />
     <Compile Include="PropertyOrFieldInfo.cs" />
     <Compile Include="ProposedMemberMapping.cs" />
     <Compile Include="MemberMap.cs" />

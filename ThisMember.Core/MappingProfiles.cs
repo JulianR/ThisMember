@@ -6,9 +6,11 @@ using ThisMember.Core.Interfaces;
 
 namespace ThisMember.Core
 {
-  public class MappingProfiles
+  public class MapCollection
   {
     private Dictionary<string, IMemberMapper> mappers = new Dictionary<string, IMemberMapper>();
+
+    public IMapRepository MapRepository { get; set; }
 
     public IMemberMapper this[string profile]
     {
@@ -20,6 +22,8 @@ namespace ThisMember.Core
         {
           mapper = new MemberMapper { Profile = profile };
 
+          mapper.MapRepository = this.MapRepository;
+
           mappers.Add(profile, mapper);
         }
 
@@ -28,6 +32,12 @@ namespace ThisMember.Core
       set
       {
         mappers[profile] = value;
+
+        if (value.MapRepository == null)
+        {
+          value.MapRepository = this.MapRepository;
+        }
+
       }
     }
 
