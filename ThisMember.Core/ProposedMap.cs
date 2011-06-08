@@ -31,7 +31,6 @@ namespace ThisMember.Core
 
     public MemberMap FinalizeMap()
     {
-
       EnsureNoInvalidMappings();
 
       var map = new MemberMap();

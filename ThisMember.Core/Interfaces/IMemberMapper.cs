@@ -61,5 +61,7 @@ namespace ThisMember.Core.Interfaces
     LambdaExpression GetConstructor(Type t);
 
     TSource DeepClone<TSource>(TSource source) where TSource : new();
+
+    IMapRepository MapRepository { get; set; }
   }
 }

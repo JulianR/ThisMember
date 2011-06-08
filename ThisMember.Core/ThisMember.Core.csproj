@@ -63,6 +63,7 @@
     <Compile Include="Interfaces\IMapGenerator.cs" />
     <Compile Include="Interfaces\IMappingProposition.cs" />
     <Compile Include="Interfaces\IMappingStrategy.cs" />
+    <Compile Include="Interfaces\IMapRepository.cs" />
     <Compile Include="Interfaces\IMemberMapper.cs" />
     <Compile Include="MappingProfiles.cs" />
     <Compile Include="MapperOptions.cs" />

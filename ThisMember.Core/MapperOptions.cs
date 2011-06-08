@@ -46,7 +46,7 @@ namespace ThisMember.Core
       {
         PerformNullChecksOnCustomMappings = true,
         IfSourceIsNull = SourceObjectNullOptions.ReturnNullWhenSourceIsNull,
-        DoNotCompileToDynamicAssembly = false,
+        CompileToDynamicAssembly = true,
         IfRecursiveRelationshipIsDetected = RecursivePropertyOptions.IgnoreRecursiveProperties
       };
 
@@ -172,8 +172,8 @@ namespace ThisMember.Core
     /// Compiliation to a dynamic assembly can be turned off this way. Compiling to a dynamic assembly can result in faster code, but can cause problems when your 
     /// custom mappings access private members or use closures. Try turning this off if you get strange exceptions.
     /// </summary>
-    /// <remarks>Defaults to false.</remarks>
-    public bool DoNotCompileToDynamicAssembly { get; set; }
+    /// <remarks>Defaults to true.</remarks>
+    public bool CompileToDynamicAssembly { get; set; }
 
     /// <summary>
     /// What to do when a recursive relationship is detected. For example a User type that defines an Address that defines a User.

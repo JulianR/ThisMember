@@ -207,15 +207,7 @@ namespace ThisMember.Core
             {
               var complexPair = new TypePair(typeOfSourceEnumerable, typeOfDestinationEnumerable);
 
-              ProposedTypeMapping complexTypeMapping;
-
-              lock (syncRoot)
-              {
-                if (!mappingCache.TryGetValue(complexPair, out complexTypeMapping))
-                {
-                  complexTypeMapping = GetTypeMapping(complexPair, options, customMapping);
-                }
-              }
+              var complexTypeMapping = GetComplexTypeMapping(complexPair, options, customMapping);
 
               if (complexTypeMapping != null)
               {
@@ -238,15 +230,7 @@ namespace ThisMember.Core
           {
             var complexPair = new TypePair(sourceProperty.PropertyOrFieldType, destinationProperty.PropertyOrFieldType);
 
-            ProposedTypeMapping complexTypeMapping;
-
-            lock (syncRoot)
-            {
-              if (!mappingCache.TryGetValue(complexPair, out complexTypeMapping))
-              {
-                complexTypeMapping = GetTypeMapping(complexPair, options, customMapping);
-              }
-            }
+            var complexTypeMapping = GetComplexTypeMapping(complexPair, options, customMapping);
 
             if (complexTypeMapping != null)
             {
@@ -289,6 +273,27 @@ namespace ThisMember.Core
       return typeMapping;
     }
 
+    private ProposedTypeMapping GetComplexTypeMapping(TypePair complexPair, MappingOptions options, CustomMapping customMapping, bool skipCache = false)
+    {
+      ProposedTypeMapping complexTypeMapping;
+      lock (syncRoot)
+      {
+        if (skipCache || !mappingCache.TryGetValue(complexPair, out complexTypeMapping))
+        {
+          ProposedMap proposedMap;
+          if (mapper.MapRepository != null && mapper.MapRepository.TryGetMap(mapper, options, complexPair, out proposedMap))
+          {
+            complexTypeMapping = proposedMap.ProposedTypeMapping;
+          }
+          else
+          {
+            complexTypeMapping = GetTypeMapping(complexPair, options, customMapping);
+          }
+        }
+      }
+      return complexTypeMapping;
+    }
+
     public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMappingExpression = null)
     {
       var map = new ProposedMap<TSource, TDestination>(this.mapper);
@@ -308,7 +313,10 @@ namespace ThisMember.Core
         customMappingCache[pair] = customMapping;
       }
 
-      ProposedTypeMapping mapping = GetTypeMapping(pair, options, customMapping);
+      //ProposedTypeMapping mapping = GetTypeMapping(pair, options, customMapping);
+
+      var mapping = GetComplexTypeMapping(pair, options, customMapping, true);
+
 
       mapping.CustomMapping = customMapping;
 
@@ -335,7 +343,9 @@ namespace ThisMember.Core
         customMappingCache[pair] = customMapping;
       }
 
-      ProposedTypeMapping mapping  = GetTypeMapping(pair, options, customMapping);
+      //ProposedTypeMapping mapping  = GetTypeMapping(pair, options, customMapping);
+
+      var mapping = GetComplexTypeMapping(pair, options, customMapping, true);
 
       mapping.CustomMapping = customMapping;
 

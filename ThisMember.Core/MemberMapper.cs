@@ -233,5 +233,7 @@ namespace ThisMember.Core
     {
       return Map<TSource, TSource>(source);
     }
+
+    public IMapRepository MapRepository { get; set; }
   }
 }

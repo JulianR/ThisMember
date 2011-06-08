@@ -44,13 +44,16 @@ namespace ThisMember.Core
 
         if (newExpression == null)
         {
-          newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
-            memberNode, Expression.Default(conditionalReturnType), conditionalReturnType);
 
           if (memberNode.Expression.NodeType == ExpressionType.Parameter)
           {
-            return newExpression;
+            return expression;
           }
+          else
+          {
+            newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
+              memberNode, Expression.Default(conditionalReturnType), conditionalReturnType);
+          }  
         }
         else
         {
@@ -61,7 +64,6 @@ namespace ThisMember.Core
           }
           else
           {
-
             newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
               newExpression, Expression.Default(conditionalReturnType), conditionalReturnType);
           }
@@ -773,7 +775,7 @@ namespace ThisMember.Core
 
     private Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
     {
-      if (!this.mapper.Options.Safety.DoNotCompileToDynamicAssembly && IsPublicClass(sourceType) && IsPublicClass(destinationType))
+      if (this.mapper.Options.Safety.CompileToDynamicAssembly && IsPublicClass(sourceType) && IsPublicClass(destinationType))
       {
         lock (syncRoot)
         {
