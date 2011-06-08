@@ -151,5 +151,38 @@ namespace ThisMember.Test
       Assert.AreEqual("test 10", result.Nested.Testing);
 
     }
+
+    class ComplexSourceTypeNested
+    {
+      public string Name { get; set; }
+    }
+
+    class ComplexSourceType
+    {
+      public ComplexSourceTypeNested Foo { get;set;}
+    }
+
+    class SimpleDestinationType
+    {
+      public string Foo { get; set; }
+    }
+
+    [TestMethod]
+    public void ComplexMappingIsUsedWhenDestinationPropertyIsString()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<ComplexSourceType, SimpleDestinationType>(customMapping: src => new SimpleDestinationType
+      {
+         Foo = src.Foo.Name
+      }); 
+
+      var result = mapper.Map<ComplexSourceType, SimpleDestinationType>(new ComplexSourceType { Foo = new ComplexSourceTypeNested { Name = "Test" } });
+
+      Assert.AreEqual("Test", result.Foo); 
+
+    }
+
+
   }
 }

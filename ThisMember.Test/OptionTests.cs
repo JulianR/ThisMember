@@ -372,5 +372,41 @@ namespace ThisMember.Test
         .ForMember(s => s.Foo.Test).Ignore().FinalizeMap();
 
     }
+
+    class Product
+    {
+      public int ProductId { get; set; }
+    }
+
+    class DestProduct
+    {
+      public int ProductID { get; set; }
+    }
+
+    [TestMethod]
+    public void PropertyNameCasingIsIgnored()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Conventions.IgnoreCaseWhenFindingMatch = true;
+
+      var result = mapper.Map<Product, DestProduct>(new Product { ProductId = 10 });
+
+      Assert.AreEqual(10, result.ProductID);
+
+    }
+
+    [TestMethod]
+    public void PropertyNameCasingIsNotIgnored()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Conventions.IgnoreCaseWhenFindingMatch = false;
+
+      var result = mapper.Map<Product, DestProduct>(new Product { ProductId = 10 });
+
+      Assert.AreNotEqual(10, result.ProductID);
+
+    }
   }
 }

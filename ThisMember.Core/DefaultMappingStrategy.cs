@@ -43,7 +43,6 @@ namespace ThisMember.Core
         return null;
       }
 
-
       var typeMapping = new ProposedTypeMapping();
 
       typeMapping.SourceMember = null;
@@ -85,7 +84,7 @@ namespace ThisMember.Core
                               .Union(from f in sourceType.GetFields()
                                      where !f.IsStatic
                                      select (PropertyOrFieldInfo)f)
-                              .ToDictionary(k => k.Name);
+                                     .ToDictionary(k => k.Name, mapper.Options.Conventions.IgnoreCaseWhenFindingMatch ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
 
       foreach (var destinationProperty in destinationProperties)
       {
@@ -119,7 +118,6 @@ namespace ThisMember.Core
         {
           customExpression = customMapping.GetExpressionForMember(destinationProperty);
         }
-
 
         if (!sourceProperties.TryGetValue(destinationProperty.Name, out sourceProperty)
           && customExpression == null
@@ -155,7 +153,7 @@ namespace ThisMember.Core
         }
 
 
-        if (canUseSimpleTypeMapping)
+        if (canUseSimpleTypeMapping || customExpression != null )
         {
 
           if (options != null)

@@ -50,7 +50,7 @@ namespace ThisMember.Test
       public IEnumerable<DestinationElement> IDs { get; set; }
     }
 
-    [TestMethod]
+    //[TestMethod]
     public void Test()
     {
       var mapper = new MemberMapper();

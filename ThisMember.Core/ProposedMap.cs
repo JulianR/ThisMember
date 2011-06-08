@@ -123,7 +123,7 @@ namespace ThisMember.Core
 
       if (mapping.IncompatibleMappings.Contains(member))
       {
-        return new IncompatibleMapping(mapping, member);
+        return new IncompatibleMapping(member, mapping);
       }
 
       foreach (var memberMapping in mapping.ProposedMappings)
@@ -163,7 +163,8 @@ namespace ThisMember.Core
 
       if (mapping == null)
       {
-        throw new MemberNotFoundException(memberExpression.Member);
+        //throw new MemberNotFoundException(memberExpression.Member);
+        mapping = new IncompatibleMapping(memberExpression.Member);
       }
 
       return new MappingPropositionModifier<TSource, TDestination>(this, mapping);
@@ -174,7 +175,7 @@ namespace ThisMember.Core
       private PropertyOrFieldInfo _member;
       private ProposedTypeMapping _mapping;
 
-      public IncompatibleMapping(ProposedTypeMapping mapping, PropertyOrFieldInfo member)
+      public IncompatibleMapping(PropertyOrFieldInfo member, ProposedTypeMapping mapping = null)
       {
         _mapping = mapping;
         _member = member;
@@ -188,7 +189,10 @@ namespace ThisMember.Core
         }
         set
         {
-          _mapping.IncompatibleMappings.Remove(_member);
+          if (_mapping != null)
+          {
+            _mapping.IncompatibleMappings.Remove(_member);
+          }
         }
       }
 

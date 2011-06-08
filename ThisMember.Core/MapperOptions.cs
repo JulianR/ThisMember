@@ -39,7 +39,8 @@ namespace ThisMember.Core
         AutomaticallyFlattenHierarchies = false,
         MakeCloneIfDestinationIsTheSameAsSource = true,
         IgnoreMemberAttributeShouldBeRespected = true,
-        ReuseNonNullComplexMembersOnDestination = true
+        ReuseNonNullComplexMembersOnDestination = true,
+        IgnoreCaseWhenFindingMatch = true,
       };
 
       Safety = new MapperSafetyOptions
@@ -118,6 +119,12 @@ namespace ThisMember.Core
     /// </summary>
     /// <remarks>Defaults to true.</remarks>
     public bool ReuseNonNullComplexMembersOnDestination { get; set; }
+
+    /// <summary>
+    /// If set to true, this will automatically map a property named ProductId to another property named ProductID
+    /// </summary>
+    /// <remarks>Defaults to true.</remarks>
+    public bool IgnoreCaseWhenFindingMatch { get; set; }
 
   }
 

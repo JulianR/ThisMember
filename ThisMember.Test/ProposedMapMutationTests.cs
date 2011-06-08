@@ -210,7 +210,7 @@ namespace ThisMember.Test
 
     }
 
-    [TestMethod]
+    //[TestMethod]
     public void MappingConditionIsRespectedForNestedCollectionMembers()
     {
       var mapper = new MemberMapper();

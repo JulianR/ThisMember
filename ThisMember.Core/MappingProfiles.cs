@@ -12,6 +12,13 @@ namespace ThisMember.Core
 
     public IMapRepository MapRepository { get; set; }
 
+    public MapperOptions Options { get; set; }
+
+    public MapCollection()
+    {
+      Options = new MapperOptions();
+    }
+
     public IMemberMapper this[string profile]
     {
       get
@@ -23,6 +30,8 @@ namespace ThisMember.Core
           mapper = new MemberMapper { Profile = profile };
 
           mapper.MapRepository = this.MapRepository;
+
+          mapper.Options = this.Options;
 
           mappers.Add(profile, mapper);
         }
