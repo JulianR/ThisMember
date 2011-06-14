@@ -80,7 +80,7 @@ namespace ThisMember.Core.Interfaces
       {
         foreach (var m in otherMapping.Members)
         {
-          if (root.Members.Contains(m))
+          if (!root.Members.Contains(m))
           {
             root.Members.Add(m);
           }

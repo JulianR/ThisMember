@@ -313,6 +313,8 @@ namespace ThisMember.Core
         customMappingCache[pair] = customMapping;
       }
 
+      TryGetCustomMapping(pair, out customMapping);
+
       //var mapping = GetTypeMapping(pair, options, customMapping);
 
       var mapping = GetComplexTypeMapping(pair, options, customMapping, true);
@@ -388,6 +390,7 @@ namespace ThisMember.Core
 
       var matchingMappings = (from m in customMappingCache
                               where m.Key.DestinationType.IsAssignableFrom(pair.DestinationType)
+                              && m.Key.DestinationType != pair.DestinationType
                               orderby DistanceFromType(pair.DestinationType, m.Key.DestinationType, 0) ascending
                               select m.Value).ToList();
 
@@ -395,7 +398,7 @@ namespace ThisMember.Core
 
       if (customMapping != null)
       {
-        if (matchingMappings.Count > 1)
+        //if (matchingMappings.Count > 1)
         {
           customMapping.CombineWithOtherCustomMappings(matchingMappings);
         }

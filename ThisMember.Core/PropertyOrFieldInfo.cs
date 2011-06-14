@@ -56,7 +56,16 @@ namespace ThisMember.Core.Interfaces
     {
       var other = obj as PropertyOrFieldInfo;
 
-      return !object.ReferenceEquals(other, null) && other.member.Equals(member);
+      var equals = !object.ReferenceEquals(other, null) && other.member.Equals(member);
+
+      if (equals) return true;
+
+      if (!object.ReferenceEquals(other, null) && other.member.MetadataToken == this.member.MetadataToken)
+      {
+        return true;
+      }
+
+      return false;
     }
 
     public static bool operator ==(PropertyOrFieldInfo left, PropertyOrFieldInfo right)
