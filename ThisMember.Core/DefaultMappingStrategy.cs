@@ -216,7 +216,8 @@ namespace ThisMember.Core
 
                 CustomMapping customMappingForType;
 
-                customMappingCache.TryGetValue(complexPair, out customMappingForType);
+                //customMappingCache.TryGetValue(complexPair, out customMappingForType);
+                TryGetCustomMapping(complexPair, out customMappingForType);
 
                 complexTypeMapping.CustomMapping = customMappingForType;
 
@@ -240,7 +241,8 @@ namespace ThisMember.Core
 
               CustomMapping customMappingForType;
 
-              customMappingCache.TryGetValue(complexPair, out customMappingForType);
+              //customMappingCache.TryGetValue(complexPair, out customMappingForType);
+              TryGetCustomMapping(complexPair, out customMappingForType);
 
               complexTypeMapping.CustomMapping = customMappingForType;
 
@@ -344,6 +346,8 @@ namespace ThisMember.Core
         customMappingCache[pair] = customMapping;
       }
 
+      TryGetCustomMapping(pair, out customMapping);
+
       //var mapping  = GetTypeMapping(pair, options, customMapping);
 
       var mapping = GetComplexTypeMapping(pair, options, customMapping, true);
@@ -362,6 +366,45 @@ namespace ThisMember.Core
     public void ClearMapCache()
     {
       this.mappingCache.Clear();
+    }
+
+    private int DistanceFromType(Type topLevelType, Type lowerLevelType, int distanceSoFar)
+    {
+      if (topLevelType == lowerLevelType)
+      {
+        return distanceSoFar;
+      }
+      else if (topLevelType.BaseType != null)
+      {
+        return DistanceFromType(topLevelType.BaseType, lowerLevelType, distanceSoFar + 1);
+      }
+
+      return -1;
+    }
+
+    private bool TryGetCustomMapping(TypePair pair, out CustomMapping customMapping)
+    {
+      customMappingCache.TryGetValue(pair, out customMapping);
+
+      var matchingMappings = (from m in customMappingCache
+                              where m.Key.DestinationType.IsAssignableFrom(pair.DestinationType)
+                              orderby DistanceFromType(pair.DestinationType, m.Key.DestinationType, 0) ascending
+                              select m.Value).ToList();
+
+      customMapping = customMapping ?? matchingMappings.FirstOrDefault();
+
+      if (customMapping != null)
+      {
+        if (matchingMappings.Count > 1)
+        {
+          customMapping.CombineWithOtherCustomMappings(matchingMappings);
+        }
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
   }
 }

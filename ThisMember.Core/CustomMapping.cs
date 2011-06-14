@@ -13,11 +13,18 @@ namespace ThisMember.Core.Interfaces
     public PropertyOrFieldInfo Member { get; set; }
 
     public Expression Expression { get; set; }
+
+    public override bool Equals(object obj)
+    {
+      var other = obj as MemberExpressionTuple;
+
+      return other != null && other.Member.Equals(this.Member);
+    }
+
   }
 
   public class CustomMapping
   {
-
     public IList<MemberExpressionTuple> Members { get; set; }
 
     public IList<CustomMapping> CustomMappings { get; set; }
@@ -60,6 +67,31 @@ namespace ThisMember.Core.Interfaces
       mapping.Parameter = lambda.Parameters.First();
 
       return mapping;
+    }
+
+    public void CombineWithOtherCustomMappings(IEnumerable<CustomMapping> mappings)
+    {
+      CombineWithOtherCustomMappings(this, mappings);
+    }
+
+    public void CombineWithOtherCustomMappings(CustomMapping root, IEnumerable<CustomMapping> mappings)
+    {
+      foreach (var otherMapping in mappings)
+      {
+        foreach (var m in otherMapping.Members)
+        {
+          if (root.Members.Contains(m))
+          {
+            root.Members.Add(m);
+          }
+        }
+      }
+
+      //foreach(var mapping in root.CustomMappings)
+      //{
+      //  CombineWithOtherCustomMappings(mapping.
+      //}
+
     }
 
     public Expression GetExpressionForMember(PropertyOrFieldInfo member)
