@@ -300,8 +300,6 @@ namespace ThisMember.Core
 
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-      map.MapGenerator = mapper.MapGenerator;
-
       map.SourceType = pair.SourceType;
       map.DestinationType = pair.DestinationType;
 
@@ -334,8 +332,6 @@ namespace ThisMember.Core
     {
 
       var map = new ProposedMap(this.mapper);
-
-      map.MapGenerator = mapper.MapGenerator;
 
       map.SourceType = pair.SourceType;
       map.DestinationType = pair.DestinationType;

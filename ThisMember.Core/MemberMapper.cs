@@ -13,13 +13,13 @@ namespace ThisMember.Core
   {
     public MapperOptions Options { get; set; }
 
-    public IMapGenerator MapGenerator { get; set; }
+    public IMapGeneratorFactory MapGeneratorFactory { get; set; }
 
-    public MemberMapper(MapperOptions options = null, IMappingStrategy strategy = null, IMapGenerator generator = null)
+    public MemberMapper(MapperOptions options = null, IMappingStrategy strategy = null, IMapGeneratorFactory generator = null)
     {
       this.MappingStrategy = strategy ?? new DefaultMappingStrategy(this);
 
-      this.MapGenerator = generator ?? new CompiledMapGenerator(this);
+      this.MapGeneratorFactory = generator ?? new CompiledMapGeneratorFactory();
 
       this.Options = options ?? new MapperOptions();
     }

@@ -16,10 +16,6 @@ namespace ThisMember.Core
     public Type SourceType { get; set; }
     public Type DestinationType { get; set; }
 
-    //public CustomMapping CustomMapping { get; set; }
-
-    public IMapGenerator MapGenerator { get; set; }
-
     private readonly IMemberMapper mapper;
 
     public ProposedMap(IMemberMapper mapper)
@@ -37,7 +33,10 @@ namespace ThisMember.Core
 
       map.SourceType = this.SourceType;
       map.DestinationType = this.DestinationType;
-      map.MappingFunction = this.MapGenerator.GenerateMappingFunction(this);
+
+      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper);
+
+      map.MappingFunction = generator.GenerateMappingFunction(this);
 
       mapper.RegisterMap(map);
 

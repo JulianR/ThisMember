@@ -7,7 +7,6 @@ using System.Reflection;
 
 namespace ThisMember.Core.Interfaces
 {
-
   public class MemberExpressionTuple
   {
     public PropertyOrFieldInfo Member { get; set; }
