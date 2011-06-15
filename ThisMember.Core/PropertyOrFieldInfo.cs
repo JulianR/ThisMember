@@ -56,13 +56,23 @@ namespace ThisMember.Core.Interfaces
     {
       var other = obj as PropertyOrFieldInfo;
 
-      var equals = !object.ReferenceEquals(other, null) && other.member.Equals(member);
-
-      if (equals) return true;
-
-      if (!object.ReferenceEquals(other, null) && other.member.MetadataToken == this.member.MetadataToken)
+      if (!object.ReferenceEquals(other, null))
       {
-        return true;
+        var equals = other.member.Equals(member);
+
+        if (equals) return true;
+
+        if (other.member.MetadataToken == this.member.MetadataToken) return true;
+
+        if (other.member.DeclaringType.IsInterface && other.member.DeclaringType.IsAssignableFrom(this.member.DeclaringType) && other.member.Name == this.member.Name)
+        {
+          return true;
+        }
+
+        if (this.member.DeclaringType.IsInterface && this.member.DeclaringType.IsAssignableFrom(other.member.DeclaringType) && this.member.Name == other.member.Name)
+        {
+          return true;
+        }
       }
 
       return false;

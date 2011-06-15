@@ -69,6 +69,29 @@ namespace ThisMember.Core.Interfaces
       return mapping;
     }
 
+    private class ParameterVisitor : ExpressionVisitor
+    {
+      private ParameterExpression _newParam;
+      private ParameterExpression _oldParam;
+
+      public ParameterVisitor(ParameterExpression oldParam, ParameterExpression newParam)
+      {
+        _oldParam = oldParam;
+        _newParam = newParam;
+      }
+
+      protected override Expression VisitParameter(ParameterExpression node)
+      {
+
+        if (_oldParam == node)
+        {
+          return _newParam;
+        }
+
+        return base.VisitParameter(node);
+      }
+    }
+
     public void CombineWithOtherCustomMappings(IEnumerable<CustomMapping> mappings)
     {
       CombineWithOtherCustomMappings(this, mappings);
@@ -82,7 +105,15 @@ namespace ThisMember.Core.Interfaces
         {
           if (!root.Members.Contains(m))
           {
-            root.Members.Add(m);
+            var visitor = new ParameterVisitor(otherMapping.Parameter, root.Parameter);
+
+            var member = new MemberExpressionTuple
+            {
+              Expression = visitor.Visit(m.Expression),
+              Member = m.Member
+            };
+
+            root.Members.Add(member);
           }
         }
       }

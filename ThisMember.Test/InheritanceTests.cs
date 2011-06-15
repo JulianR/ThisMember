@@ -80,5 +80,40 @@ namespace ThisMember.Test
       Assert.AreEqual("test", result.Bar);
 
     }
+
+    interface Interface
+    {
+      string Foo { get; }
+    }
+
+    class Implementation : Interface
+    {
+      public string Foo { get; set; }
+    }
+
+    class ImplementationSource
+    {
+      public string Bar { get; set; }
+    }
+
+
+    [TestMethod]
+    public void MappingDefinedOnInterfaceIsRespected()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember = true;
+
+      mapper.CreateMap<ImplementationSource, Interface>(customMapping: src => new
+        {
+          Foo = src.Bar
+        });
+
+
+      var result = mapper.Map<ImplementationSource, Implementation>(new ImplementationSource { Bar = "test" });
+
+      Assert.AreEqual("test", result.Foo);
+
+    }
   }
 }

@@ -368,6 +368,7 @@ namespace ThisMember.Core
     public void ClearMapCache()
     {
       this.mappingCache.Clear();
+      this.customMappingCache.Clear();
     }
 
     private int DistanceFromType(Type topLevelType, Type lowerLevelType, int distanceSoFar)
