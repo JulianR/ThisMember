@@ -46,7 +46,7 @@ namespace ThisMember.Core
           {
             newExpression = Expression.Condition(Expression.NotEqual(memberNode.Expression, Expression.Constant(null)),
               memberNode, Expression.Default(conditionalReturnType), conditionalReturnType);
-          }  
+          }
         }
         else
         {
@@ -78,28 +78,6 @@ namespace ThisMember.Core
         //return Expression.Condition(Expression.NotEqual(node.Expression, Expression.Constant(null)), node, Expression.Default(node.Type), node.Type);
 
         //return base.VisitMember(node);
-      }
-    }
-
-    private class ParameterVisitor : ExpressionVisitor
-    {
-
-      private ParameterExpression oldParam, newParam;
-      public ParameterVisitor(ParameterExpression oldParam, ParameterExpression newParam)
-      {
-        this.oldParam = oldParam;
-        this.newParam = newParam;
-      }
-
-      protected override Expression VisitParameter(ParameterExpression node)
-      {
-        if (node.Equals(oldParam))
-        {
-          return newParam;
-        }
-        return node;
-
-        //return base.VisitParameter(node);
       }
     }
 
@@ -190,8 +168,6 @@ namespace ThisMember.Core
       CustomMapping customMapping = null
     )
     {
-      ParameterVisitor paramVisitor;
-
       if (member.Ignored)
       {
         return;
@@ -201,9 +177,9 @@ namespace ThisMember.Core
 
       if (member.Condition != null)
       {
-        paramVisitor = new ParameterVisitor(member.Condition.Parameters.Single(), this.sourceParameter);
+        mapProcessor.Parameters.Add(new ParameterTuple(member.Condition.Parameters.Single(), this.sourceParameter));
 
-        condition = paramVisitor.Visit(member.Condition.Body);
+        condition = member.Condition.Body;
       }
 
       var destMember = Expression.PropertyOrField(destination, member.DestinationMember.Name);
@@ -214,13 +190,12 @@ namespace ThisMember.Core
 
       if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
       {
-        paramVisitor = new ParameterVisitor(customMapping.Parameter, source);
+        //paramVisitor = new ParameterVisitor(customMapping.Parameter, source);
+        mapProcessor.Parameters.Add(new ParameterTuple(customMapping.Parameter, source));
 
         var memberVisitor = new MemberVisitor(this.mapper);
 
         customExpression = memberVisitor.Visit(customExpression);
-
-        customExpression = paramVisitor.Visit(customExpression);
 
         assignSourceToDest = Expression.Assign(destMember, customExpression);
       }
@@ -513,9 +488,9 @@ namespace ThisMember.Core
 
       if (complexTypeMapping.Condition != null)
       {
-        var visitor = new ParameterVisitor(complexTypeMapping.Condition.Parameters.Single(), this.sourceParameter);
+        mapProcessor.Parameters.Add(new ParameterTuple(complexTypeMapping.Condition.Parameters.Single(), this.sourceParameter));
 
-        condition = Expression.AndAlso(condition, visitor.Visit(complexTypeMapping.Condition.Body));
+        condition = Expression.AndAlso(condition, complexTypeMapping.Condition.Body);
 
       }
 
@@ -612,10 +587,10 @@ namespace ThisMember.Core
           var oldSrc = constructor.Parameters[0];
           var oldDest = constructor.Parameters[1];
 
-          var srcVisitor = new ParameterVisitor(oldSrc, source);
-          var destVisitor = new ParameterVisitor(oldDest, destination);
+          mapProcessor.Parameters.Add(new ParameterTuple(oldSrc, source));
+          mapProcessor.Parameters.Add(new ParameterTuple(oldDest, destination));
 
-          constructor = (LambdaExpression)destVisitor.Visit(srcVisitor.Visit(constructor));
+          //constructor = (LambdaExpression)destVisitor.Visit(srcVisitor.Visit(constructor));
 
           return constructor.Body;
         }
@@ -632,11 +607,11 @@ namespace ThisMember.Core
     }
 
     private void BuildNonCollectionComplexTypeMappingExpressions(
-      ProposedMap map, 
-      ParameterExpression source, 
-      ParameterExpression destination, 
-      ProposedTypeMapping complexTypeMapping, 
-      List<Expression> expressions, 
+      ProposedMap map,
+      ParameterExpression source,
+      ParameterExpression destination,
+      ProposedTypeMapping complexTypeMapping,
+      List<Expression> expressions,
       List<ParameterExpression> newParams)
     {
 
@@ -723,9 +698,9 @@ namespace ThisMember.Core
 
       if (complexTypeMapping.Condition != null)
       {
-        var visitor = new ParameterVisitor(complexTypeMapping.Condition.Parameters.Single(), this.sourceParameter);
+        mapProcessor.Parameters.Add(new ParameterTuple(complexTypeMapping.Condition.Parameters.Single(), this.sourceParameter));
 
-        condition = Expression.AndAlso(condition, visitor.Visit(complexTypeMapping.Condition.Body));
+        condition = Expression.AndAlso(condition, complexTypeMapping.Condition.Body);
 
       }
 
@@ -887,7 +862,7 @@ namespace ThisMember.Core
 
       var outerBlock = Expression.Block(newParams, conditionCheck, destination);
 
-      mapProcessor.Visit(outerBlock);
+      outerBlock = (BlockExpression)mapProcessor.Visit(outerBlock);
 
       var funcType = typeof(Func<,,>).MakeGenericType(proposedMap.SourceType, proposedMap.DestinationType, proposedMap.DestinationType);
 
