@@ -26,6 +26,8 @@ namespace ThisMember.Core
 
     public IList<ParameterTuple> ParametersToReplace { get; private set; }
 
+    public bool NonPublicMembersAccessed { get; private set; }
+
     public MapProposalProcessor(IMemberMapper mapper)
     {
       ParametersToReplace = new List<ParameterTuple>();
@@ -70,7 +72,15 @@ namespace ThisMember.Core
 
       var paramVisitor = new ParameterVisitor(this.ParametersToReplace);
 
-      return paramVisitor.Visit(expression);
+      expression = paramVisitor.Visit(expression);
+
+      var visibilityVisitor = new VisibilityVisitor();
+
+      visibilityVisitor.Visit(expression);
+
+      this.NonPublicMembersAccessed = visibilityVisitor.NonPublicMembersAccessed;
+
+      return expression;
     }
 
     private class MemberVisitor : ExpressionVisitor
@@ -80,6 +90,22 @@ namespace ThisMember.Core
       public MemberVisitor(IMemberMapper mapper)
       {
         this.mapper = mapper;
+      }
+
+      private static bool IsExceptionToNullCheck(MemberExpression memberNode)
+      {
+        if (memberNode.Member.Name == "Count"
+          && memberNode.Member.DeclaringType.IsGenericType
+          && typeof(ICollection<>).IsAssignableFrom(memberNode.Member.DeclaringType.GetGenericTypeDefinition()))
+        {
+          return true;
+        }
+        else if (memberNode.Member.Name == "Length"
+          && memberNode.Member.DeclaringType == typeof(Array))
+        {
+          return true;
+        }
+        return false;
       }
 
       private Expression ConvertToConditionals(Type conditionalReturnType, Expression expression, Expression newExpression)
@@ -95,7 +121,7 @@ namespace ThisMember.Core
         if (newExpression == null)
         {
 
-          if (memberNode.Expression.NodeType == ExpressionType.Parameter)
+          if (memberNode.Expression.NodeType == ExpressionType.Parameter || IsExceptionToNullCheck(memberNode))
           {
             return expression;
           }
@@ -131,6 +157,98 @@ namespace ThisMember.Core
         }
 
         return base.VisitMember(node);
+      }
+    }
+
+    private class VisibilityVisitor : ExpressionVisitor
+    {
+
+      public bool NonPublicMembersAccessed { get; private set; }
+
+      protected override Expression VisitConstant(ConstantExpression node)
+      {
+        if (!node.Type.IsPublic)
+        {
+          NonPublicMembersAccessed = true;
+
+          return node;
+        }
+
+        return base.VisitConstant(node);
+      }
+
+      protected override Expression VisitMethodCall(MethodCallExpression node)
+      {
+        if (!node.Method.IsPublic)
+        {
+          NonPublicMembersAccessed = true;
+          return node;
+        }
+
+        // A nested class, we're taking no chances here
+        if (!node.Method.DeclaringType.IsPublic || node.Method.DeclaringType.Name.Contains("+"))
+        {
+          NonPublicMembersAccessed = true;
+          return node;
+        }
+
+        return base.VisitMethodCall(node);
+      }
+
+      protected override Expression VisitLambda<T>(Expression<T> node)
+      {
+
+        var delType = typeof(T);
+
+        var genericParams = delType.GetGenericArguments();
+
+        var sourceType = genericParams[0];
+
+        var destType = genericParams[1];
+
+        if (!IsPublicClass(sourceType))
+        {
+          this.NonPublicMembersAccessed = true;
+          return node;
+        }
+        else if (!IsPublicClass(destType))
+        {
+          this.NonPublicMembersAccessed = true;
+          return node;
+        }
+
+
+        return base.VisitLambda<T>(node);
+      }
+
+      private static bool IsPublicClass(Type t)
+      {
+        // For the purposes this method is used for, also consider generic types to be 'non-public'
+        if ((!t.IsPublic && !t.IsNestedPublic) || t.IsGenericType)
+        {
+          return false;
+        }
+
+        int lastIndex = t.FullName.LastIndexOf('+');
+
+        // Resolve the containing type of a nested class and check if it's public
+        if (lastIndex > 0)
+        {
+          var containgTypeName = t.FullName.Substring(0, lastIndex);
+
+          var containingType = Type.GetType(containgTypeName + "," + t.Assembly);
+
+          if (containingType != null)
+          {
+            return containingType.IsPublic;
+          }
+
+          return false;
+        }
+        else
+        {
+          return t.IsPublic;
+        }
       }
     }
 

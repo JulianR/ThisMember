@@ -21,33 +21,63 @@ namespace ThisMember.Core
 
     private string GetParameterName(PropertyOrFieldInfo member)
     {
-      return member.Name + "#" + currentID++;
+      return member.Name;
     }
 
-    private string GetCollectionName()
+    private Dictionary<Type, Stack<ParameterExpression>> paramCache = new Dictionary<Type, Stack<ParameterExpression>>();
+
+    private ParameterExpression ObtainParameter(Type type, string purpose = null)
     {
-      return "collection#" + currentID++;
+      Stack<ParameterExpression> parameters;
+
+      if (!paramCache.TryGetValue(type, out parameters))
+      {
+        parameters = new Stack<ParameterExpression>();
+        paramCache.Add(type, parameters);
+      }
+
+      if (parameters.Count == 0)
+      {
+        var paramExpr = Expression.Parameter(type, GetParamName(type, purpose));
+        parameters.Push(paramExpr);
+        newParameters.Add(paramExpr);
+      }
+
+      return parameters.Pop();
     }
 
-    private string GetEnumeratorName()
+    private void ReleaseParameter(ParameterExpression param)
     {
-      return "enumerator#" + currentID++;
+      paramCache[param.Type].Push(param);
     }
 
-    private string GetCollectionElementName()
+    private const string validIntNames = "ijklmnopqrstuvwxyzabcdefghABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    private string GetParamName(Type t, string purpose)
     {
-      return "item#" + currentID++;
+
+      if (!string.IsNullOrEmpty(purpose))
+      {
+        return purpose + "#" + currentID++;
+      }
+
+      if (typeof(int) == t)
+      {
+        return new String(validIntNames[currentID++], 1);
+      }
+
+      if (typeof(IEnumerable).IsAssignableFrom(t))
+      {
+        return "collection#" + currentID++;
+      }
+
+      if (typeof(IEnumerator).IsAssignableFrom(t))
+      {
+        return "enumerator#" + currentID++;
+      }
+
+      return new string(Char.ToLower(t.Name[0]), 1) + t.Name.Substring(1) + "#" + currentID++;
     }
-
-    private string GetIteratorVarName()
-    {
-      return "i#" + currentID++;
-    }
-
-    //private ParameterExpression GetIteratorVar()
-    //{
-
-    //}
 
     private void BuildTypeMappingExpressions
     (
@@ -236,9 +266,11 @@ namespace ThisMember.Core
       {
         destinationCollectionType = destinationMemberPropertyType;
 
-        destinationCollection = Expression.Parameter(destinationCollectionType, GetCollectionName());
+        //destinationCollection = Expression.Parameter(destinationCollectionType, GetCollectionName());
 
-        newParameters.Add(destinationCollection);
+        destinationCollection = ObtainParameter(destinationCollectionType);
+
+        //newParameters.Add(destinationCollection);
 
         var createDestinationCollection = Expression.New(destinationCollectionType.GetConstructors().Single(), accessSourceCollectionSize);
 
@@ -253,9 +285,11 @@ namespace ThisMember.Core
 
         var createDestinationCollection = Expression.New(destinationCollectionType);
 
-        destinationCollection = Expression.Parameter(destinationCollectionType, GetCollectionName());
+        //destinationCollection = Expression.Parameter(destinationCollectionType, GetCollectionName());
+        
+        destinationCollection = ObtainParameter(destinationCollectionType);
 
-        newParameters.Add(destinationCollection);
+        //newParameters.Add(destinationCollection);
 
         // destination = new List<DestinationType>();
         var assignNewCollectionToDestination = Expression.Assign(destinationCollection, createDestinationCollection);
@@ -263,11 +297,14 @@ namespace ThisMember.Core
         ifNotNullBlock.Add(assignNewCollectionToDestination);
       }
 
-      var sourceCollectionItem = Expression.Parameter(sourceCollectionElementType, GetCollectionElementName());
+      //var sourceCollectionItem = Expression.Parameter(sourceCollectionElementType, GetCollectionElementName());
+      var sourceCollectionItem = ObtainParameter(sourceCollectionElementType, "item");
 
       var expressionsInsideLoop = new List<Expression>();
 
-      var destinationCollectionItem = Expression.Parameter(destinationCollectionElementType, GetCollectionElementName());
+      //var destinationCollectionItem = Expression.Parameter(destinationCollectionElementType, GetCollectionElementName());
+
+      var destinationCollectionItem = ObtainParameter(destinationCollectionElementType, "item");
 
       BinaryExpression assignNewItemToDestinationItem;
 
@@ -285,12 +322,12 @@ namespace ThisMember.Core
         assignNewItemToDestinationItem = Expression.Assign(destinationCollectionItem, sourceCollectionItem);
       }
 
-      newParameters.Add(sourceCollectionItem);
-      newParameters.Add(destinationCollectionItem);
+      //newParameters.Add(sourceCollectionItem);
+      //newParameters.Add(destinationCollectionItem);
 
       var @break = Expression.Label();
 
-      var iteratorVar = Expression.Parameter(typeof(int), GetIteratorVarName());
+      ParameterExpression iteratorVar = ObtainParameter(typeof(int)); //Expression.Parameter(typeof(int), GetIteratorVarName());
 
       // i++
       var increment = Expression.PostIncrementAssign(iteratorVar);
@@ -317,11 +354,8 @@ namespace ThisMember.Core
       }
 
       // If it's an IList, we want to iterate through it using a good old for-loop for speed.
-      if (typeof(IList).IsAssignableFrom(sourceMemberPropertyType)
-        || (sourceMemberPropertyType.IsGenericType && typeof(IList<>).IsAssignableFrom(sourceMemberPropertyType.GetGenericTypeDefinition())))
+      if (IsListType(sourceMemberPropertyType))
       {
-        newParameters.Add(iteratorVar);
-
         var assignZeroToIteratorVar = Expression.Assign(iteratorVar, Expression.Constant(0));
 
         ifNotNullBlock.Add(assignZeroToIteratorVar);
@@ -363,14 +397,11 @@ namespace ThisMember.Core
 
         var sourceEnumeratorType = getEnumeratorOnSourceMethod.ReturnType;
 
-        var sourceEnumerator = Expression.Parameter(sourceEnumeratorType, GetEnumeratorName());
+        //var sourceEnumerator = Expression.Parameter(sourceEnumeratorType, GetEnumeratorName());
 
-        if (destinationMemberPropertyType.IsArray)
-        {
-          newParameters.Add(iteratorVar);
-        }
+        //newParameters.Add(sourceEnumerator);
 
-        newParameters.Add(sourceEnumerator);
+        var sourceEnumerator = ObtainParameter(sourceEnumeratorType);
 
         var doMoveNextCall = Expression.Call(sourceEnumerator, typeof(IEnumerator).GetMethod("MoveNext"));
 
@@ -404,6 +435,8 @@ namespace ThisMember.Core
 
         ifNotNullBlock.Add(@foreach);
 
+        ReleaseParameter(sourceEnumerator);
+
       }
 
       // destination.Collection = newCollection OR return destination, if destination is enumerable itself
@@ -421,14 +454,25 @@ namespace ThisMember.Core
         mapProcessor.ParametersToReplace.Add(new ParameterTuple(complexTypeMapping.Condition.Parameters.Single(), this.sourceParameter));
 
         condition = Expression.AndAlso(condition, complexTypeMapping.Condition.Body);
-
       }
 
       var ifNotNullCheck = Expression.IfThen(condition, Expression.Block(ifNotNullBlock));
 
-
       expressions.Add(ifNotNullCheck);
 
+      ReleaseParameter(iteratorVar);
+
+      ReleaseParameter(destinationCollection);
+
+      ReleaseParameter(sourceCollectionItem);
+
+      ReleaseParameter(destinationCollectionItem);
+    }
+
+    private static bool IsListType(Type sourceMemberPropertyType)
+    {
+      return typeof(IList).IsAssignableFrom(sourceMemberPropertyType)
+              || (sourceMemberPropertyType.IsGenericType && typeof(IList<>).IsAssignableFrom(sourceMemberPropertyType.GetGenericTypeDefinition()));
     }
 
     private static bool TypeReceivesSpecialTreatment(Type type)
@@ -550,12 +594,12 @@ namespace ThisMember.Core
 
       ParameterExpression complexSource = null, complexDest = null;
 
-      complexSource = Expression.Parameter(complexTypeMapping.SourceMember.PropertyOrFieldType, GetParameterName(complexTypeMapping.SourceMember));
+      complexSource = ObtainParameter(complexTypeMapping.SourceMember.PropertyOrFieldType, GetParameterName(complexTypeMapping.SourceMember));
 
-      complexDest = Expression.Parameter(complexTypeMapping.DestinationMember.PropertyOrFieldType, GetParameterName(complexTypeMapping.DestinationMember));
+      complexDest = ObtainParameter(complexTypeMapping.DestinationMember.PropertyOrFieldType, GetParameterName(complexTypeMapping.DestinationMember));
 
-      newParameters.Add(complexSource);
-      newParameters.Add(complexDest);
+      //newParameters.Add(complexSource);
+      //newParameters.Add(complexDest);
 
       var ifNotNullBlock = new List<Expression>();
 
@@ -636,60 +680,23 @@ namespace ThisMember.Core
 
       expressions.Add(ifNotNullCheck);
 
+      ReleaseParameter(complexSource);
+      ReleaseParameter(complexDest);
+
     }
 
     private static ModuleBuilder moduleBuilder;
-
-    private static bool IsPublicClass(Type t)
-    {
-      // For the purposes this method is used for, also consider generic types to be 'non-public'
-      if ((!t.IsPublic && !t.IsNestedPublic) || t.IsGenericType)
-      {
-        return false;
-      }
-
-      int lastIndex = t.FullName.LastIndexOf('+');
-
-      // Resolve the containing type of a nested class and check if it's public
-      if (lastIndex > 0)
-      {
-        var containgTypeName = t.FullName.Substring(0, lastIndex);
-
-        var containingType = Type.GetType(containgTypeName + "," + t.Assembly);
-
-        if (containingType != null)
-        {
-          return containingType.IsPublic;
-        }
-
-        return false;
-      }
-      else
-      {
-        return t.IsPublic;
-      }
-    }
 
     private static byte[] syncRoot = new byte[0];
 
     private Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
     {
-      if (this.mapper.Options.Safety.CompileToDynamicAssembly && IsPublicClass(sourceType) && IsPublicClass(destinationType))
+      if (this.mapper.Options.Safety.CompileToDynamicAssembly && !mapProcessor.NonPublicMembersAccessed)
       {
         lock (syncRoot)
         {
           if (moduleBuilder == null)
           {
-            //var ps = new PermissionSet(PermissionState.None);
-            //ps.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution | SecurityPermissionFlag.Infrastructure));
-            //ps.AddPermission(new ReflectionPermission(ReflectionPermissionFlag.RestrictedMemberAccess));
-
-            //var domain = AppDomain.CreateDomain("MemberMapper",
-            //  null,
-            //  new AppDomainSetup { ApplicationBase = Environment.CurrentDirectory },
-            //  ps,
-            //  typeof(Type).Assembly.Evidence.GetHostEvidence<StrongName>());
-
             var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("ThisMemberFunctionsAssembly_" + Guid.NewGuid().ToString("N")), AssemblyBuilderAccess.Run);
 
             moduleBuilder = assemblyBuilder.DefineDynamicModule("Module");
@@ -794,7 +801,7 @@ namespace ThisMember.Core
 
       var outerBlock = Expression.Block(newParameters, conditionCheck, destination);
 
-      outerBlock = (BlockExpression)mapProcessor.Process(outerBlock);
+      //outerBlock = (BlockExpression)mapProcessor.Process(outerBlock);
 
       var funcType = typeof(Func<,,>).MakeGenericType(proposedMap.SourceType, proposedMap.DestinationType, proposedMap.DestinationType);
 
@@ -804,6 +811,8 @@ namespace ThisMember.Core
         outerBlock,
         source, destination
       );
+
+      lambda = (LambdaExpression)mapProcessor.Process(lambda);
 
       return CompileExpression(proposedMap.SourceType, proposedMap.DestinationType, lambda);
     }

@@ -682,5 +682,101 @@ namespace ThisMember.Test
 
       //Assert.IsTrue(result.SequenceEqual(source));
     }
+
+    class SourceMultipleIEnumerables
+    {
+      public IEnumerable<int> One { get; set; }
+      public IEnumerable<int> Two { get; set; }
+    }
+
+    class DestMultipleLists
+    {
+      public List<int> One { get; set; }
+      public List<int> Two { get; set; }
+    }
+
+    [TestMethod]
+    public void TypeWithMultipleIEnumerableIsMappedCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new SourceMultipleIEnumerables
+      {
+        One = new List<int>
+        {
+          1,2,3
+        },
+        Two = new List<int>
+        {
+          4,5,6
+        }
+      };
+
+      var result = mapper.Map<SourceMultipleIEnumerables, DestMultipleLists>(source);
+
+      Assert.IsTrue(result.One.SequenceEqual(source.One));
+      Assert.IsTrue(result.Two.SequenceEqual(source.Two));
+
+    }
+
+    class SourceMultipleLists
+    {
+      public List<int> One { get; set; }
+      public List<int> Two { get; set; }
+    }
+
+    class DestMultipleArray
+    {
+      public int[] One { get; set; }
+      public int[] Two { get; set; }
+    }
+
+    [TestMethod]
+    public void TypeWithMultipleListsIsMappedCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new SourceMultipleLists
+      {
+        One = new List<int>
+        {
+          1,2,3
+        },
+        Two = new List<int>
+        {
+          4,5,6
+        }
+      };
+
+      var result = mapper.Map<SourceMultipleLists, DestMultipleArray>(source);
+
+      Assert.IsTrue(result.One.SequenceEqual(source.One));
+      Assert.IsTrue(result.Two.SequenceEqual(source.Two));
+
+    }
+
+    [TestMethod]
+    public void TypeWithMultipleArraysIsMappedCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new DestMultipleArray
+      {
+        One = new[]
+        {
+          1,2,3
+        },
+        Two = new[]
+        {
+          4,5,6
+        }
+      };
+
+      var result = mapper.Map<DestMultipleArray, SourceMultipleLists>(source);
+
+      Assert.IsTrue(result.One.SequenceEqual(source.One));
+      Assert.IsTrue(result.Two.SequenceEqual(source.Two));
+
+    }
   }
 }
