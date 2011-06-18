@@ -11,6 +11,10 @@ using ThisMember.Core.Exceptions;
 
 namespace ThisMember.Core
 {
+  /// <summary>
+  /// A map proposed by a IMappingStrategy, that can be adjusted still, for example by adding 
+  /// custom constructors and conditions.
+  /// </summary>
   public class ProposedMap
   {
     public Type SourceType { get; set; }
@@ -75,18 +79,31 @@ namespace ThisMember.Core
       }
     }
 
+    /// <summary>
+    /// Configures how a certain type should be instantiated.
+    /// </summary>
+    /// <param name="constructor">The expression that describes the type construction. 
+    /// Should be a lambda returning the type T.</param>
     public ProposedMap WithConstructorFor<T>(LambdaExpression constructor)
     {
       constructorCache[typeof(T)] = constructor;
       return this;
     }
 
+    /// <summary>
+    /// Configures how a certain type should be instantiated.
+    /// </summary>
+    /// <param name="constructor">The expression that describes the type construction. 
+    /// Should be a lambda returning the type.</param>
     public ProposedMap WithConstructorFor(Type type, LambdaExpression constructor)
     {
       constructorCache[type] = constructor;
       return this;
     }
 
+    /// <summary>
+    /// Returns a custom constructor, if any, for a certain type.
+    /// </summary>
     public LambdaExpression GetConstructor(Type type)
     {
       LambdaExpression e;
@@ -104,11 +121,6 @@ namespace ThisMember.Core
     public ProposedMap(IMemberMapper mapper)
       : base(mapper)
     {
-    }
-
-    public ProposedMap<TSource, TDestination> AddMapping<TSourceReturn, TDestinationReturn>(Expression<Func<TSource, TSourceReturn>> source, Expression<Func<TDestination, TDestinationReturn>> destination) where TDestinationReturn : TSourceReturn
-    {
-      return this;
     }
 
     public ProposedMap<TSource, TDestination> WithConstructorFor<T>(Expression<Func<TSource, TDestination, T>> constructor)
@@ -162,7 +174,6 @@ namespace ThisMember.Core
 
       if (mapping == null)
       {
-        //throw new MemberNotFoundException(memberExpression.Member);
         mapping = new IncompatibleMapping(memberExpression.Member);
       }
 
@@ -206,6 +217,36 @@ namespace ThisMember.Core
           throw new MemberNotFoundException(_member);
         }
       }
+
+      public PropertyOrFieldInfo DestinationMember
+      {
+        get
+        {
+          return _member;
+        }
+        set
+        {
+          _member = value;
+        }
+      }
+
+
+      #region IMappingProposition Members
+
+
+      public PropertyOrFieldInfo SourceMember
+      {
+        get
+        {
+          return null;
+        }
+        set
+        {
+          throw new NotImplementedException();
+        }
+      }
+
+      #endregion
     }
 
   }

@@ -6,6 +6,10 @@ using ThisMember.Core.Interfaces;
 
 namespace ThisMember.Core
 {
+  /// <summary>
+  /// The base class that you should inherit from if you wish to create your own IMapRepository implementation.
+  /// This class takes care of certain difficulties for you. 
+  /// </summary>
   public abstract class MapRepositoryBase : IMapRepository
   {
 
@@ -24,16 +28,21 @@ namespace ThisMember.Core
 
     protected abstract void InitMaps();
 
-    //protected void CreateMap<TSource, TDestination>(Func<IMemberMapper, MappingOptions, ProposedMap> action)
-    //{
-    //  cache.Add(new TypePair(typeof(TSource), typeof(TDestination)), new MapFuncWrapper { CreateMapFunction = action });
-    //}
-
+    /// <summary>
+    /// Defines what a map should look like for a certain source and destination type. 
+    /// You do this by providing a function that creates it on the IMemberMapper. This does not yet create
+    /// the map, just tells the IMemberMapper how to do so. 
+    /// </summary>
+    /// <param name="action">The function that describes how the map should be created.</param>
     protected void DefineMap<TSource, TDestination>(Func<IMemberMapper, MappingOptions, ProposedMap<TSource, TDestination>> action)
     {
       cache.Add(new TypePair(typeof(TSource), typeof(TDestination)), new MapFuncWrapper { CreateMapFunction = action });
     }
 
+    /// <summary>
+    /// Checks if the mapper repository contains a map and if so, returns it as an out parameter.
+    /// </summary>
+    /// <returns></returns>
     public bool TryGetMap(IMemberMapper mapper, MappingOptions options, TypePair pair, out ProposedMap map)
     {
       MapFuncWrapper action;
@@ -67,7 +76,10 @@ namespace ThisMember.Core
       return false;
     }
 
-
+    /// <summary>
+    /// Checks if the mapper repository contains a map and if so, returns it as an out parameter.
+    /// </summary>
+    /// <returns></returns>
     public bool TryGetMap<TSource, TDestination>(IMemberMapper mapper, MappingOptions options, out ProposedMap<TSource, TDestination> map)
     {
       MapFuncWrapper action;

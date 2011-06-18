@@ -144,7 +144,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMap<Customer, SimpleCustomerDto>(customMapping: src =>
+      mapper.CreateMapProposal<Customer, SimpleCustomerDto>(customMapping: src =>
       new
       {
         AddressLine = src.Address.Foo.Bar

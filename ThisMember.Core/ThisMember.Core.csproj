@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ThisMember.Core</RootNamespace>
-    <AssemblyName>ThisMember.Core</AssemblyName>
+    <AssemblyName>ThisMember</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
@@ -38,16 +38,9 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Ninject">
-      <HintPath>..\packages\Ninject.2.1.0.76\lib\40\Ninject.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CollectionTypeHelper.cs" />
@@ -68,7 +61,7 @@
     <Compile Include="Interfaces\IMappingStrategy.cs" />
     <Compile Include="Interfaces\IMapRepository.cs" />
     <Compile Include="Interfaces\IMemberMapper.cs" />
-    <Compile Include="MappingProfiles.cs" />
+    <Compile Include="MapCollection.cs" />
     <Compile Include="MapperOptions.cs" />
     <Compile Include="MappingOption.cs" />
     <Compile Include="DefaultMappingStrategy.cs" />
@@ -79,7 +72,7 @@
     <Compile Include="MemberMap.cs" />
     <Compile Include="MemberMapper.cs" />
     <Compile Include="ProposedMap.cs" />
-    <Compile Include="ProposedMemberMappingWrapper.cs" />
+    <Compile Include="MappingPropositionModifier.cs" />
     <Compile Include="ProposedTypeMapping.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TypePair.cs" />

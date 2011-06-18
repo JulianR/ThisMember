@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace ThisMember.Core
 {
-  public class DefaultMemberProvider
+  internal class DefaultMemberProvider
   {
     private IMemberMapper mapper;
     private Dictionary<string, PropertyOrFieldInfo> sourceProperties;

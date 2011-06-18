@@ -6,18 +6,11 @@ using ThisMember.Core.Interfaces;
 
 namespace ThisMember.Core
 {
+  /// <summary>
+  /// The final, compiled map for a certain source and destination type.
+  /// </summary>
   public class MemberMap
   {
-    public MemberMap FinalizeMap()
-    {
-      return this;
-    }
-
-    public ProposedTypeMapping ProposedTypeMapping
-    {
-      get { throw new NotImplementedException(); }
-      set { }
-    }
 
     public Type SourceType
     {
@@ -31,36 +24,22 @@ namespace ThisMember.Core
       set;
     }
 
+    /// <summary>
+    /// The delegate that is capable of performing the actual mapping
+    /// </summary>
     public Delegate MappingFunction
     {
       get;
       set;
     }
 
-    
-
-    public IMapGenerator MapGenerator
-    {
-      get
-      {
-        throw new NotImplementedException();
-      }
-      set
-      {
-        throw new NotImplementedException();
-      }
-    }
-
-
   }
 
+  /// <summary>
+  /// The final, compiled map for a certain source and destination type.
+  /// </summary>
   public class MemberMap<TSource, TDestination> : MemberMap
   {
-
-    public ProposedMap<TSource, TDestination> AddExpression<TSourceReturn, TDestinationReturn>(System.Linq.Expressions.Expression<Func<TSource, TSourceReturn>> source, System.Linq.Expressions.Expression<Func<TDestination, TDestinationReturn>> destination) where TDestinationReturn : TSourceReturn
-    {
-      throw new NotImplementedException();
-    }
 
     public new Func<TSource, TDestination, TDestination> MappingFunction
     {

@@ -6,6 +6,10 @@ using ThisMember.Core.Interfaces;
 
 namespace ThisMember.Core
 {
+  /// <summary>
+  /// A simple helper class that allows you to easily manage multiple mappers that each have their purpose.
+  /// For example, use this class if you have multiple mappers for update and create scenarios.
+  /// </summary>
   public class MapCollection
   {
     private Dictionary<string, IMemberMapper> mappers = new Dictionary<string, IMemberMapper>();
@@ -19,6 +23,11 @@ namespace ThisMember.Core
       Options = new MapperOptions();
     }
 
+    /// <summary>
+    /// Returns a mapper for a certain profile, and creates it if the mapper does not exist yet.
+    /// </summary>
+    /// <param name="profile">The profile for which you want to have a mapper.</param>
+    /// <returns></returns>
     public IMemberMapper this[string profile]
     {
       get

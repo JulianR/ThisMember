@@ -6,7 +6,7 @@ using ThisMember.Core.Interfaces;
 
 namespace ThisMember.Core
 {
-  public class CompiledMapGeneratorFactory : IMapGeneratorFactory
+  internal class CompiledMapGeneratorFactory : IMapGeneratorFactory
   {
     public IMapGenerator GetGenerator(IMemberMapper mapper)
     {

@@ -17,7 +17,24 @@ namespace ThisMember.Core
 {
   internal class CompiledMapGenerator : IMapGenerator
   {
-    private int currentID = 1;
+
+    private readonly IMemberMapper mapper;
+    private ParameterExpression sourceParameter;
+    private ParameterExpression destinationParameter;
+    private readonly MapProposalProcessor mapProcessor;
+    private List<ParameterExpression> newParameters;
+    private ProposedMap proposedMap;
+
+    public CompiledMapGenerator(IMemberMapper mapper)
+    {
+      this.mapper = mapper;
+
+      this.mapProcessor = new MapProposalProcessor(mapper);
+
+      this.newParameters = new List<ParameterExpression>();
+    }
+
+    private int currentID = 0;
 
     private string GetParameterName(PropertyOrFieldInfo member)
     {
@@ -51,6 +68,7 @@ namespace ThisMember.Core
       paramCache[param.Type].Push(param);
     }
 
+    private int intCounter = 0;
     private const string validIntNames = "ijklmnopqrstuvwxyzabcdefghABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     private string GetParamName(Type t, string purpose)
@@ -63,7 +81,7 @@ namespace ThisMember.Core
 
       if (typeof(int) == t)
       {
-        return new String(validIntNames[currentID++], 1);
+        return new String(validIntNames[intCounter++], 1);
       }
 
       if (typeof(IEnumerable).IsAssignableFrom(t))
@@ -91,7 +109,7 @@ namespace ThisMember.Core
 
       foreach (var member in typeMapping.ProposedMappings)
       {
-        BuildSimpleTypeMappingExpressions(source, destination, member, expressions, customMapping);
+        BuildMemberAssignmentExpressions(source, destination, member, expressions, customMapping);
       }
 
       foreach (var complexTypeMapping in typeMapping.ProposedTypeMappings)
@@ -127,7 +145,7 @@ namespace ThisMember.Core
       return Expression.Assign(destination, source);
     }
 
-    private void BuildSimpleTypeMappingExpressions
+    private void BuildMemberAssignmentExpressions
     (
       ParameterExpression source,
       ParameterExpression destination,
@@ -219,7 +237,6 @@ namespace ThisMember.Core
       var sourceCollectionElementType = CollectionTypeHelper.GetTypeInsideEnumerable(sourceMemberPropertyType);
 
       var sourceElementSameAsDestination = destinationCollectionElementType.IsAssignableFrom(sourceCollectionElementType);
-
 
       Type destinationCollectionType;
       ParameterExpression destinationCollection;
@@ -689,7 +706,7 @@ namespace ThisMember.Core
 
     private static byte[] syncRoot = new byte[0];
 
-    public TypeBuilder DefineMappingType(string name)
+    private TypeBuilder DefineMappingType(string name)
     {
       lock (syncRoot)
       {
@@ -722,27 +739,12 @@ namespace ThisMember.Core
       }
       else
       {
-        // Much simpler, but the resulting code from experience can also be 10x slower for unknown reasons
+        // Much simpler, but the resulting delegate incurs an invocation overhead from experience
         return expression.Compile();
       }
 
     }
 
-    private readonly IMemberMapper mapper;
-    private ParameterExpression sourceParameter;
-    private ParameterExpression destinationParameter;
-    private readonly MapProposalProcessor mapProcessor;
-    private List<ParameterExpression> newParameters;
-    private ProposedMap proposedMap;
-
-    public CompiledMapGenerator(IMemberMapper mapper)
-    {
-      this.mapper = mapper;
-
-      this.mapProcessor = new MapProposalProcessor(mapper);
-
-      this.newParameters = new List<ParameterExpression>();
-    }
 
     public Delegate GenerateMappingFunction(ProposedMap proposedMap)
     {
@@ -805,8 +807,6 @@ namespace ThisMember.Core
       var conditionCheck = Expression.IfThenElse(condition, block, ifSourceIsNull);
 
       var outerBlock = Expression.Block(newParameters, conditionCheck, destination);
-
-      //outerBlock = (BlockExpression)mapProcessor.Process(outerBlock);
 
       var funcType = typeof(Func<,,>).MakeGenericType(proposedMap.SourceType, proposedMap.DestinationType, proposedMap.DestinationType);
 

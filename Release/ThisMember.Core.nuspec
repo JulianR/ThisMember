@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
-    <id>ThisMember.Core</id>
-    <version>0.6.8</version>
+    <id>ThisMember</id>
+    <version>0.7.0</version>
     <authors>Julian Rooze</authors>
     <owners>Julian Rooze</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Easy and fast mapping between types</description>
-    <tags>mapping</tags>
+    <description>Easy and fast convention-based mapping between arbitrary types</description>
+    <tags>mapping map code-generation performance</tags>
   </metadata>
 </package>

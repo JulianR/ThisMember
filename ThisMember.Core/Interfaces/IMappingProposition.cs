@@ -10,5 +10,7 @@ namespace ThisMember.Core.Interfaces
   {
     bool Ignored { get; set; }
     LambdaExpression Condition { get; set; }
+    PropertyOrFieldInfo DestinationMember { get; set; }
+    PropertyOrFieldInfo SourceMember { get; set; }
   }
 }

@@ -6,6 +6,9 @@ using System.Reflection;
 
 namespace ThisMember.Core.Interfaces
 {
+  /// <summary>
+  /// A helper class that can describe both a PropertyInfo and a FieldInfo
+  /// </summary>
   public class PropertyOrFieldInfo
   {
     private MemberInfo member;

@@ -68,7 +68,7 @@ namespace ThisMember.Core.Interfaces
       return mapping;
     }
 
-    private class ParameterVisitor : ExpressionVisitor
+    public class ParameterVisitor : ExpressionVisitor
     {
       private ParameterExpression _newParam;
       private ParameterExpression _oldParam;

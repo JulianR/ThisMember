@@ -81,8 +81,21 @@ namespace ThisMember.Test
       var mapper = new MemberMapper();
 
       mapper.CreateMapProposal<Customer, SimpleCustomerDto>()
-        .AddMapping(c => c.Address.Street + " " + c.Address.HouseNumber, c => c.AddressLine)
+        .ForMember(c => c.AddressLine).MapAs(c => c.Address.Street + " " + c.Address.HouseNumber)
         .FinalizeMap();
+
+      var source = new Customer
+      {
+        Address = new Address
+        {
+          Street = "Street",
+          HouseNumber = "12"
+        }
+      };
+
+      var result = mapper.Map<Customer, SimpleCustomerDto>(source);
+
+      Assert.AreEqual("Street 12", result.AddressLine);
 
     }
 
