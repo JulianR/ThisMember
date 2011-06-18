@@ -4,11 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Linq.Expressions;
 using ThisMember.Core.Interfaces;
+using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
+using System.Reflection;
 
 namespace ThisMember.Core
 {
-
-  public class ParameterTuple
+  internal class ParameterTuple
   {
     public ParameterExpression OldParameter { get; set; }
     public ParameterExpression NewParameter { get; set; }
@@ -20,10 +22,9 @@ namespace ThisMember.Core
     }
   }
 
-  public class MapProposalProcessor
+ 
+  internal class MapProposalProcessor
   {
-    private IMemberMapper mapper;
-
     public IList<ParameterTuple> ParametersToReplace { get; private set; }
 
     public bool NonPublicMembersAccessed { get; private set; }
@@ -31,10 +32,53 @@ namespace ThisMember.Core
     public MapProposalProcessor(IMemberMapper mapper)
     {
       ParametersToReplace = new List<ParameterTuple>();
-      this.mapper = mapper;
+      this.MemberMapper = mapper;
     }
 
-    
+    public Expression RootExpression { get; private set; }
+
+    public IMemberMapper MemberMapper { get; private set; }
+
+    public Expression Process(Expression expression)
+    {
+      RootExpression = expression;
+
+      if (MemberMapper.Options.Safety.PerformNullChecksOnCustomMappings)
+      {
+        var memberVisitor = new MemberVisitor(MemberMapper);
+
+        // Pass 1: Transform member access so they do null-checks first, if needed
+        expression = memberVisitor.Visit(expression);
+        RootExpression = expression;
+      }
+
+      var paramVisitor = new ParameterVisitor(this.ParametersToReplace);
+
+      // Pass 2: Transform parameter placeholders with their final ones
+      expression = paramVisitor.Visit(expression);
+
+      RootExpression = expression;
+
+      var visibilityVisitor = new VisibilityVisitor(this);
+
+      // Pass 3: Check visibility of what is accessed, to establish if we can compile to a new dynamic assembly.
+      visibilityVisitor.Visit(expression);
+
+      RootExpression = expression;
+
+      this.NonPublicMembersAccessed = visibilityVisitor.NonPublicMembersAccessed;
+
+      if (this.NonPublicMembersAccessed)
+      {
+        var lambdaVisitor = new LambdaVisitor(this);
+
+        expression = lambdaVisitor.Visit(expression);
+
+        RootExpression = expression;
+      }
+
+      return expression;
+    }
 
     private class ParameterVisitor : ExpressionVisitor
     {
@@ -64,24 +108,6 @@ namespace ThisMember.Core
       }
     }
 
-    public Expression Process(Expression expression)
-    {
-      var memberVisitor = new MemberVisitor(mapper);
-
-      expression = memberVisitor.Visit(expression);
-
-      var paramVisitor = new ParameterVisitor(this.ParametersToReplace);
-
-      expression = paramVisitor.Visit(expression);
-
-      var visibilityVisitor = new VisibilityVisitor();
-
-      visibilityVisitor.Visit(expression);
-
-      this.NonPublicMembersAccessed = visibilityVisitor.NonPublicMembersAccessed;
-
-      return expression;
-    }
 
     private class MemberVisitor : ExpressionVisitor
     {
@@ -151,17 +177,20 @@ namespace ThisMember.Core
 
       protected override Expression VisitMember(MemberExpression node)
       {
-        if (mapper.Options.Safety.PerformNullChecksOnCustomMappings)
-        {
-          return ConvertToConditionals(node.Type, node, null);
-        }
 
-        return base.VisitMember(node);
+        return ConvertToConditionals(node.Type, node, null);
+
       }
     }
 
     private class VisibilityVisitor : ExpressionVisitor
     {
+      private MapProposalProcessor processor;
+
+      public VisibilityVisitor(MapProposalProcessor processor)
+      {
+        this.processor = processor;
+      }
 
       public bool NonPublicMembersAccessed { get; private set; }
 
@@ -197,26 +226,27 @@ namespace ThisMember.Core
 
       protected override Expression VisitLambda<T>(Expression<T> node)
       {
-
-        var delType = typeof(T);
-
-        var genericParams = delType.GetGenericArguments();
-
-        var sourceType = genericParams[0];
-
-        var destType = genericParams[1];
-
-        if (!IsPublicClass(sourceType))
+        if (this.processor.RootExpression == node)
         {
-          this.NonPublicMembersAccessed = true;
-          return node;
-        }
-        else if (!IsPublicClass(destType))
-        {
-          this.NonPublicMembersAccessed = true;
-          return node;
-        }
+          var delType = typeof(T);
 
+          var genericParams = delType.GetGenericArguments();
+
+          var sourceType = genericParams[0];
+
+          var destType = genericParams[1];
+
+          if (!IsPublicClass(sourceType))
+          {
+            this.NonPublicMembersAccessed = true;
+            return node;
+          }
+          else if (!IsPublicClass(destType))
+          {
+            this.NonPublicMembersAccessed = true;
+            return node;
+          }
+        }
 
         return base.VisitLambda<T>(node);
       }
@@ -252,6 +282,26 @@ namespace ThisMember.Core
       }
     }
 
+    private class LambdaVisitor : ExpressionVisitor
+    {
+      private MapProposalProcessor processor;
+
+      public LambdaVisitor(MapProposalProcessor processor)
+      {
+        this.processor = processor;
+      }
+
+      protected override Expression VisitLambda<T>(Expression<T> node)
+      {
+
+        if (node != processor.RootExpression)
+        {
+          return Expression.Constant(node.Compile());
+        }
+
+        return base.VisitLambda<T>(node);
+      }
+    }
 
   }
 }

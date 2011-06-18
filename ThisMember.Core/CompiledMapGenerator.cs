@@ -689,21 +689,26 @@ namespace ThisMember.Core
 
     private static byte[] syncRoot = new byte[0];
 
+    public TypeBuilder DefineMappingType(string name)
+    {
+      lock (syncRoot)
+      {
+        if (moduleBuilder == null)
+        {
+          var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("ThisMemberFunctionsAssembly_" + Guid.NewGuid().ToString("N")), AssemblyBuilderAccess.RunAndSave);
+
+          moduleBuilder = assemblyBuilder.DefineDynamicModule("Module");
+        }
+      }
+      var typeBuilder = moduleBuilder.DefineType(name, TypeAttributes.Public);
+      return typeBuilder;
+    }
+
     private Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
     {
-      if (this.mapper.Options.Safety.CompileToDynamicAssembly && !mapProcessor.NonPublicMembersAccessed)
+      if (this.mapper.Options.Compilation.CompileToDynamicAssembly && !mapProcessor.NonPublicMembersAccessed)
       {
-        lock (syncRoot)
-        {
-          if (moduleBuilder == null)
-          {
-            var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("ThisMemberFunctionsAssembly_" + Guid.NewGuid().ToString("N")), AssemblyBuilderAccess.Run);
-
-            moduleBuilder = assemblyBuilder.DefineDynamicModule("Module");
-          }
-        }
-
-        var typeBuilder = moduleBuilder.DefineType(string.Format("From_{0}_to_{1}_{2}", sourceType.Name, destinationType.Name, Guid.NewGuid().ToString("N"), TypeAttributes.Public));
+        var typeBuilder = DefineMappingType(string.Format("From_{0}_to_{1}_{2}", sourceType.Name, destinationType.Name, Guid.NewGuid().ToString("N")));
 
         var methodBuilder = typeBuilder.DefineMethod("Map", MethodAttributes.Public | MethodAttributes.Static);
 
