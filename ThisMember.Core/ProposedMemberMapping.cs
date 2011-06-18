@@ -8,6 +8,9 @@ using System.Linq.Expressions;
 
 namespace ThisMember.Core
 {
+  /// <summary>
+  /// Describes the proposed mapping from a SourceMember to a DestinationMember
+  /// </summary>
   public class ProposedMemberMapping : IMappingProposition
   {
     public PropertyOrFieldInfo SourceMember { get; set; }
@@ -15,6 +18,9 @@ namespace ThisMember.Core
 
     public bool Ignored { get; set; }
 
+    /// <summary>
+    /// The condition that needs to be met for the member to be mapped
+    /// </summary>
     public LambdaExpression Condition { get; set; }
 
     public override bool Equals(object obj)

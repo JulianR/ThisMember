@@ -123,6 +123,11 @@ namespace ThisMember.Core
     {
     }
 
+    /// <summary>
+    /// Configures how a certain type should be instantiated.
+    /// </summary>
+    /// <param name="constructor">The expression that describes the type construction. 
+    /// Should be a lambda returning the type.</param>
     public ProposedMap<TSource, TDestination> WithConstructorFor<T>(Expression<Func<TSource, TDestination, T>> constructor)
     {
       constructorCache.Add(typeof(T), constructor);
@@ -161,6 +166,13 @@ namespace ThisMember.Core
       return result;
     }
 
+    /// <summary>
+    /// Gets a member from the current mapping. If this member is not being mapped yet,
+    /// then you can only ignore it and add a custom mapping to it.
+    /// </summary>
+    /// <typeparam name="TMemberType"></typeparam>
+    /// <param name="expression"></param>
+    /// <returns></returns>
     public MappingPropositionModifier<TSource, TDestination> ForMember<TMemberType>(Expression<Func<TDestination, TMemberType>> expression)
     {
       var memberExpression = expression.Body as MemberExpression;
@@ -230,10 +242,6 @@ namespace ThisMember.Core
         }
       }
 
-
-      #region IMappingProposition Members
-
-
       public PropertyOrFieldInfo SourceMember
       {
         get
@@ -245,8 +253,6 @@ namespace ThisMember.Core
           throw new NotImplementedException();
         }
       }
-
-      #endregion
     }
 
   }
