@@ -53,9 +53,9 @@ namespace ThisMember.Benchmarks
 
       //var lambda = Expression.Lambda<Action>(outerBlock);
 
-      Benchmark();
-      Console.WriteLine();
-      Benchmark();
+      Comparisons.Benchmark();
+      Console.Clear();
+      Comparisons.Benchmark();
 
       //Foobar();
       //Console.WriteLine();

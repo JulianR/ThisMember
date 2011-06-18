@@ -54,6 +54,7 @@
     <Compile Include="CompiledMapGenerator.cs" />
     <Compile Include="CompiledMapGeneratorFactory.cs" />
     <Compile Include="CustomMapping.cs" />
+    <Compile Include="DefaultMemberProvider.cs" />
     <Compile Include="Exceptions\CodeGenerationException.cs" />
     <Compile Include="Exceptions\IncompatibleMappingException.cs" />
     <Compile Include="Exceptions\MapNotFoundException.cs" />

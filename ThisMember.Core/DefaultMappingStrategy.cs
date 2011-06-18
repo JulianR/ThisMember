@@ -16,7 +16,6 @@ namespace ThisMember.Core
 
     private readonly Dictionary<TypePair, CustomMapping> customMappingCache = new Dictionary<TypePair, CustomMapping>();
 
-
     private readonly byte[] syncRoot = new byte[0];
 
     private readonly IMemberMapper mapper;
@@ -68,99 +67,45 @@ namespace ThisMember.Core
         sourceType = pair.SourceType;
       }
 
+      var memberProvider = new DefaultMemberProvider(sourceType, destinationType, mapper);
 
-
-      var destinationProperties = (from p in destinationType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                                   where p.CanWrite && !p.GetIndexParameters().Any()
-                                   select (PropertyOrFieldInfo)p)
-                                   .Union(from f in destinationType.GetFields()
-                                          where !f.IsStatic
-                                          select (PropertyOrFieldInfo)f);
-
-
-      var sourceProperties = (from p in sourceType.GetProperties()
-                              where p.CanRead && !p.GetIndexParameters().Any()
-                              select (PropertyOrFieldInfo)p)
-                              .Union(from f in sourceType.GetFields()
-                                     where !f.IsStatic
-                                     select (PropertyOrFieldInfo)f)
-                                     .ToDictionary(k => k.Name, mapper.Options.Conventions.IgnoreCaseWhenFindingMatch ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
-
-      foreach (var destinationProperty in destinationProperties)
+      foreach (var destinationMember in memberProvider.GetDestinationMembers())
       {
-        if (mapper.Options.Conventions.IgnoreMemberAttributeShouldBeRespected)
+        if (memberProvider.IsMemberIgnored(sourceType, destinationMember))
         {
-          var ignoreAttribute = destinationProperty.GetCustomAttributes(typeof(IgnoreMemberAttribute), false).SingleOrDefault() as IgnoreMemberAttribute;
-
-          if (ignoreAttribute != null)
-          {
-            var ignore = true;
-
-            if (!string.IsNullOrEmpty(ignoreAttribute.Profile))
-            {
-              ignore &= ignoreAttribute.Profile == mapper.Profile;
-            }
-
-            if (ignoreAttribute.WhenSourceTypeIs != null)
-            {
-              ignore &= ignoreAttribute.WhenSourceTypeIs == sourceType;
-            }
-
-            if (ignore) continue;
-          }
+          continue;
         }
-
-        PropertyOrFieldInfo sourceProperty;
 
         Expression customExpression = null;
 
         if (customMapping != null)
         {
-          customExpression = customMapping.GetExpressionForMember(destinationProperty);
+          customExpression = customMapping.GetExpressionForMember(destinationMember);
         }
 
-        if (!sourceProperties.TryGetValue(destinationProperty.Name, out sourceProperty)
-          && customExpression == null
-          && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember
-          && !mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
+        var sourceMember = memberProvider.GetMatchingSourceMember(destinationMember);
+
+        if (HasNoSourceMember(customExpression, sourceMember))
         {
-          typeMapping.IncompatibleMappings.Add(destinationProperty);
+          typeMapping.IncompatibleMappings.Add(destinationMember);
         }
         else if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
         {
           throw new NotImplementedException("Sorry, this hasn't been implemented yet");
         }
 
-        Type nullableType = null;
+        var nullableType = TryGetNullableType(sourceMember);
 
-        if (sourceProperty != null && sourceProperty.PropertyOrFieldType.IsNullableValueType())
-        {
-          nullableType = sourceProperty.PropertyOrFieldType.GetGenericArguments().Single();
-        }
+        var canUseSimpleTypeMapping = CanUseSimpleTypeMapping(pair, destinationMember, sourceMember, nullableType);
 
-        var canUseSimpleTypeMapping = sourceProperty != null;
-
-        if (canUseSimpleTypeMapping)
-        {
-          canUseSimpleTypeMapping &= (destinationProperty.PropertyOrFieldType.IsAssignableFrom(sourceProperty.PropertyOrFieldType))
-            || (sourceProperty.PropertyOrFieldType.IsNullableValueType() && destinationProperty.PropertyOrFieldType.IsAssignableFrom(nullableType));
-
-
-          if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
-          {
-            canUseSimpleTypeMapping &= sourceProperty.PropertyOrFieldType.IsValueType || sourceProperty.PropertyOrFieldType == typeof(string);
-          }
-        }
-
-
-        if (canUseSimpleTypeMapping || customExpression != null )
+        if (canUseSimpleTypeMapping || customExpression != null)
         {
 
           if (options != null)
           {
             var option = new MemberOption();
 
-            options(sourceProperty, destinationProperty, option);
+            options(sourceMember, destinationMember, option);
 
             switch (option.State)
             {
@@ -174,80 +119,21 @@ namespace ThisMember.Core
           (
             new ProposedMemberMapping
             {
-              SourceMember = sourceProperty,
-              DestinationMember = destinationProperty
+              SourceMember = sourceMember,
+              DestinationMember = destinationMember
             }
           );
         }
-        else if (sourceProperty != null)
+        else if (sourceMember != null)
         {
 
-          if (typeof(IEnumerable).IsAssignableFrom(sourceProperty.PropertyOrFieldType)
-            && typeof(IEnumerable).IsAssignableFrom(destinationProperty.PropertyOrFieldType))
+          if (AreMembersIEnumerable(destinationMember, sourceMember))
           {
-
-            var typeOfSourceEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(sourceProperty.PropertyOrFieldType);
-            var typeOfDestinationEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(destinationProperty.PropertyOrFieldType);
-
-            if (typeOfDestinationEnumerable == typeOfSourceEnumerable)
-            {
-
-              typeMapping.ProposedTypeMappings.Add(
-                new ProposedTypeMapping
-              {
-                DestinationMember = destinationProperty,
-                SourceMember = sourceProperty,
-                ProposedMappings = new List<ProposedMemberMapping>()
-              });
-
-            }
-            else
-            {
-              var complexPair = new TypePair(typeOfSourceEnumerable, typeOfDestinationEnumerable);
-
-              var complexTypeMapping = GetComplexTypeMapping(complexPair, options, customMapping);
-
-              if (complexTypeMapping != null)
-              {
-                complexTypeMapping = complexTypeMapping.Clone();
-
-                complexTypeMapping.DestinationMember = destinationProperty;
-                complexTypeMapping.SourceMember = sourceProperty;
-
-                CustomMapping customMappingForType;
-
-                //customMappingCache.TryGetValue(complexPair, out customMappingForType);
-                TryGetCustomMapping(complexPair, out customMappingForType);
-
-                complexTypeMapping.CustomMapping = customMappingForType;
-
-                typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
-              }
-            }
+            GenerateIEnumerableMapping(options, customMapping, typeMapping, destinationMember, sourceMember);
           }
           else
           {
-            var complexPair = new TypePair(sourceProperty.PropertyOrFieldType, destinationProperty.PropertyOrFieldType);
-
-            var complexTypeMapping = GetComplexTypeMapping(complexPair, options, customMapping);
-
-            if (complexTypeMapping != null)
-            {
-
-              complexTypeMapping = complexTypeMapping.Clone();
-
-              complexTypeMapping.DestinationMember = destinationProperty;
-              complexTypeMapping.SourceMember = sourceProperty;
-
-              CustomMapping customMappingForType;
-
-              //customMappingCache.TryGetValue(complexPair, out customMappingForType);
-              TryGetCustomMapping(complexPair, out customMappingForType);
-
-              complexTypeMapping.CustomMapping = customMappingForType;
-
-              typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
-            }
+            GenerateComplexTypeMapping(options, customMapping, typeMapping, destinationMember, sourceMember);
           }
         }
         else if (customExpression != null)
@@ -257,7 +143,7 @@ namespace ThisMember.Core
             new ProposedMemberMapping
             {
               SourceMember = null,
-              DestinationMember = destinationProperty
+              DestinationMember = destinationMember
             }
           );
         }
@@ -271,6 +157,114 @@ namespace ThisMember.Core
       _typeStack.Pop();
 
       return typeMapping;
+    }
+
+    private static bool AreMembersIEnumerable(PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
+    {
+      return typeof(IEnumerable).IsAssignableFrom(sourceMember.PropertyOrFieldType)
+                  && typeof(IEnumerable).IsAssignableFrom(destinationMember.PropertyOrFieldType);
+    }
+
+    private void GenerateComplexTypeMapping(MappingOptions options, CustomMapping customMapping, ProposedTypeMapping typeMapping, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
+    {
+      var complexPair = new TypePair(sourceMember.PropertyOrFieldType, destinationMember.PropertyOrFieldType);
+
+      var complexTypeMapping = GetComplexTypeMapping(complexPair, options, customMapping);
+
+      if (complexTypeMapping != null)
+      {
+
+        complexTypeMapping = complexTypeMapping.Clone();
+
+        complexTypeMapping.DestinationMember = destinationMember;
+        complexTypeMapping.SourceMember = sourceMember;
+
+        CustomMapping customMappingForType;
+
+        TryGetCustomMapping(complexPair, out customMappingForType);
+
+        complexTypeMapping.CustomMapping = customMappingForType;
+
+        typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
+      }
+    }
+
+    private void GenerateIEnumerableMapping(MappingOptions options, CustomMapping customMapping, ProposedTypeMapping typeMapping, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
+    {
+      var typeOfSourceEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(sourceMember.PropertyOrFieldType);
+      var typeOfDestinationEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(destinationMember.PropertyOrFieldType);
+
+      if (typeOfDestinationEnumerable == typeOfSourceEnumerable)
+      {
+
+        typeMapping.ProposedTypeMappings.Add(
+          new ProposedTypeMapping
+          {
+            DestinationMember = destinationMember,
+            SourceMember = sourceMember,
+            ProposedMappings = new List<ProposedMemberMapping>()
+          });
+
+      }
+      else
+      {
+        var complexPair = new TypePair(typeOfSourceEnumerable, typeOfDestinationEnumerable);
+
+        var complexTypeMapping = GetComplexTypeMapping(complexPair, options, customMapping);
+
+        if (complexTypeMapping != null)
+        {
+          complexTypeMapping = complexTypeMapping.Clone();
+
+          complexTypeMapping.DestinationMember = destinationMember;
+          complexTypeMapping.SourceMember = sourceMember;
+
+          CustomMapping customMappingForType;
+
+          TryGetCustomMapping(complexPair, out customMappingForType);
+
+          complexTypeMapping.CustomMapping = customMappingForType;
+
+          typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
+        }
+      }
+    }
+
+    private bool CanUseSimpleTypeMapping(TypePair pair, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type nullableType)
+    {
+      var canUseSimpleTypeMapping = sourceMember != null;
+
+      if (canUseSimpleTypeMapping)
+      {
+        canUseSimpleTypeMapping &= (destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType))
+          || (sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsAssignableFrom(nullableType));
+
+
+        if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+        {
+          canUseSimpleTypeMapping &= sourceMember.PropertyOrFieldType.IsValueType || sourceMember.PropertyOrFieldType == typeof(string);
+        }
+      }
+      return canUseSimpleTypeMapping;
+    }
+
+    private static Type TryGetNullableType(PropertyOrFieldInfo sourceMember)
+    {
+      Type nullableType = null;
+
+      if (sourceMember != null && sourceMember.PropertyOrFieldType.IsNullableValueType())
+      {
+        nullableType = sourceMember.PropertyOrFieldType.GetGenericArguments().Single();
+      }
+      return nullableType;
+    }
+
+    private bool HasNoSourceMember(Expression customExpression, PropertyOrFieldInfo sourceMember)
+    {
+      return sourceMember == null
+                && customExpression == null
+                && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember
+                && !mapper.Options.Conventions.AutomaticallyFlattenHierarchies;
     }
 
     private ProposedTypeMapping GetComplexTypeMapping(TypePair complexPair, MappingOptions options, CustomMapping customMapping, bool skipCache = false)
@@ -313,8 +307,6 @@ namespace ThisMember.Core
 
       TryGetCustomMapping(pair, out customMapping);
 
-      //var mapping = GetTypeMapping(pair, options, customMapping);
-
       var mapping = GetComplexTypeMapping(pair, options, customMapping, true);
 
 
@@ -345,8 +337,6 @@ namespace ThisMember.Core
       }
 
       TryGetCustomMapping(pair, out customMapping);
-
-      //var mapping  = GetTypeMapping(pair, options, customMapping);
 
       var mapping = GetComplexTypeMapping(pair, options, customMapping, true);
 
@@ -395,10 +385,8 @@ namespace ThisMember.Core
 
       if (customMapping != null)
       {
-        //if (matchingMappings.Count > 1)
-        {
-          customMapping.CombineWithOtherCustomMappings(matchingMappings);
-        }
+        customMapping.CombineWithOtherCustomMappings(matchingMappings);
+
         return true;
       }
       else
