@@ -47,6 +47,11 @@ namespace ThisMember.Core
       return map;
     }
 
+    public void ValidateMapping()
+    {
+      EnsureNoInvalidMappings();
+    }
+
     private void EnsureNoInvalidMappings()
     {
       var invalidPropertyMappings = new List<PropertyOrFieldInfo>();
