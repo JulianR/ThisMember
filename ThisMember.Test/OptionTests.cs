@@ -408,5 +408,79 @@ namespace ThisMember.Test
       Assert.AreNotEqual(10, result.ProductID);
 
     }
+
+    class SourceObjectComplexType
+    {
+      public string Name { get; set; }
+    }
+
+    class SourceObjectWithDefaultMembers
+    {
+      public int? ID { get; set; }
+      public string Name { get; set; }
+      public DateTime? Date { get; set; }
+      public SourceObjectComplexType Complex { get; set; }
+      public bool? Bool { get; set; }
+
+      public int NonNullableID { get; set;}
+      public DateTime NonNullableDate { get; set; }
+      public bool NonNullableBool { get; set; }
+    }
+
+    class DestObjectComplexType
+    {
+      public string Name { get; set; }
+    }
+
+    class DestObjectWithDefaultMembers
+    {
+      public int ID { get; set; }
+      public string Name { get; set; }
+      public DateTime Date { get; set; }
+      public DestObjectComplexType Complex { get; set; }
+      public bool Bool { get; set; }
+
+      public int NonNullableID { get; set; }
+      public DateTime NonNullableDate { get; set; }
+      public bool NonNullableBool { get; set; }
+    }
+
+    [TestMethod]
+    public void DefaultSourceMemberIsIgnored()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Conventions.IgnoreMembersWithNullValueOnSource = true;
+
+      var destination = new DestObjectWithDefaultMembers
+      {
+        ID = 10,
+        Name = "Name",
+        Date = new DateTime(2000, 1, 1),
+        Bool = true,
+        Complex = new DestObjectComplexType
+        {
+          Name = "Name"
+        }
+      };
+
+      mapper.Map(new SourceObjectWithDefaultMembers(), destination);
+
+      Assert.AreEqual(10, destination.ID);
+      Assert.AreEqual("Name", destination.Name);
+      Assert.AreEqual(new DateTime(2000, 1, 1), destination.Date);
+      Assert.AreEqual("Name", destination.Complex.Name);
+      Assert.AreEqual(true, destination.Bool);
+
+      Assert.AreEqual(default(int), destination.NonNullableID);
+      Assert.AreEqual(default(DateTime), destination.NonNullableDate);
+      Assert.AreEqual(default(bool), destination.NonNullableBool);
+
+      mapper.Map(new SourceObjectWithDefaultMembers { Complex = new SourceObjectComplexType { Name = "Foo" } },
+        destination);
+
+      Assert.AreEqual("Foo", destination.Complex.Name);
+
+    }
   }
 }

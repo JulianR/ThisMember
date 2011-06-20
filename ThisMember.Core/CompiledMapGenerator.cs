@@ -139,7 +139,14 @@ namespace ThisMember.Core
       {
         var nullableType = source.Type.GetGenericArguments().Single();
 
-        source = Expression.Condition(Expression.IsTrue(Expression.Property(source, "HasValue")), Expression.Property(source, "Value"), Expression.Default(nullableType));
+        Expression elseClause = mapper.Options.Conventions.IgnoreMembersWithNullValueOnSource ?
+        (Expression)destination : Expression.Default(nullableType);
+
+        source = Expression.Condition(Expression.IsTrue(Expression.Property(source, "HasValue")), Expression.Property(source, "Value"), elseClause);
+      }
+      else if (source.Type.IsClass && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+      {
+        source = Expression.Condition(Expression.NotEqual(source, Expression.Constant(null)), source, destination);
       }
 
       return Expression.Assign(destination, source);
@@ -170,7 +177,7 @@ namespace ThisMember.Core
 
       var destMember = Expression.PropertyOrField(destination, member.DestinationMember.Name);
 
-      BinaryExpression assignSourceToDest;
+      Expression assignSourceToDest;
 
       Expression customExpression;
 
@@ -651,7 +658,7 @@ namespace ThisMember.Core
 
         if (mapper.Options.Conventions.ReuseNonNullComplexMembersOnDestination)
         {
-          var checkIfDestMemberIsNotNull = Expression.NotEqual(accessDestinationMember, Expression.Constant(null));
+          var checkIfDestMemberIsNotNull = Expression.NotEqual(accessDestinationMember, Expression.Default(complexTypeMapping.DestinationMember.PropertyOrFieldType));
 
           assignDestType = Expression.Assign(complexDest,
             Expression.Condition(checkIfDestMemberIsNotNull,
@@ -676,9 +683,9 @@ namespace ThisMember.Core
 
       // If it's a value type, then a null check is not necessary, simply make it a 
       // if(true) which will get eliminated by the JIT compiler.
-      if (!complexTypeMapping.SourceMember.PropertyOrFieldType.IsValueType)
+      if (!complexTypeMapping.SourceMember.PropertyOrFieldType.IsValueType || mapper.Options.Conventions.IgnoreMembersWithNullValueOnSource)
       {
-        condition = Expression.NotEqual(Expression.Property(source, complexTypeMapping.SourceMember.Name), Expression.Constant(null));
+        condition = Expression.NotEqual(Expression.Property(source, complexTypeMapping.SourceMember.Name), Expression.Default(complexTypeMapping.SourceMember.PropertyOrFieldType));
       }
       else
       {
@@ -777,7 +784,7 @@ namespace ThisMember.Core
       }
       else
       {
-        condition = Expression.NotEqual(source, Expression.Constant(null));
+        condition = Expression.NotEqual(source, Expression.Default(proposedMap.SourceType));
       }
 
       this.sourceParameter = source;

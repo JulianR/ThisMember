@@ -131,6 +131,15 @@ namespace ThisMember.Core
         {
           return true;
         }
+        else if (memberNode.Member.Name == "HasValue" || memberNode.Member.Name == "Value"
+          && memberNode.Member.DeclaringType.IsGenericType
+          && typeof(Nullable<>).IsAssignableFrom(memberNode.Member.DeclaringType.GetGenericTypeDefinition())
+          )
+        {
+          return true;
+        }
+
+
         return false;
       }
 

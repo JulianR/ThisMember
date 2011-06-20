@@ -43,6 +43,7 @@ namespace ThisMember.Core
         IgnoreMemberAttributeShouldBeRespected = true,
         ReuseNonNullComplexMembersOnDestination = true,
         IgnoreCaseWhenFindingMatch = true,
+        IgnoreMembersWithNullValueOnSource = false
       };
 
       Safety = new MapperSafetyOptions
@@ -131,6 +132,13 @@ namespace ThisMember.Core
     /// </summary>
     /// <remarks>Defaults to true.</remarks>
     public bool IgnoreCaseWhenFindingMatch { get; set; }
+
+    /// <summary>
+    /// If set to true, this will stop a map from using members on the source object that have a null
+    /// equivalent value (so either nullable value types or reference types).
+    /// </summary>
+    /// <remarks>Defaults to false.</remarks>
+    public bool IgnoreMembersWithNullValueOnSource { get; set; }
 
   }
 
