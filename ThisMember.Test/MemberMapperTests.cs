@@ -264,6 +264,59 @@ namespace ThisMember.Test
 
     }
 
+    [TestMethod]
+    public void TryGetMapGenericWorksAsExpected()
+    {
+      var mapper = new MemberMapper();
 
+      var result = mapper.Map<SourceType, DestinationType>(new SourceType { ID = 1, Name = "X" });
+
+      MemberMap<SourceType, DestinationType> map;
+
+      Assert.IsTrue(mapper.TryGetMap<SourceType, DestinationType>(out map));
+    }
+
+
+    [TestMethod]
+    public void TryGetMapNonGenericWorksAsExpected()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<SourceType, DestinationType>(new SourceType { ID = 1, Name = "X" });
+
+      MemberMap map;
+
+      Assert.IsTrue(mapper.TryGetMap(typeof(SourceType), typeof(DestinationType), out map));
+    }
+
+    [TestMethod]
+    public void HasMapGenericWorksAsExpected()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<SourceType, DestinationType>(new SourceType { ID = 1, Name = "X" });
+
+      Assert.IsTrue(mapper.HasMap<SourceType, DestinationType>());
+    }
+
+    [TestMethod]
+    public void HasMapNonGenericWorksAsExpected()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<SourceType, DestinationType>(new SourceType { ID = 1, Name = "X" });
+
+      Assert.IsTrue(mapper.HasMap(typeof(SourceType), typeof(DestinationType)));
+    }
+
+    [TestMethod]
+    public void HasMapWithoutCreateMapReturnsFalse()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.CreateMapProposal<SourceType, DestinationType>();
+
+      Assert.IsFalse(mapper.HasMap(typeof(SourceType), typeof(DestinationType)));
+    }
   }
 }
