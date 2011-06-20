@@ -34,6 +34,8 @@ namespace ThisMember.Core
       newMap.SourceType = map.SourceType;
       newMap.MappingFunction = (Func<TSource, TDestination, TDestination>)map.MappingFunction;
 
+      ((MemberMap)newMap).MappingFunction = map.MappingFunction;
+
       return newMap;
     }
 
@@ -107,7 +109,6 @@ namespace ThisMember.Core
 
     }
 
-
     public void RegisterMap(MemberMap map)
     {
       this.maps[new TypePair(map.SourceType, map.DestinationType)] = map;
@@ -171,21 +172,29 @@ namespace ThisMember.Core
     {
       MemberMap nonGeneric;
 
-      if (!this.maps.TryGetValue(new TypePair(typeof(TSource), typeof(TDestination)), out nonGeneric))
+      var pair = new TypePair(typeof(TSource), typeof(TDestination));
+
+      if (this.maps.TryGetValue(pair, out nonGeneric))
       {
         map = nonGeneric as MemberMap<TSource, TDestination>;
 
         if (map == null)
         {
-          map = ToGenericMemberMap<TSource, TDestination>(map);
+          map = ToGenericMemberMap<TSource, TDestination>(nonGeneric);
+
+          lock (this.maps)
+          {
+            this.maps.Remove(pair);
+            this.maps.Add(pair, map);
+          }
         }
 
-        return false;
+        return true;
       }
 
       map = null;
 
-      return true;
+      return false;
     }
 
     public bool TryGetMap(Type source, Type destination, out MemberMap map)
