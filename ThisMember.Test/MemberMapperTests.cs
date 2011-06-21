@@ -202,7 +202,7 @@ namespace ThisMember.Test
       var mapper = new MemberMapper();
 
       var proposed = mapper.CreateMapProposal(typeof(ComplexSourceType), typeof(ComplexDestinationType),
-      (s, p, option) =>
+      options: (s, p, option) =>
       {
         if (s.Name == "Name")
         {
@@ -236,7 +236,7 @@ namespace ThisMember.Test
       var mapper = new MemberMapper();
 
       var proposed = mapper.CreateMapProposal(typeof(NestedSourceType), typeof(NestedDestinationType),
-      (s, p, option) =>
+      options: (s, p, option) =>
       {
         if (s.Name == "Name")
         {

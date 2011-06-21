@@ -68,14 +68,14 @@ namespace ThisMember.Core
       return Map(source, destination);
     }
 
-    public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null)
+    public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
     {
       var proposedMap = this.MappingStrategy.CreateMapProposal<TSource, TDestination>(options, customMapping);
 
       return proposedMap;
     }
 
-    public ProposedMap CreateMapProposal(Type source, Type destination, MappingOptions options = null, LambdaExpression customMapping = null)
+    public ProposedMap CreateMapProposal(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null)
     {
       var pair = new TypePair(source, destination);
 
@@ -123,14 +123,14 @@ namespace ThisMember.Core
 
     public IMappingStrategy MappingStrategy { get; set; }
 
-    public MemberMap CreateMap(Type source, Type destination, MappingOptions options = null, LambdaExpression customMapping = null)
+    public MemberMap CreateMap(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null)
     {
-      return CreateMapProposal(source, destination, options, customMapping).FinalizeMap();
+      return CreateMapProposal(source, destination,  customMapping, options).FinalizeMap();
     }
 
-    public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMapping = null)
+    public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
     {
-      return ToGenericMemberMap<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(options, customMapping).FinalizeMap());
+      return ToGenericMemberMap<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeMap());
     }
 
     public bool HasMap<TSource, TDestination>()
