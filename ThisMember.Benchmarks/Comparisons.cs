@@ -30,7 +30,6 @@ namespace ThisMember.Benchmarks
       public string FirstName { get; set; }
       public string LastName { get; set; }
       public string FullName { get; set; }
-      public int OrderCount { get; set; }
       public decimal OrderAmount { get; set; }
     }
 
@@ -42,6 +41,24 @@ namespace ThisMember.Benchmarks
       return func();
     }
 
+    public static void CompileTest()
+    {
+      var sw = Stopwatch.StartNew();
+
+      var mapper = new MemberMapper();
+
+      for (var i = 0; i < 10000; i++)
+      {
+        mapper.CreateMap<Customer, CustomerDto>(customMapping: src => new CustomerDto
+        {
+          FullName = src.FirstName + " " + src.LastName,
+          OrderAmount = src.Orders.Sum(o => o.Amount)
+        });
+      }
+
+      Console.WriteLine(sw.Elapsed);
+    }
+
     public static void Benchmark()
     {
       var mapper = new MemberMapper();
@@ -50,29 +67,25 @@ namespace ThisMember.Benchmarks
 
       mapper.Options.Compilation.CompileToDynamicAssembly = true;
 
-      var sw = Stopwatch.StartNew();
-
       Func<Customer, CustomerDto, CustomerDto> man = (source, destination) =>
       {
         destination.CustomerID = source.CustomerID;
         destination.FirstName = source.FirstName;
         destination.LastName = source.LastName;
         destination.FullName = source.FirstName + " " + source.LastName;
-        destination.OrderAmount = source.Orders.Sum(o => o.Amount);
-        //destination.OrderCount = source.Orders.Count;
-        //destination.OrderCount = Enumerable.Range(0, 10).Sum();
+        //destination.OrderAmount = source.Orders.Sum(o => o.Amount);
 
         return destination;
       };
 
+      var sw = Stopwatch.StartNew();
+
+      int z = 0;
+
       var map = mapper.CreateMap<Customer, CustomerDto>(customMapping: src => new CustomerDto
       {
         FullName = src.FirstName + " " + src.LastName,
-        //OrderCount = Enumerable.Range(0, 10).Sum()
-        //OrderCount = src.Orders.Count,
-        OrderAmount = src.Orders.Sum(o => o.Amount)
-        //OrderAmount = Foo(() => src.Orders.Sum(o => o.Amount)),
-        //OrderAmount = (from i in Enumerable.Range(0,10) select i).First()
+        //OrderAmount = src.Orders.Sum(o => o.Amount)
       });
 
       sw.Stop();
@@ -80,9 +93,8 @@ namespace ThisMember.Benchmarks
       Console.WriteLine("Compiling the map took: " + sw.Elapsed);
 
       Mapper.CreateMap<Customer, CustomerDto>()
-      .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FirstName + " " + src.LastName))
-      //.ForMember(dest => dest.OrderCount, opt => opt.MapFrom(src => src.Orders.Count));
-      .ForMember(dest => dest.OrderAmount, opt => opt.MapFrom(src => src.Orders.Sum(o => o.Amount)));
+      .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FirstName + " " + src.LastName));
+      //.ForMember(dest => dest.OrderAmount, opt => opt.MapFrom(src => src.Orders.Sum(o => o.Amount)));
 
 
       var mappingFunc = map.MappingFunction;
@@ -118,9 +130,7 @@ namespace ThisMember.Benchmarks
         Dto.FirstName = customer.FirstName;
         Dto.LastName = customer.LastName;
         Dto.FullName = customer.FirstName + " " + customer.LastName;
-        //Dto.OrderCount = customer.Orders.Count;
-        //Dto.OrderCount = Enumerable.Range(0, 10).Sum();
-        Dto.OrderAmount = customer.Orders.Sum(o => o.Amount);
+        //Dto.OrderAmount = customer.Orders.Sum(o => o.Amount);
       }
 
       sw.Stop();
