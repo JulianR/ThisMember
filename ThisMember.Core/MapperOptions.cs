@@ -9,9 +9,6 @@ namespace ThisMember.Core
 {
   public class MapperOptions
   {
-    public Action<IMemberMapper, TypePair> BeforeMapping { get; set; }
-    public Action<IMemberMapper, TypePair, object> AfterMapping { get; set; }
-
     public MapperStrictnessOptions Strictness { get; set; }
 
     public MapperConventionOptions Conventions { get; set; }
@@ -22,8 +19,6 @@ namespace ThisMember.Core
 
     public MapperOptions()
     {
-      BeforeMapping = null;
-      AfterMapping = null;
 
       Strictness = new MapperStrictnessOptions
       {

@@ -48,6 +48,8 @@
     <Compile Include="CompiledMapGeneratorFactory.cs" />
     <Compile Include="CustomMapping.cs" />
     <Compile Include="DefaultMemberProvider.cs" />
+    <Compile Include="DefaultProjectionGenerator.cs" />
+    <Compile Include="DefaultProjectionGeneratorFactory.cs" />
     <Compile Include="Exceptions\CodeGenerationException.cs" />
     <Compile Include="Exceptions\IncompatibleMappingException.cs" />
     <Compile Include="Exceptions\MapNotFoundException.cs" />
@@ -61,12 +63,15 @@
     <Compile Include="Interfaces\IMappingStrategy.cs" />
     <Compile Include="Interfaces\IMapRepository.cs" />
     <Compile Include="Interfaces\IMemberMapper.cs" />
+    <Compile Include="Interfaces\IProjectionGenerator.cs" />
+    <Compile Include="Interfaces\IProjectionGeneratorFactory.cs" />
     <Compile Include="MapCollection.cs" />
     <Compile Include="MapperOptions.cs" />
     <Compile Include="MappingOption.cs" />
     <Compile Include="DefaultMappingStrategy.cs" />
     <Compile Include="MapProposalProcessor.cs" />
     <Compile Include="MapRepositoryBase.cs" />
+    <Compile Include="Projection.cs" />
     <Compile Include="PropertyOrFieldInfo.cs" />
     <Compile Include="ProposedMemberMapping.cs" />
     <Compile Include="MemberMap.cs" />

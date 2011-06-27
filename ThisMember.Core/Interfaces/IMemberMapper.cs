@@ -89,6 +89,8 @@ namespace ThisMember.Core.Interfaces
 
     void RegisterMap(MemberMap map);
 
+    void RegisterProjection(Projection projection);
+
     void ClearMapCache();
 
     /// <summary>
@@ -115,5 +117,14 @@ namespace ThisMember.Core.Interfaces
     /// A map repository is an optional location that is checked by the mapper for map definitions.
     /// </summary>
     IMapRepository MapRepository { get; set; }
+
+    Expression<Func<TSource, TDestination>> Project<TSource, TDestination>();
+
+    IProjectionGeneratorFactory ProjectionGeneratorFactory { get; set; }
+
+    event Action<IMemberMapper, TypePair> BeforeMapping;
+
+    event Action<IMemberMapper, TypePair, object> AfterMapping;
+
   }
 }

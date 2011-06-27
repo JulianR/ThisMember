@@ -196,6 +196,27 @@ namespace ThisMember.Test
 
     }
 
+    class SimpleSourceType
+    {
+      public string Foo { get; set; }
+    }
+
+    [TestMethod]
+    public void ComplexMappingTakesPrecedenceOverNormalMapping()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<SimpleSourceType, SimpleDestinationType>(customMapping: src => new SimpleDestinationType
+      {
+        Foo = "Foo"
+      });
+
+      var result = mapper.Map<SimpleSourceType, SimpleDestinationType>(new SimpleSourceType { Foo = "Bar" });
+
+      Assert.AreEqual("Foo", result.Foo);
+
+    }
+
 
   }
 }

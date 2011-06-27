@@ -47,6 +47,24 @@ namespace ThisMember.Core
       return map;
     }
 
+    public Projection FinalizeProjection()
+    {
+      EnsureNoInvalidMappings();
+
+      var projection = new Projection();
+
+      projection.SourceType = this.SourceType;
+      projection.DestinationType = this.DestinationType;
+
+      var generator = this.mapper.ProjectionGeneratorFactory.GetGenerator(this.mapper);
+
+      projection.Expression = generator.GetProjection(this);
+
+      mapper.RegisterProjection(projection);
+
+      return projection;
+    }
+
     public void ValidateMapping()
     {
       EnsureNoInvalidMappings();

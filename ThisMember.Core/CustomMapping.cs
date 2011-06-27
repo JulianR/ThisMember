@@ -60,7 +60,7 @@ namespace ThisMember.Core.Interfaces
       }
       else
       {
-        throw new ArgumentException("Only MemberInit and NewExpression are allowed to specify custom mappings");
+        throw new ArgumentException(string.Format("Only new {0} { .. } and new { .. } are allowed as a custom mapping", destinationType.Name));
       }
 
       mapping.Parameter = lambda.Parameters.First();

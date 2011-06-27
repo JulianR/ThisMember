@@ -13,19 +13,30 @@ namespace ThisMember.Core
   {
     public MapperOptions Options { get; set; }
 
+    public event Action<IMemberMapper, TypePair> BeforeMapping;
+    public event Action<IMemberMapper, TypePair, object> AfterMapping;
+
     public IMapGeneratorFactory MapGeneratorFactory { get; set; }
 
-    public MemberMapper(MapperOptions options = null, IMappingStrategy strategy = null, IMapGeneratorFactory generator = null)
+    public IProjectionGeneratorFactory ProjectionGeneratorFactory { get; set; }
+
+    private Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
+
+    private Dictionary<TypePair, Projection> projections = new Dictionary<TypePair, Projection>();
+
+
+    public MemberMapper(MapperOptions options = null, IMappingStrategy strategy = null, IMapGeneratorFactory generator = null, IProjectionGeneratorFactory projection = null)
     {
       this.MappingStrategy = strategy ?? new DefaultMappingStrategy(this);
 
       this.MapGeneratorFactory = generator ?? new CompiledMapGeneratorFactory();
 
+      this.ProjectionGeneratorFactory = projection ?? new DefaultProjectionGeneratorFactory();
+
       this.Options = options ?? new MapperOptions();
     }
 
-    private Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
-
+    
     private static MemberMap<TSource, TDestination> ToGenericMemberMap<TSource, TDestination>(MemberMap map)
     {
       var newMap = new MemberMap<TSource, TDestination>();
@@ -52,11 +63,17 @@ namespace ThisMember.Core
 
       var destination = new TDestination();
 
-      if (Options.BeforeMapping != null) Options.BeforeMapping(this, pair);
+      if (BeforeMapping != null)
+      {
+        BeforeMapping(this, pair);
+      }
 
       var result = (TDestination)map.MappingFunction.DynamicInvoke(source, destination);
 
-      if (Options.AfterMapping != null) Options.AfterMapping(this, pair, result);
+      if (AfterMapping != null)
+      {
+        AfterMapping(this, pair, result);
+      }
 
       return result;
     }
@@ -99,11 +116,11 @@ namespace ThisMember.Core
       {
         map = MappingStrategy.CreateMapProposal(pair).FinalizeMap();
       }
-      if (Options.BeforeMapping != null) Options.BeforeMapping(this, pair);
+      if (BeforeMapping != null) BeforeMapping(this, pair);
 
       var result = ((Func<TSource, TDestination, TDestination>)map.MappingFunction)(source, destination);
 
-      if (Options.AfterMapping != null) Options.AfterMapping(this, pair, result);
+      if (AfterMapping != null) AfterMapping(this, pair, result);
 
       return result;
 
@@ -242,5 +259,24 @@ namespace ThisMember.Core
     }
 
     public IMapRepository MapRepository { get; set; }
+
+    public Expression<Func<TSource, TDestination>> Project<TSource, TDestination>()
+    {
+      var pair = new TypePair(typeof(TSource), typeof(TDestination));
+
+      Projection projection;
+
+      if (!this.projections.TryGetValue(pair, out projection))
+      {
+        projection = MappingStrategy.CreateMapProposal(pair).FinalizeProjection();
+      }
+      return (Expression<Func<TSource, TDestination>>)projection.Expression;
+    }
+
+    public void RegisterProjection(Projection projection)
+    {
+      this.projections[new TypePair(projection.SourceType, projection.DestinationType)] = projection;
+    }
+
   }
 }
