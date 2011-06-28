@@ -100,26 +100,24 @@ namespace ThisMember.Core
 
       var bindings = new List<MemberBinding>();
 
+      BuildComplexMemberAssignmentExpression(bindings, complexMember, selectParam, typeOfDestEnumerable, complexMember.DestinationMember);
 
-      BuildComplexTypeExpression(selectParam, bindings, complexMember, true);
+      //BuildComplexTypeExpression(selectParam, bindings, complexMember);
     }
 
-    private void BuildComplexTypeExpression(Expression sourceAccess, List<MemberBinding> memberBindings, ProposedTypeMapping complexMember, bool fromCollection = false)
+    private void BuildComplexTypeExpression(Expression sourceAccess, List<MemberBinding> memberBindings, ProposedTypeMapping complexMember)
     {
-      Expression accessMember;
+      Expression accessMember = Expression.MakeMemberAccess(sourceAccess, complexMember.SourceMember);
 
-      if (!fromCollection)
-      {
-        accessMember = Expression.MakeMemberAccess(sourceAccess, complexMember.SourceMember);
-      }
-      else
-      {
-        accessMember = sourceAccess;
-      }
+      var type = complexMember.DestinationMember.PropertyOrFieldType;
+      BuildComplexMemberAssignmentExpression(memberBindings, complexMember, accessMember, type, complexMember.DestinationMember);
+    }
 
-      var memberInit = BuildProjectionExpression(accessMember, complexMember.DestinationMember.PropertyOrFieldType, complexMember);
+    private void BuildComplexMemberAssignmentExpression(List<MemberBinding> memberBindings, ProposedTypeMapping complexMember, Expression accessMember, Type type, PropertyOrFieldInfo destinationProperty)
+    {
+      var memberInit = BuildProjectionExpression(accessMember, type, complexMember);
 
-      var bindSourceToDest = Expression.Bind(complexMember.DestinationMember, memberInit);
+      var bindSourceToDest = Expression.Bind(destinationProperty, memberInit);
       memberBindings.Add(bindSourceToDest);
     }
 
