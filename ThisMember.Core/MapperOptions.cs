@@ -45,7 +45,8 @@ namespace ThisMember.Core
       {
         PerformNullChecksOnCustomMappings = true,
         IfSourceIsNull = SourceObjectNullOptions.ReturnNullWhenSourceIsNull,
-        IfRecursiveRelationshipIsDetected = RecursivePropertyOptions.IgnoreRecursiveProperties
+        IfRecursiveRelationshipIsDetected = RecursivePropertyOptions.IgnoreRecursiveProperties,
+        ThrowIfDestinationIsNull = true
       };
 
       Compilation = new CompilationOptions
@@ -200,6 +201,12 @@ namespace ThisMember.Core
     /// </summary>
     /// <remarks>Defaults to IgnoreRecursiveProperties</remarks>
     public RecursivePropertyOptions IfRecursiveRelationshipIsDetected { get; set; }
+
+    /// <summary>
+    /// If you pass in a destination object to apply the source object to, throw an ArgumentNullException.
+    /// </summary>
+    /// <remarks>Defaults to true.</remarks>
+    public bool ThrowIfDestinationIsNull { get; set; }
 
   }
 }

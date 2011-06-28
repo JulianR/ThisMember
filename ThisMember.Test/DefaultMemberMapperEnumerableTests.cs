@@ -778,5 +778,41 @@ namespace ThisMember.Test
       Assert.IsTrue(result.Two.SequenceEqual(source.Two));
 
     }
+
+    class ICollectionElement
+    {
+      public string Name { get;set;}
+    }
+
+    class ICollectionType
+    {
+      public ICollection<ICollectionElement> Elements { get; set; }
+    }
+
+    [TestMethod]
+    public void ICollectionIsCorrectlyMapped()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<ICollectionType, ICollectionType>(new ICollectionType { Elements = new List<ICollectionElement> { new ICollectionElement { Name = "Test" } } });
+
+      Assert.AreEqual("Test", result.Elements.Single().Name);
+
+    }
+
+    class ListDestinationTypeForICollection
+    {
+
+    }
+
+    [TestMethod]
+    public void ICollectionToListIsCorrectlyMapped()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<ICollectionType, ICollectionType>(new ICollectionType { Elements = new List<ICollectionElement> { new ICollectionElement { Name = "Test" } } });
+
+      Assert.AreEqual("Test", result.Elements.Single().Name);
+    }
   }
 }

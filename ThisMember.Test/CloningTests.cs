@@ -10,9 +10,6 @@ namespace ThisMember.Test
   [TestClass]
   public class CloningTests
   {
-
-
-
     public class SourceType
     {
       public int Value { get; set; }
@@ -70,6 +67,20 @@ namespace ThisMember.Test
 
     }
 
+    [TestMethod]
+    [ExpectedException(typeof(InvalidOperationException))]
+    public void DeepCloneThrowsIfOptionIsTurnedOff()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource = false;
+
+      var source = new SourceType { Name = "test", Value = 1, Values = new[] { 1 } };
+
+      var result = mapper.DeepClone(source);
+
+    }
+
     public class NestedSourceType
     {
       public string Foo { get; set; }
@@ -82,6 +93,7 @@ namespace ThisMember.Test
       public int[] Values { get; set; }
       public string Name { get; set; }
       public NestedSourceType Bar { get; set; }
+      public NestedSourceType[] Bars { get; set; }
     }
 
     [TestMethod]
@@ -102,6 +114,18 @@ namespace ThisMember.Test
             "test",
             "test1"
           }
+        },
+        Bars = new[]
+        {
+          new NestedSourceType
+          {
+            Foo = "foo",
+            Foos = new[] 
+            {
+              "foo",
+              "foo"
+            }
+          }
         }
       };
 
@@ -115,6 +139,7 @@ namespace ThisMember.Test
       Assert.IsFalse(object.ReferenceEquals(result.Bar.Foos, source.Bar.Foos));
       Assert.IsTrue(object.ReferenceEquals(result.Bar.Foo, source.Bar.Foo));
       Assert.IsTrue(result.Bar.Foos.SequenceEqual(source.Bar.Foos));
+      Assert.IsFalse(object.ReferenceEquals(result.Bars.Single(), source.Bars.Single()));
     }
 
     [TestMethod]
@@ -137,6 +162,18 @@ namespace ThisMember.Test
             "test",
             "test1"
           }
+        },
+        Bars = new[]
+        {
+          new NestedSourceType
+          {
+            Foo = "foo",
+            Foos = new[] 
+            {
+              "foo",
+              "foo"
+            }
+          }
         }
       };
 
@@ -150,6 +187,7 @@ namespace ThisMember.Test
       Assert.IsTrue(object.ReferenceEquals(result.Bar.Foos, source.Bar.Foos));
       Assert.IsTrue(object.ReferenceEquals(result.Bar.Foo, source.Bar.Foo));
       Assert.IsTrue(result.Bar.Foos.SequenceEqual(source.Bar.Foos));
+      Assert.IsTrue(object.ReferenceEquals(result.Bars.Single(), source.Bars.Single()));
     }
   }
 }

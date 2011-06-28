@@ -482,5 +482,18 @@ namespace ThisMember.Test
       Assert.AreEqual("Foo", destination.Complex.Name);
 
     }
+
+
+    [TestMethod]
+    public void PassingInNullDestinationDoesNotThrow()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Safety.ThrowIfDestinationIsNull = false;
+
+      var result = mapper.Map<Source, Destination>(new Source { ID = 1 }, null);
+
+      Assert.IsNull(result);
+    }
   }
 }
