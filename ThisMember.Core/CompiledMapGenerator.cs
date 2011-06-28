@@ -417,7 +417,9 @@ namespace ThisMember.Core
       else // If it's any normal IEnumerable, use this faux foreach loop
       {
 
-        var getEnumeratorOnSourceMethod = sourceMemberPropertyType.GetMethod("GetEnumerator", Type.EmptyTypes);
+        //var getEnumeratorOnSourceMethod = sourceMemberPropertyType.GetMethod("GetEnumerator", Type.EmptyTypes);
+
+        var getEnumeratorOnSourceMethod = typeof(IEnumerable<>).MakeGenericType(sourceCollectionElementType).GetMethod("GetEnumerator", Type.EmptyTypes);
 
         var sourceEnumeratorType = getEnumeratorOnSourceMethod.ReturnType;
 
