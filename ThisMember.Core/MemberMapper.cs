@@ -238,6 +238,11 @@ namespace ThisMember.Core
 
     public TSource DeepClone<TSource>(TSource source) where TSource : new()
     {
+      if (!this.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+      {
+        throw new InvalidOperationException("This mapper has been configured not to perform any cloning by setting Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource to false");
+      }
+
       return Map<TSource, TSource>(source);
     }
 

@@ -243,7 +243,7 @@ namespace ThisMember.Core
 
       var sourceCollectionElementType = CollectionTypeHelper.GetTypeInsideEnumerable(sourceMemberPropertyType);
 
-      var sourceElementSameAsDestination = destinationCollectionElementType.IsAssignableFrom(sourceCollectionElementType);
+      var canAssignSourceElementToDest = CanAssignSourceElementToDestination(complexTypeMapping, destinationCollectionElementType, sourceCollectionElementType);
 
       Type destinationCollectionType;
       ParameterExpression destinationCollection;
@@ -310,7 +310,7 @@ namespace ThisMember.Core
         var createDestinationCollection = Expression.New(destinationCollectionType);
 
         //destinationCollection = Expression.Parameter(destinationCollectionType, GetCollectionName());
-        
+
         destinationCollection = ObtainParameter(destinationCollectionType);
 
         //newParameters.Add(destinationCollection);
@@ -334,7 +334,7 @@ namespace ThisMember.Core
 
       // The elements in the collection are not of types that are assignable to eachother
       // so we have to create a new item and do additional mapping (most likely).
-      if (!sourceElementSameAsDestination)
+      if (!canAssignSourceElementToDest)
       {
         var createNewDestinationCollectionItem = GetConstructorForType(destinationCollectionElementType, this.sourceParameter, this.destinationParameter);
         // var destinationItem = new DestinationItem();
@@ -493,6 +493,27 @@ namespace ThisMember.Core
       ReleaseParameter(sourceCollectionItem);
 
       ReleaseParameter(destinationCollectionItem);
+    }
+
+    private bool CanAssignSourceElementToDestination(ProposedTypeMapping complexTypeMapping, Type destinationCollectionElementType, Type sourceCollectionElementType)
+    {
+      var canAssignSourceElementToDest = destinationCollectionElementType.IsAssignableFrom(sourceCollectionElementType);
+
+      if (canAssignSourceElementToDest)
+      {
+        if (!sourceCollectionElementType.IsPrimitive && sourceCollectionElementType != typeof(string))
+        {
+          canAssignSourceElementToDest = false;
+        }
+        else if (complexTypeMapping.SourceMember != null && !sourceCollectionElementType.IsPrimitive && sourceCollectionElementType != typeof(string))
+        {
+          if (complexTypeMapping.SourceMember.DeclaringType == complexTypeMapping.DestinationMember.DeclaringType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+          {
+            canAssignSourceElementToDest = false;
+          }
+        }
+      }
+      return canAssignSourceElementToDest;
     }
 
     private static bool IsListType(Type sourceMemberPropertyType)
@@ -787,6 +808,12 @@ namespace ThisMember.Core
       else
       {
         condition = Expression.NotEqual(source, Expression.Default(proposedMap.SourceType));
+
+        if (!mapper.Options.Safety.ThrowIfDestinationIsNull)
+        {
+          condition = Expression.AndAlso(condition, Expression.NotEqual(destination, Expression.Default(proposedMap.DestinationType)));
+        }
+
       }
 
       this.sourceParameter = source;
