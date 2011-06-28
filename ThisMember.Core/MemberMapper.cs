@@ -86,7 +86,7 @@ namespace ThisMember.Core
 
     public TDestination Map<TSource, TDestination>(TSource source, TDestination destination)
     {
-      if (destination == null)
+      if (destination == null && this.Options.Safety.ThrowIfDestinationIsNull)
       {
         throw new ArgumentNullException("destination");
       }
@@ -238,6 +238,11 @@ namespace ThisMember.Core
 
     public TSource DeepClone<TSource>(TSource source) where TSource : new()
     {
+      if (!this.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+      {
+        throw new InvalidOperationException("This mapper has been configured not to perform any cloning by setting Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource to false");
+      }
+
       return Map<TSource, TSource>(source);
     }
 

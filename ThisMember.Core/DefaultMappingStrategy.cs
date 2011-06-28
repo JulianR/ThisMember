@@ -129,7 +129,7 @@ namespace ThisMember.Core
 
           if (AreMembersIEnumerable(destinationMember, sourceMember))
           {
-            GenerateIEnumerableMapping(options, customMapping, typeMapping, destinationMember, sourceMember);
+            GenerateEnumerableMapping(options, customMapping, typeMapping, destinationMember, sourceMember);
           }
           else
           {
@@ -189,12 +189,14 @@ namespace ThisMember.Core
       }
     }
 
-    private void GenerateIEnumerableMapping(MappingOptions options, CustomMapping customMapping, ProposedTypeMapping typeMapping, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
+    private void GenerateEnumerableMapping(MappingOptions options, CustomMapping customMapping, ProposedTypeMapping typeMapping, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
     {
       var typeOfSourceEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(sourceMember.PropertyOrFieldType);
       var typeOfDestinationEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(destinationMember.PropertyOrFieldType);
 
-      if (typeOfDestinationEnumerable == typeOfSourceEnumerable)
+      var canAssignSourceItemsToDestination = CanAssignSourceItemsToDestination(mapper,destinationMember, sourceMember, typeOfSourceEnumerable, typeOfDestinationEnumerable);
+
+      if (canAssignSourceItemsToDestination)
       {
 
         typeMapping.ProposedTypeMappings.Add(
@@ -230,6 +232,27 @@ namespace ThisMember.Core
       }
     }
 
+    private static bool CanAssignSourceItemsToDestination(IMemberMapper mapper, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type typeOfSourceEnumerable, Type typeOfDestinationEnumerable)
+    {
+      if (typeOfDestinationEnumerable == typeOfSourceEnumerable)
+      {
+
+        if (typeOfSourceEnumerable.IsPrimitive || typeOfSourceEnumerable == typeof(string))
+        {
+          return true;
+        }
+
+        if (sourceMember.DeclaringType == destinationMember.DeclaringType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+        {
+          return false;
+        }
+
+        return true;
+
+      }
+      return false;
+    }
+
     private bool CanUseSimpleTypeMapping(TypePair pair, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type nullableType)
     {
       var canUseSimpleTypeMapping = sourceMember != null;
@@ -242,7 +265,7 @@ namespace ThisMember.Core
 
         if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
         {
-          canUseSimpleTypeMapping &= sourceMember.PropertyOrFieldType.IsValueType || sourceMember.PropertyOrFieldType == typeof(string);
+          canUseSimpleTypeMapping &= sourceMember.PropertyOrFieldType.IsPrimitive || sourceMember.PropertyOrFieldType == typeof(string);
         }
       }
       return canUseSimpleTypeMapping;
