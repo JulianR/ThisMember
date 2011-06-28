@@ -86,7 +86,7 @@ namespace ThisMember.Core
 
     public TDestination Map<TSource, TDestination>(TSource source, TDestination destination)
     {
-      if (destination == null)
+      if (destination == null && this.Options.Safety.ThrowIfDestinationIsNull)
       {
         throw new ArgumentNullException("destination");
       }
