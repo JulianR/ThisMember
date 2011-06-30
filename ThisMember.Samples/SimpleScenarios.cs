@@ -59,6 +59,7 @@ namespace ThisMember.Samples
       })
       .ForMember(c => c.ID)
       .OnlyIf(c => c.ID > 0)
+      .ForMember(c => c.FirstName).MapAs(c => c.LastName)
       .FinalizeMap();
     }
 
