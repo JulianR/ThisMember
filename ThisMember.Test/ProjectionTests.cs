@@ -72,17 +72,54 @@ namespace ThisMember.Test
       Assert.AreEqual("Foo", result.Foo.Name);
     }
 
-    class EnumerableSourceType
+    class ListType
     {
       public int ID { get; set; }
 
       public List<NestedEnumerableSourceType> Foos { get; set; }
     }
 
-    class EnumerableDestinationType
+    class OtherIListType
+    {
+      public int ID { get; set; }
+      public IList<NestedEnumerableDestinationType> Foos { get; set; }
+    }
+
+    class IListType
+    {
+      public int ID { get; set; }
+
+      public IList<NestedEnumerableSourceType> Foos { get; set; }
+    }
+
+    class OtherListType
     {
       public int ID { get; set; }
       public List<NestedEnumerableDestinationType> Foos { get; set; }
+    }
+
+    class ArrayType
+    {
+      public int ID { get; set; }
+      public NestedEnumerableSourceType[] Foos { get; set; }
+    }
+
+    class OtherArrayType
+    {
+      public int ID { get; set; }
+      public NestedEnumerableDestinationType[] Foos { get; set; }
+    }
+
+    class IEnumerableType
+    {
+      public int ID { get; set; }
+      public IEnumerable<NestedEnumerableSourceType> Foos { get; set; }
+    }
+
+    class OtherIEnumerableType
+    {
+      public int ID { get; set; }
+      public IEnumerable<NestedEnumerableDestinationType> Foos { get; set; }
     }
 
     class NestedEnumerableSourceType
@@ -95,14 +132,27 @@ namespace ThisMember.Test
       public string Name { get; set; }
     }
 
+    class OtherICollectionType
+    {
+      public int ID { get; set; }
+      public ICollection<NestedEnumerableDestinationType> Foos { get; set; }
+    }
+
+    class ICollectionType
+    {
+      public int ID { get; set; }
+
+      public ICollection<NestedEnumerableSourceType> Foos { get; set; }
+    }
+
     [TestMethod]
-    public void ProjectionOfEnumerableTypesWorks()
+    public void ProjectionOfListToListWorks()
     {
       var mapper = new MemberMapper();
 
-      var projection = mapper.Project<EnumerableSourceType, EnumerableDestinationType>().Compile();
+      var projection = mapper.Project<ListType, OtherListType>().Compile();
 
-      var result = projection(new EnumerableSourceType
+      var result = projection(new ListType
         {
           Foos = new List<NestedEnumerableSourceType>
           {
@@ -112,6 +162,384 @@ namespace ThisMember.Test
             }
           }
         });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfArrayToListWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<ArrayType, OtherListType>().Compile();
+
+      var result = projection(new ArrayType
+      {
+        Foos = new NestedEnumerableSourceType[]
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfListToArrayWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<ListType, OtherArrayType>().Compile();
+
+      var result = projection(new ListType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfArrayToArrayWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<ArrayType, OtherArrayType>().Compile();
+
+      var result = projection(new ArrayType
+      {
+        Foos = new NestedEnumerableSourceType[]
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfArrayToIEnumerableWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<ArrayType, OtherIEnumerableType>().Compile();
+
+      var result = projection(new ArrayType
+      {
+        Foos = new NestedEnumerableSourceType[]
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfIEnumerableToArrayWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<IEnumerableType, OtherArrayType>().Compile();
+
+      var result = projection(new IEnumerableType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfIEnumerableToIEnumerableWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<IEnumerableType, OtherIEnumerableType>().Compile();
+
+      var result = projection(new IEnumerableType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfListToIEnumerableWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<ListType, OtherIEnumerableType>().Compile();
+
+      var result = projection(new ListType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfIEnumerableToListWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<IEnumerableType, OtherListType>().Compile();
+
+      var result = projection(new IEnumerableType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfIListToIListWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<IListType, OtherIListType>().Compile();
+
+      var result = projection(new IListType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfArrayToIListWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<ArrayType, OtherIListType>().Compile();
+
+      var result = projection(new ArrayType
+      {
+        Foos = new NestedEnumerableSourceType[]
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfIListToArrayWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<IListType, OtherArrayType>().Compile();
+
+      var result = projection(new IListType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfIListToIEnumerableWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<IListType, OtherIEnumerableType>().Compile();
+
+      var result = projection(new IListType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfIEnumerableToIListWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<IEnumerableType, OtherIListType>().Compile();
+
+      var result = projection(new IEnumerableType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfICollectionToICollectionWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<ICollectionType, OtherICollectionType>().Compile();
+
+      var result = projection(new ICollectionType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfArrayToICollectionWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<ArrayType, OtherICollectionType>().Compile();
+
+      var result = projection(new ArrayType
+      {
+        Foos = new NestedEnumerableSourceType[]
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfICollectionToArrayWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<ICollectionType, OtherArrayType>().Compile();
+
+      var result = projection(new ICollectionType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfICollectionToIEnumerableWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<ICollectionType, OtherIEnumerableType>().Compile();
+
+      var result = projection(new ICollectionType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.AreEqual("Test", result.Foos.Single().Name);
+    }
+
+    [TestMethod]
+    public void ProjectionOfIEnumerableToICollectionWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var projection = mapper.Project<IEnumerableType, OtherICollectionType>().Compile();
+
+      var result = projection(new IEnumerableType
+      {
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
 
       Assert.AreEqual("Test", result.Foos.Single().Name);
     }

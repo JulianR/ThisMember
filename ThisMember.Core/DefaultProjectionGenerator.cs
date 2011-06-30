@@ -136,7 +136,8 @@ namespace ThisMember.Core
       {
         return typeof(Enumerable).GetMethod("ToArray").MakeGenericMethod(destItem);
       }
-      else if (typeof(IList<>).MakeGenericType(destItem).IsAssignableFrom(destinationCollectionType))
+      else if (typeof(IList<>).MakeGenericType(destItem).IsAssignableFrom(destinationCollectionType)
+        || typeof(ICollection<>).MakeGenericType(destItem).IsAssignableFrom(destinationCollectionType))
       {
         return typeof(Enumerable).GetMethod("ToList").MakeGenericMethod(destItem);
       }
