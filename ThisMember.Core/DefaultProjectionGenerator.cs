@@ -100,9 +100,47 @@ namespace ThisMember.Core
 
       var bindings = new List<MemberBinding>();
 
-      BuildComplexMemberAssignmentExpression(bindings, complexMember, selectParam, typeOfDestEnumerable, complexMember.DestinationMember);
+      var memberInit = BuildProjectionExpression(selectParam, typeOfDestEnumerable, complexMember);
+
+      var funcType = typeof(Func<,>).MakeGenericType(typeOfSourceEnumerable, typeOfDestEnumerable);
+
+      var memberInitLambda = Expression.Lambda(funcType, memberInit, selectParam);
+
+      var accessMember = Expression.MakeMemberAccess(sourceAccess, complexMember.SourceMember);
+
+      var callSelect = Expression.Call(null, selectMethod, accessMember, memberInitLambda);
+
+      Expression finalExpression;
+
+      var conversionMethod = DetermineIEnumerableConversionMethod(complexMember.DestinationMember.PropertyOrFieldType, typeOfSourceEnumerable,typeOfDestEnumerable);
+
+      if (conversionMethod != null)
+      {
+        finalExpression = Expression.Call(null, conversionMethod, callSelect);
+      }
+      else
+      {
+        finalExpression = callSelect;
+      }
+
+
+      var bindSourceToDest = Expression.Bind(complexMember.DestinationMember, finalExpression);
+      memberBindings.Add(bindSourceToDest);
 
       //BuildComplexTypeExpression(selectParam, bindings, complexMember);
+    }
+
+    private MethodInfo DetermineIEnumerableConversionMethod(Type destinationCollectionType, Type sourceItem, Type destItem)
+    {
+      if (destinationCollectionType.IsArray)
+      {
+        return typeof(Enumerable).GetMethod("ToArray").MakeGenericMethod(destItem);
+      }
+      else if (typeof(IList<>).MakeGenericType(destItem).IsAssignableFrom(destinationCollectionType))
+      {
+        return typeof(Enumerable).GetMethod("ToList").MakeGenericMethod(destItem);
+      }
+      return null;
     }
 
     private void BuildComplexTypeExpression(Expression sourceAccess, List<MemberBinding> memberBindings, ProposedTypeMapping complexMember)
@@ -110,14 +148,10 @@ namespace ThisMember.Core
       Expression accessMember = Expression.MakeMemberAccess(sourceAccess, complexMember.SourceMember);
 
       var type = complexMember.DestinationMember.PropertyOrFieldType;
-      BuildComplexMemberAssignmentExpression(memberBindings, complexMember, accessMember, type, complexMember.DestinationMember);
-    }
 
-    private void BuildComplexMemberAssignmentExpression(List<MemberBinding> memberBindings, ProposedTypeMapping complexMember, Expression accessMember, Type type, PropertyOrFieldInfo destinationProperty)
-    {
       var memberInit = BuildProjectionExpression(accessMember, type, complexMember);
 
-      var bindSourceToDest = Expression.Bind(destinationProperty, memberInit);
+      var bindSourceToDest = Expression.Bind(complexMember.DestinationMember, memberInit);
       memberBindings.Add(bindSourceToDest);
     }
 
