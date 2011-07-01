@@ -13,9 +13,13 @@ namespace ThisMember.Core
     private ParameterExpression sourceParam;
     private readonly IMemberMapper mapper;
 
+    private static MethodInfo selectMethod;
+    private ProjectionProcessor processor;
+
     public DefaultProjectionGenerator(IMemberMapper mapper)
     {
       this.mapper = mapper;
+      this.processor = new ProjectionProcessor(mapper);
     }
 
     public LambdaExpression GetProjection(ProposedMap map)
@@ -33,6 +37,8 @@ namespace ThisMember.Core
         sourceParam
       );
 
+      lambda = (LambdaExpression)processor.Process(lambda);
+
       return lambda;
     }
 
@@ -42,7 +48,7 @@ namespace ThisMember.Core
 
       foreach (var member in proposedMap.ProposedMappings)
       {
-        BuildMemberAssignmentExpressions(sourceAccess, memberBindings, member);
+        BuildMemberAssignmentExpressions(sourceAccess, memberBindings, member, proposedMap.CustomMapping);
       }
 
       foreach (var complexMember in proposedMap.ProposedTypeMappings)
@@ -63,7 +69,6 @@ namespace ThisMember.Core
 
     }
 
-    private static MethodInfo selectMethod;
 
     private static MethodInfo GetSelectMethod()
     {
@@ -156,16 +161,29 @@ namespace ThisMember.Core
       memberBindings.Add(bindSourceToDest);
     }
 
-    private static void BuildMemberAssignmentExpressions(Expression sourceAccess, List<MemberBinding> memberBindings, ProposedMemberMapping member)
+    private void BuildMemberAssignmentExpressions(Expression sourceAccess, List<MemberBinding> memberBindings, ProposedMemberMapping member, CustomMapping customMapping)
     {
       if (member.Ignored)
       {
         return;
       }
 
-      var accessMember = Expression.MakeMemberAccess(sourceAccess, member.SourceMember);
+      Expression customExpression;
 
-      var bindSourceToDest = Expression.Bind(member.DestinationMember, accessMember);
+      MemberAssignment bindSourceToDest;
+
+      if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
+      {
+        processor.ParametersToReplace.Add(new ParameterTuple(customMapping.Parameter, sourceParam));
+
+        bindSourceToDest = Expression.Bind(member.DestinationMember, customExpression);
+      }
+      else
+      {
+        var accessMember = Expression.MakeMemberAccess(sourceAccess, member.SourceMember);
+
+        bindSourceToDest = Expression.Bind(member.DestinationMember, accessMember);
+      }
 
       memberBindings.Add(bindSourceToDest);
     }
