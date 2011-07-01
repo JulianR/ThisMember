@@ -283,5 +283,34 @@ namespace ThisMember.Core
       this.projections[new TypePair(projection.SourceType, projection.DestinationType)] = projection;
     }
 
+
+    #region IMemberMapper Members
+
+
+    public object Map(object source, object destination)
+    {
+      if (destination == null && this.Options.Safety.ThrowIfDestinationIsNull)
+      {
+        throw new ArgumentNullException("destination");
+      }
+
+      var pair = new TypePair(source.GetType(), destination.GetType());
+
+      MemberMap map;
+
+      if (!this.maps.TryGetValue(pair, out map))
+      {
+        map = MappingStrategy.CreateMapProposal(pair).FinalizeMap();
+      }
+      if (BeforeMapping != null) BeforeMapping(this, pair);
+
+      var result = map.MappingFunction.DynamicInvoke(source, destination);
+
+      if (AfterMapping != null) AfterMapping(this, pair, result);
+
+      return result;
+    }
+
+    #endregion
   }
 }

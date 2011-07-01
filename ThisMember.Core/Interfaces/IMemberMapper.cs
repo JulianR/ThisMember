@@ -39,6 +39,8 @@ namespace ThisMember.Core.Interfaces
 
     TDestination Map<TSource, TDestination>(TSource source, TDestination destination);
 
+    object Map(object source, object destination);
+
     /// <summary>
     /// Creates a map proposal that may be modified later.
     /// </summary>
