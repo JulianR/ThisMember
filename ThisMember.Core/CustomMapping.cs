@@ -20,6 +20,11 @@ namespace ThisMember.Core.Interfaces
       return other != null && other.Member.Equals(this.Member);
     }
 
+    public override int GetHashCode()
+    {
+      return Member.GetHashCode();
+    }
+
   }
 
   public class CustomMapping
