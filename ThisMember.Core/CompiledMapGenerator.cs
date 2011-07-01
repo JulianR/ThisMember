@@ -21,7 +21,7 @@ namespace ThisMember.Core
     private readonly IMemberMapper mapper;
     private ParameterExpression sourceParameter;
     private ParameterExpression destinationParameter;
-    private readonly MapProposalProcessor mapProcessor;
+    private readonly MapExpressionProcessor mapProcessor;
     private List<ParameterExpression> newParameters;
     private ProposedMap proposedMap;
 
@@ -29,7 +29,7 @@ namespace ThisMember.Core
     {
       this.mapper = mapper;
 
-      this.mapProcessor = new MapProposalProcessor(mapper);
+      this.mapProcessor = new MapExpressionProcessor(mapper);
 
       this.newParameters = new List<ParameterExpression>();
     }
