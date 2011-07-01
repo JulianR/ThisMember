@@ -80,8 +80,6 @@ namespace ThisMember.Benchmarks
 
       var sw = Stopwatch.StartNew();
 
-      int z = 0;
-
       var map = mapper.CreateMap<Customer, CustomerDto>(customMapping: src => new CustomerDto
       {
         FullName = src.FirstName + " " + src.LastName,
