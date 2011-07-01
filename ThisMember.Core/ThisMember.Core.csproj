@@ -71,7 +71,11 @@
     <Compile Include="DefaultMappingStrategy.cs" />
     <Compile Include="MapProposalProcessor.cs" />
     <Compile Include="MapRepositoryBase.cs" />
+    <Compile Include="Projectables\IProjectable.cs" />
+    <Compile Include="Projectables\QueryableExtensions.cs" />
+    <Compile Include="Projectables\QueryableProjectable.cs" />
     <Compile Include="Projection.cs" />
+    <Compile Include="ProjectionProcessor.cs" />
     <Compile Include="PropertyOrFieldInfo.cs" />
     <Compile Include="ProposedMemberMapping.cs" />
     <Compile Include="MemberMap.cs" />
