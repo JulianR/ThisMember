@@ -23,13 +23,13 @@ namespace ThisMember.Core
   }
 
  
-  internal class MapProposalProcessor
+  internal class MapExpressionProcessor
   {
     public IList<ParameterTuple> ParametersToReplace { get; private set; }
 
     public bool NonPublicMembersAccessed { get; private set; }
 
-    public MapProposalProcessor(IMemberMapper mapper)
+    public MapExpressionProcessor(IMemberMapper mapper)
     {
       ParametersToReplace = new List<ParameterTuple>();
       this.MemberMapper = mapper;
@@ -191,9 +191,9 @@ namespace ThisMember.Core
 
     private class VisibilityVisitor : ExpressionVisitor
     {
-      private MapProposalProcessor processor;
+      private MapExpressionProcessor processor;
 
-      public VisibilityVisitor(MapProposalProcessor processor)
+      public VisibilityVisitor(MapExpressionProcessor processor)
       {
         this.processor = processor;
       }
@@ -290,9 +290,9 @@ namespace ThisMember.Core
 
     private class LambdaVisitor : ExpressionVisitor
     {
-      private MapProposalProcessor processor;
+      private MapExpressionProcessor processor;
 
-      public LambdaVisitor(MapProposalProcessor processor)
+      public LambdaVisitor(MapExpressionProcessor processor)
       {
         this.processor = processor;
       }
