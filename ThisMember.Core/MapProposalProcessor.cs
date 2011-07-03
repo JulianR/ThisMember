@@ -25,13 +25,13 @@ namespace ThisMember.Core
  
   internal class MapExpressionProcessor
   {
-    public IList<ParameterTuple> ParametersToReplace { get; private set; }
+    public ICollection<ParameterTuple> ParametersToReplace { get; private set; }
 
     public bool NonPublicMembersAccessed { get; private set; }
 
     public MapExpressionProcessor(IMemberMapper mapper)
     {
-      ParametersToReplace = new List<ParameterTuple>();
+      ParametersToReplace = new HashSet<ParameterTuple>();
       this.MemberMapper = mapper;
     }
 
@@ -82,9 +82,9 @@ namespace ThisMember.Core
 
     private class ParameterVisitor : ExpressionVisitor
     {
-      private IList<ParameterTuple> parameters;
+      private ICollection<ParameterTuple> parameters;
 
-      public ParameterVisitor(IList<ParameterTuple> parameters)
+      public ParameterVisitor(ICollection<ParameterTuple> parameters)
       {
         this.parameters = parameters;
       }
@@ -238,20 +238,15 @@ namespace ThisMember.Core
 
           var genericParams = delType.GetGenericArguments();
 
-          var sourceType = genericParams[0];
-
-          var destType = genericParams[1];
-
-          if (!IsPublicClass(sourceType))
+          foreach(var genericArg in genericParams)
           {
-            this.NonPublicMembersAccessed = true;
-            return node;
+            if (!IsPublicClass(genericArg))
+            {
+              this.NonPublicMembersAccessed = true;
+              return node;
+            }
           }
-          else if (!IsPublicClass(destType))
-          {
-            this.NonPublicMembersAccessed = true;
-            return node;
-          }
+
         }
 
         return base.VisitLambda<T>(node);

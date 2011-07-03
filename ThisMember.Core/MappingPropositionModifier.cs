@@ -36,14 +36,24 @@ namespace ThisMember.Core
 
       if (map.ProposedTypeMapping.CustomMapping == null)
       {
+        int index = 0;
         map.ProposedTypeMapping.CustomMapping = new CustomMapping
         {
-          Parameter = customMapping.Parameters.Single()
+          Parameters = (from p in customMapping.Parameters
+                        select new IndexedParameterExpression
+                        {
+                          Parameter = p,
+                          Index = index++
+                        }).ToList()
         };
       }
       else
       {
-        body = new CustomMapping.ParameterVisitor(customMapping.Parameters.Single(), map.ProposedTypeMapping.CustomMapping.Parameter).Visit(body);
+        body = new CustomMapping.ParameterVisitor((from p in customMapping.Parameters
+                                                   select new IndexedParameterExpression
+                                                   {
+                                                     Parameter = p,
+                                                   }).ToList(), map.ProposedTypeMapping.CustomMapping.Parameters).Visit(body);
       }
 
       map.ProposedTypeMapping.CustomMapping.Members.Add(new MemberExpressionTuple { Member = mapping.DestinationMember, Expression = body });

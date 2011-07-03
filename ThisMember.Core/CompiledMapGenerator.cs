@@ -22,8 +22,9 @@ namespace ThisMember.Core
     private ParameterExpression sourceParameter;
     private ParameterExpression destinationParameter;
     private readonly MapExpressionProcessor mapProcessor;
-    private List<ParameterExpression> newParameters;
+    private IList<ParameterExpression> newParameters;
     private ProposedMap proposedMap;
+    private IList<IndexedParameterExpression> Parameters { get; set; }
 
     public CompiledMapGenerator(IMemberMapper mapper)
     {
@@ -183,8 +184,12 @@ namespace ThisMember.Core
 
       if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
       {
-        mapProcessor.ParametersToReplace.Add(new ParameterTuple(customMapping.Parameter, source));
-
+        foreach (var param in customMapping.Parameters)
+        {
+          var correspondingParam = this.Parameters.Single(p => p.Index == param.Index);
+          mapProcessor.ParametersToReplace.Add(new ParameterTuple(param.Parameter, correspondingParam.Parameter));
+        }
+       
         assignSourceToDest = Expression.Assign(destMember, customExpression);
       }
       else
@@ -775,12 +780,55 @@ namespace ThisMember.Core
 
     }
 
+    private static Type GetMatchingFuncOverload(ProposedMap map)
+    {
+      switch (map.ParameterTypes.Count)
+      {
+        case 0:
+          return typeof(Func<,,>).MakeGenericType(map.SourceType, map.DestinationType, map.DestinationType);
+        case 1:
+          return typeof(Func<,,,>).MakeGenericType(map.SourceType, map.DestinationType, map.ParameterTypes[0], map.DestinationType);
+        case 2:
+          return typeof(Func<,,,,>).MakeGenericType(map.SourceType, map.DestinationType, map.ParameterTypes[0], map.ParameterTypes[1], map.DestinationType);
+        case 3:
+          return typeof(Func<,,,,,,>).MakeGenericType(map.SourceType, map.DestinationType, map.ParameterTypes[0], map.ParameterTypes[1], map.ParameterTypes[2], map.DestinationType);
+        default:
+          throw new InvalidOperationException("No matching generic overload for Func found");
+      }
+    }
+
 
     public Delegate GenerateMappingFunction(ProposedMap proposedMap)
     {
 
       var destination = Expression.Parameter(proposedMap.DestinationType, "destination");
       var source = Expression.Parameter(proposedMap.SourceType, "source");
+
+      var lambdaParameters = new List<ParameterExpression>();
+
+      lambdaParameters.Add(source);
+      lambdaParameters.Add(destination);
+
+
+      this.sourceParameter = source;
+      this.destinationParameter = destination;
+      this.proposedMap = proposedMap;
+
+      this.Parameters = new List<IndexedParameterExpression>();
+
+      Parameters.Add(new IndexedParameterExpression { Parameter = sourceParameter, Index = 0 });
+
+      int argCount = 1;
+
+      foreach (var param in proposedMap.ParameterTypes)
+      {
+        var paramExpr = Expression.Parameter(param, "arg" + argCount);
+        lambdaParameters.Add(paramExpr);
+
+        this.Parameters.Add(new IndexedParameterExpression { Parameter = paramExpr, Index = argCount + 1 });
+
+        argCount++;
+      }
 
       var assignments = new List<Expression>();
 
@@ -816,10 +864,6 @@ namespace ThisMember.Core
 
       }
 
-      this.sourceParameter = source;
-      this.destinationParameter = destination;
-      this.proposedMap = proposedMap;
-
       BuildTypeMappingExpressions(source, destination, proposedMap.ProposedTypeMapping, assignments, proposedMap.ProposedTypeMapping.CustomMapping);
 
       if (!assignments.Any())
@@ -844,13 +888,13 @@ namespace ThisMember.Core
 
       var outerBlock = Expression.Block(newParameters, conditionCheck, destination);
 
-      var funcType = typeof(Func<,,>).MakeGenericType(proposedMap.SourceType, proposedMap.DestinationType, proposedMap.DestinationType);
+      var funcType = GetMatchingFuncOverload(proposedMap);
 
       var lambda = Expression.Lambda
       (
         funcType,
         outerBlock,
-        source, destination
+        lambdaParameters
       );
 
       lambda = (LambdaExpression)mapProcessor.Process(lambda);

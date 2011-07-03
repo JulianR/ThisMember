@@ -60,6 +60,7 @@
     <Compile Include="MemberMapperTests.cs" />
     <Compile Include="NullableValueTypesTests.cs" />
     <Compile Include="OptionTests.cs" />
+    <Compile Include="ParameterTests.cs" />
     <Compile Include="ProjectableTests.cs" />
     <Compile Include="ProjectionCustomMappingsTests.cs" />
     <Compile Include="ProjectionTests.cs" />

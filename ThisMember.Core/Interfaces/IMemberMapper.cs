@@ -39,6 +39,8 @@ namespace ThisMember.Core.Interfaces
 
     TDestination Map<TSource, TDestination>(TSource source, TDestination destination);
 
+    TDestination Map<TSource, TDestination, TParam>(TSource source, TDestination destination, TParam param);
+
     object Map(object source, object destination);
 
     /// <summary>
@@ -58,6 +60,14 @@ namespace ThisMember.Core.Interfaces
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
     ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null);
+
+    /// <summary>
+    /// Creates a map proposal that may be modified later.
+    /// </summary>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MappingOptions options = null);
 
     /// <summary>
     /// Creates and finalizes a map that may no longer be modified.

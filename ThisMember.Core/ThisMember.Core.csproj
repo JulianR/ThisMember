@@ -57,6 +57,7 @@
     <Compile Include="Exceptions\RecursiveRelationshipException.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="IgnoreMemberAttribute.cs" />
+    <Compile Include="IndexedParameterExpression.cs" />
     <Compile Include="Interfaces\IMapGenerator.cs" />
     <Compile Include="Interfaces\IMapGeneratorFactory.cs" />
     <Compile Include="Interfaces\IMappingProposition.cs" />

@@ -343,10 +343,49 @@ namespace ThisMember.Core
       return map;
     }
 
-    public ProposedMap CreateMapProposal(TypePair pair, MappingOptions options = null, LambdaExpression customMappingExpression = null)
+    public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(MappingOptions options = null, Expression<Func<TSource, TParam, object>> customMappingExpression = null)
+    {
+      var map = new ProposedMap<TSource, TDestination, TParam>(this.mapper);
+
+      map.ParameterTypes.Add(typeof(TParam));
+
+      var pair = new TypePair(typeof(TSource), typeof(TDestination));
+
+      map.SourceType = pair.SourceType;
+      map.DestinationType = pair.DestinationType;
+
+      CustomMapping customMapping = null;
+
+      if (customMappingExpression != null)
+      {
+        customMapping = CustomMapping.GetCustomMapping(typeof(TDestination), customMappingExpression);
+        customMappingCache[pair] = customMapping;
+      }
+
+      TryGetCustomMapping(pair, out customMapping);
+
+      var mapping = GetComplexTypeMapping(pair, options, customMapping, true);
+
+
+      if (mapping.CustomMapping == null)
+      {
+        mapping.CustomMapping = customMapping;
+      }
+
+      map.ProposedTypeMapping = mapping;
+
+      return map;
+    }
+
+    public ProposedMap CreateMapProposal(TypePair pair, MappingOptions options = null, LambdaExpression customMappingExpression = null, params Type[] parameters)
     {
 
       var map = new ProposedMap(this.mapper);
+
+      foreach (var param in parameters)
+      {
+        map.ParameterTypes.Add(param);
+      }
 
       map.SourceType = pair.SourceType;
       map.DestinationType = pair.DestinationType;

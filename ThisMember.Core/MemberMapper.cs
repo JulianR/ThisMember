@@ -36,7 +36,7 @@ namespace ThisMember.Core
       this.Options = options ?? new MapperOptions();
     }
 
-    
+
     private static MemberMap<TSource, TDestination> ToGenericMemberMap<TSource, TDestination>(MemberMap map)
     {
       var newMap = new MemberMap<TSource, TDestination>();
@@ -101,6 +101,13 @@ namespace ThisMember.Core
       return proposedMap;
     }
 
+    public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MappingOptions options = null)
+    {
+      var proposedMap = this.MappingStrategy.CreateMapProposal<TSource, TDestination, TParam>(options, customMapping);
+
+      return proposedMap;
+    }
+
     public TDestination Map<TSource, TDestination>(TSource source, TDestination destination)
     {
       if (destination == null && this.Options.Safety.ThrowIfDestinationIsNull)
@@ -118,7 +125,15 @@ namespace ThisMember.Core
       }
       if (BeforeMapping != null) BeforeMapping(this, pair);
 
-      var result = ((Func<TSource, TDestination, TDestination>)map.MappingFunction)(source, destination);
+
+      var func = map.MappingFunction as Func<TSource, TDestination, TDestination>;
+
+      if (func == null)
+      {
+        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called without parameters. Use another overload of Map or recreate the map without a parameter.", pair.SourceType, pair.DestinationType));
+      }
+
+      var result = func(source, destination);
 
       if (AfterMapping != null) AfterMapping(this, pair, result);
 
@@ -142,7 +157,7 @@ namespace ThisMember.Core
 
     public MemberMap CreateMap(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null)
     {
-      return CreateMapProposal(source, destination,  customMapping, options).FinalizeMap();
+      return CreateMapProposal(source, destination, customMapping, options).FinalizeMap();
     }
 
     public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
@@ -284,9 +299,6 @@ namespace ThisMember.Core
     }
 
 
-    #region IMemberMapper Members
-
-
     public object Map(object source, object destination)
     {
       if (destination == null && this.Options.Safety.ThrowIfDestinationIsNull)
@@ -311,6 +323,36 @@ namespace ThisMember.Core
       return result;
     }
 
-    #endregion
+    public TDestination Map<TSource, TDestination, TParam>(TSource source, TDestination destination, TParam param)
+    {
+      if (destination == null && this.Options.Safety.ThrowIfDestinationIsNull)
+      {
+        throw new ArgumentNullException("destination");
+      }
+
+      var pair = new TypePair(typeof(TSource), typeof(TDestination));
+
+      MemberMap map;
+
+      if (!this.maps.TryGetValue(pair, out map))
+      {
+        map = MappingStrategy.CreateMapProposal(pair, parameters: typeof(TParam)).FinalizeMap();
+      }
+      if (BeforeMapping != null) BeforeMapping(this, pair);
+
+      var func = map.MappingFunction as Func<TSource, TDestination, TParam,  TDestination>;
+
+      if (func == null)
+      {
+        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called with a parameter. Use another overload of Map or recreate the map with a parameter.", pair.SourceType, pair.DestinationType));
+      }
+
+      var result = func(source, destination, param);
+
+      if (AfterMapping != null) AfterMapping(this, pair, result);
+
+      return result;
+    }
+
   }
 }

@@ -35,12 +35,13 @@ namespace ThisMember.Core.Interfaces
 
     public Type DestinationType { get; set; }
 
-    public ParameterExpression Parameter { get; set; }
+    public IList<IndexedParameterExpression> Parameters { get; set; }
 
     public CustomMapping()
     {
       CustomMappings = new List<CustomMapping>();
       Members = new List<MemberExpressionTuple>();
+      Parameters = new List<IndexedParameterExpression>();
     }
 
     public static CustomMapping GetCustomMapping(Type destinationType, Expression expression)
@@ -68,30 +69,36 @@ namespace ThisMember.Core.Interfaces
         throw new ArgumentException(string.Format("Only new {0} { .. } and new { .. } are allowed as a custom mapping", destinationType.Name));
       }
 
-      mapping.Parameter = lambda.Parameters.First();
+      int index = 0;
+      foreach (var param in lambda.Parameters)
+      {
+        mapping.Parameters.Add(new IndexedParameterExpression { Index = index, Parameter = param });
+        index++;
+      }
 
       return mapping;
     }
 
     public class ParameterVisitor : ExpressionVisitor
     {
-      private ParameterExpression _newParam;
-      private ParameterExpression _oldParam;
+      private IList<IndexedParameterExpression> _newParams;
+      private IList<IndexedParameterExpression> _oldParams;
 
-      public ParameterVisitor(ParameterExpression oldParam, ParameterExpression newParam)
+      public ParameterVisitor(IList<IndexedParameterExpression> oldParams, IList<IndexedParameterExpression> newParams)
       {
-        _oldParam = oldParam;
-        _newParam = newParam;
+        _oldParams = oldParams;
+        _newParams = newParams;
       }
 
       protected override Expression VisitParameter(ParameterExpression node)
       {
-
-        if (_oldParam == node)
+        for (var i = 0; i < _oldParams.Count; i++)
         {
-          return _newParam;
+          if (_oldParams[i].Parameter == node)
+          {
+            return _newParams[i].Parameter;
+          }
         }
-
         return base.VisitParameter(node);
       }
     }
@@ -109,7 +116,7 @@ namespace ThisMember.Core.Interfaces
         {
           if (!root.Members.Contains(m))
           {
-            var visitor = new ParameterVisitor(otherMapping.Parameter, root.Parameter);
+            var visitor = new ParameterVisitor(otherMapping.Parameters, root.Parameters);
 
             var member = new MemberExpressionTuple
             {

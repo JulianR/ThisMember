@@ -20,11 +20,14 @@ namespace ThisMember.Core
     public Type SourceType { get; set; }
     public Type DestinationType { get; set; }
 
+    public IList<Type> ParameterTypes { get; set; }
+
     private readonly IMemberMapper mapper;
 
     public ProposedMap(IMemberMapper mapper)
     {
       this.mapper = mapper;
+      this.ParameterTypes = new List<Type>();
     }
 
     protected Dictionary<Type, LambdaExpression> constructorCache = new Dictionary<Type, LambdaExpression>();
@@ -278,5 +281,14 @@ namespace ThisMember.Core
       }
     }
 
+  }
+
+  public class ProposedMap<TSource, TDestination, TParam> : ProposedMap<TSource, TDestination>
+  {
+
+    public ProposedMap(IMemberMapper mapper)
+      : base(mapper)
+    {
+    }
   }
 }
