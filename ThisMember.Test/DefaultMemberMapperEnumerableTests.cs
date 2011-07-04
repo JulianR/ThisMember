@@ -73,12 +73,12 @@ namespace ThisMember.Test
 
     private class SourceSimpleIListType
     {
-      public List<string> List { get; set; }
+      public IList<string> List { get; set; }
     }
 
     private class DestinationSimpleIListType
     {
-      public List<string> List { get; set; }
+      public IList<string> List { get; set; }
     }
 
     private class SourceSimpleArrayType
@@ -89,6 +89,16 @@ namespace ThisMember.Test
     private class DestinationSimpleArrayType
     {
       public string[] List { get; set; }
+    }
+
+    private class SourceSimpleICollectionType
+    {
+      public ICollection<string> List { get; set; }
+    }
+
+    private class DestinationSimpleICollectionType
+    {
+      public ICollection<string> List { get; set; }
     }
 
     [TestMethod]
@@ -814,5 +824,164 @@ namespace ThisMember.Test
 
       Assert.AreEqual("Test", result.Elements.Single().Name);
     }
+
+    [TestMethod]
+    public void ICollectionTypeIsMappedToListTypeCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new SourceElement[]
+      {
+        new SourceElement
+        {
+          Value = "X"
+        }
+      };
+
+      var result = mapper.Map<ICollection<SourceElement>, List<DestElement>>(source);
+
+      Assert.AreEqual("X", result.First().Value);
+    }
+
+    [TestMethod]
+    public void ICollectionTypeIsMappedToArrayTypeCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new SourceElement[]
+      {
+        new SourceElement
+        {
+          Value = "X"
+        }
+      };
+
+      var destination = new DestElement[0];
+
+      var result = mapper.Map<ICollection<SourceElement>, DestElement[]>(source, destination);
+
+      Assert.AreEqual("X", result.First().Value);
+    }
+
+    [TestMethod]
+    public void ICollectionTypeIsMappedToIEnumerableTypeCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new SourceElement[]
+      {
+        new SourceElement
+        {
+          Value = "X"
+        }
+      };
+
+      var destination = new DestElement[0];
+
+      var result = mapper.Map<ICollection<SourceElement>, IEnumerable<DestElement>>(source, destination);
+
+      Assert.AreEqual("X", result.First().Value);
+    }
+
+    [TestMethod]
+    public void ListTypeIsMappedToICollectionTypeCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new List<SourceElement>
+      {
+        new SourceElement
+        {
+          Value = "X"
+        }
+      };
+
+      var destination = new DestElement[0];
+
+      var result = mapper.Map<List<SourceElement>, ICollection<DestElement>>(source, destination);
+
+      Assert.AreEqual("X", result.First().Value);
+    }
+
+    [TestMethod]
+    public void IListTypeIsMappedToICollectionTypeCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new List<SourceElement>
+      {
+        new SourceElement
+        {
+          Value = "X"
+        }
+      };
+
+      var destination = new DestElement[0];
+
+      var result = mapper.Map<IList<SourceElement>, ICollection<DestElement>>(source, destination);
+
+      Assert.AreEqual("X", result.First().Value);
+    }
+
+    [TestMethod]
+    public void IEnumerableTypeIsMappedToICollectionTypeCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new List<SourceElement>
+      {
+        new SourceElement
+        {
+          Value = "X"
+        }
+      };
+
+      var destination = new DestElement[0];
+
+      var result = mapper.Map<IEnumerable<SourceElement>, ICollection<DestElement>>(source, destination);
+
+      Assert.AreEqual("X", result.First().Value);
+    }
+
+    [TestMethod]
+    public void ICollectionTypeIsMappedToICollectionTypeCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new List<SourceElement>
+      {
+        new SourceElement
+        {
+          Value = "X"
+        }
+      };
+
+      var destination = new DestElement[0];
+
+      var result = mapper.Map<ICollection<SourceElement>, ICollection<DestElement>>(source, destination);
+
+      Assert.AreEqual("X", result.First().Value);
+    }
+
+    [TestMethod]
+    public void ArrayTypeIsMappedToICollectionTypeCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new SourceElement[]
+      {
+        new SourceElement
+        {
+          Value = "X"
+        }
+      };
+
+      var destination = new DestElement[0];
+
+      var result = mapper.Map<SourceElement[], ICollection<DestElement>>(source, destination);
+
+      Assert.AreEqual("X", result.First().Value);
+    }
+
   }
 }
