@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>ThisMember</id>
-    <version>0.8.0</version>
+    <version>0.8.2</version>
     <authors>Julian Rooze</authors>
     <owners>Julian Rooze</owners>
     <licenseUrl>https://raw.github.com/JulianR/ThisMember/master/license.txt</licenseUrl>
