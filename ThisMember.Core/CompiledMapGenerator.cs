@@ -144,7 +144,8 @@ namespace ThisMember.Core
 
         source = Expression.Condition(Expression.IsTrue(Expression.Property(source, "HasValue")), Expression.Property(source, "Value"), elseClause);
       }
-      else if (source.Type.IsClass && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+      else if (source.Type.IsClass && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
+        && source.Type.IsAssignableFrom(destination.Type))
       {
         source = Expression.Condition(Expression.NotEqual(source, Expression.Constant(null)), source, destination);
       }
