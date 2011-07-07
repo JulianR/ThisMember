@@ -201,5 +201,34 @@ namespace ThisMember.Test
       Assert.IsNull(result);
     }
 
+    [TestMethod]
+    public void PagingOnProjectableWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new List<SourceType>
+      {
+        new SourceType
+        {
+          ID = 10
+        },
+        new SourceType
+        {
+          ID = 20
+        },
+        new SourceType
+        {
+          ID = 30
+        }
+      };
+
+      var result = source.AsQueryable().AsCollectionProjectable().Page(mapper.Project<SourceType, DestinationType>(), 0, 2);
+
+      Assert.AreEqual(2, result.Count);
+      Assert.AreEqual(10, result.First().ID);
+      Assert.AreEqual(20, result.Skip(1).First().ID);
+
+    }
+
   }
 }
