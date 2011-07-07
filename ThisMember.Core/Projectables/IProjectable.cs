@@ -51,6 +51,10 @@ namespace ThisMember.Core.Projectables
     TSource[] ToArray();
 
     int Count();
+
+    IList<TResult> Page<TResult>(Expression<Func<TSource, TResult>> projection, int start = 0, int limit = -1);
+
+    IList<TSource> Page(int start = 0, int limit = -1);
   }
 
   public interface IProjectable<TSource> : ISingularProjectable<TSource>, IOptionalProjectable<TSource>, ICollectionProjectable<TSource>
