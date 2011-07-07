@@ -50,6 +50,19 @@ namespace ThisMember.Core
       return newMap;
     }
 
+    private static Projection<TSource, TDestination> ToGenericProjection<TSource, TDestination>(Projection projection)
+    {
+      var newMap = new Projection<TSource, TDestination>();
+
+      newMap.DestinationType = projection.DestinationType;
+      newMap.SourceType = projection.SourceType;
+      newMap.Expression = (Expression<Func<TSource, TDestination>>)projection.Expression;
+
+      ((Projection)newMap).Expression = projection.Expression;
+
+      return newMap;
+    }
+
     public TDestination Map<TDestination>(object source) where TDestination : new()
     {
       var pair = new TypePair(source.GetType(), typeof(TDestination));
@@ -148,6 +161,16 @@ namespace ThisMember.Core
     public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
     {
       return ToGenericMemberMap<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeMap());
+    }
+
+    public Projection CreateProjection(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null)
+    {
+      return CreateMapProposal(source, destination, customMapping, options).FinalizeProjection();
+    }
+
+    public Projection<TSource, TDestination> CreateProjection<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
+    {
+      return ToGenericProjection<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeProjection());
     }
 
     public bool HasMap<TSource, TDestination>()

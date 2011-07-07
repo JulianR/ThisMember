@@ -75,6 +75,24 @@ namespace ThisMember.Core.Interfaces
     /// <returns></returns>
     MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null);
 
+    /// <summary>
+    /// Creates and finalizes a projection from one type to another that may no longer be modified.
+    /// </summary>
+    /// <param name="source">The source type</param>
+    /// <param name="destination">The destination type</param>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    Projection CreateProjection(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null);
+
+    /// <summary>
+    /// Creates and finalizes a projection from one type to another that may no longer be modified.
+    /// </summary>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    Projection<TSource, TDestination> CreateProjection<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null);
+
     bool HasMap<TSource, TDestination>();
 
     bool HasMap(Type source, Type destination);
