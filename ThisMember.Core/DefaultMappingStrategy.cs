@@ -302,8 +302,7 @@ namespace ThisMember.Core
 
       if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
       {
-        if (sourceMember.PropertyOrFieldType.IsPrimitive || sourceMember.PropertyOrFieldType == typeof(string)
-          || sourceMember.PropertyOrFieldType.IsNullableValueType())
+        if (sourceMember.PropertyOrFieldType.IsValueType || sourceMember.PropertyOrFieldType == typeof(string))
         {
           return true;
         }

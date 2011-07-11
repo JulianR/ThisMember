@@ -74,5 +74,82 @@ namespace ThisMember.Test
       Assert.AreEqual(10, result.ID);
 
     }
+
+    public class NonNullableSourceNonPrimitiveVT
+    {
+      public decimal ID { get; set; }
+    }
+
+    public class NullableDestinationNonPrimitiveVT
+    {
+      public decimal? ID { get; set; }
+    }
+
+    public class NullableSourceNonPrimitiveVT
+    {
+      public decimal? ID { get; set; }
+    }
+
+    public class NonNullableDestinationNonPrimitiveVT
+    {
+      public decimal ID { get; set; }
+    }
+
+    [TestMethod]
+    public void NonNullableGetsMappedToNonNullableNonPrimitiveVT()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NonNullableSourceNonPrimitiveVT, NonNullableSourceNonPrimitiveVT>(new NonNullableSourceNonPrimitiveVT { ID = 10 });
+
+      Assert.AreEqual(10, result.ID);
+
+    }
+
+
+    [TestMethod]
+    public void NonNullableGetsMappedToNullableNonPrimitiveVT()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NonNullableSourceNonPrimitiveVT, NullableDestinationNonPrimitiveVT>(new NonNullableSourceNonPrimitiveVT { ID = 10 });
+
+      Assert.AreEqual(10, result.ID.Value);
+
+    }
+
+    [TestMethod]
+    public void NullableWithNonNullValueGetsMappedToNonNullableNonPrimitiveVT()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullableSourceNonPrimitiveVT, NonNullableDestinationNonPrimitiveVT>(new NullableSourceNonPrimitiveVT { ID = 10 });
+
+      Assert.AreEqual(10, result.ID);
+
+    }
+
+    [TestMethod]
+    public void NullableWithNullValueGetsMappedToNonNullableNonPrimitiveVT()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullableSourceNonPrimitiveVT, NonNullableDestinationNonPrimitiveVT>(new NullableSourceNonPrimitiveVT { ID = null });
+
+      Assert.AreEqual(default(int), result.ID);
+
+    }
+
+    [TestMethod]
+    public void NullableToNullableWorksNonPrimitiveVT()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullableSourceNonPrimitiveVT, NullableSourceNonPrimitiveVT>(new NullableSourceNonPrimitiveVT { ID = 10 });
+
+      Assert.AreEqual(10, result.ID);
+
+    }
+
   }
 }
