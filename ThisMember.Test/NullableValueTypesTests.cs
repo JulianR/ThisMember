@@ -63,5 +63,16 @@ namespace ThisMember.Test
       Assert.AreEqual(default(int), result.ID);
 
     }
+
+    [TestMethod]
+    public void NullableToNullableWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullableSource, NullableSource>(new NullableSource { ID = 10 });
+
+      Assert.AreEqual(10, result.ID);
+
+    }
   }
 }

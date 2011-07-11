@@ -194,7 +194,7 @@ namespace ThisMember.Core
       var typeOfSourceEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(sourceMember.PropertyOrFieldType);
       var typeOfDestinationEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(destinationMember.PropertyOrFieldType);
 
-      var canAssignSourceItemsToDestination = CanAssignSourceItemsToDestination(mapper,destinationMember, sourceMember, typeOfSourceEnumerable, typeOfDestinationEnumerable);
+      var canAssignSourceItemsToDestination = CanAssignSourceItemsToDestination(mapper, destinationMember, sourceMember, typeOfSourceEnumerable, typeOfDestinationEnumerable);
 
       if (canAssignSourceItemsToDestination)
       {
@@ -253,22 +253,69 @@ namespace ThisMember.Core
       return false;
     }
 
+    //private bool CanUseSimpleTypeMapping(TypePair pair, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type nullableType)
+    //{
+    //  var canUseSimpleTypeMapping = sourceMember != null;
+
+    //  if (canUseSimpleTypeMapping)
+    //  {
+    //    canUseSimpleTypeMapping &= (destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType))
+    //      || (sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsAssignableFrom(nullableType));
+
+
+
+    //    if ((pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+    //      && !(destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType)
+    //      && destinationMember.PropertyOrFieldType.IsNullableValueType() && sourceMember.PropertyOrFieldType.IsNullableValueType()))
+    //    {
+    //      canUseSimpleTypeMapping &= sourceMember.PropertyOrFieldType.IsPrimitive || sourceMember.PropertyOrFieldType == typeof(string);
+    //    }
+    //  }
+    //  return canUseSimpleTypeMapping;
+    //}
+
     private bool CanUseSimpleTypeMapping(TypePair pair, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type nullableType)
     {
-      var canUseSimpleTypeMapping = sourceMember != null;
 
-      if (canUseSimpleTypeMapping)
+      if (sourceMember == null)
       {
-        canUseSimpleTypeMapping &= (destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType))
-          || (sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsAssignableFrom(nullableType));
-
-
-        if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
-        {
-          canUseSimpleTypeMapping &= sourceMember.PropertyOrFieldType.IsPrimitive || sourceMember.PropertyOrFieldType == typeof(string);
-        }
+        return false;
       }
-      return canUseSimpleTypeMapping;
+
+      if (!(destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType))
+        && !(sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsAssignableFrom(nullableType)))
+      {
+        return false;
+      }
+
+      if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
+        && !sourceMember.PropertyOrFieldType.IsPrimitive
+        && sourceMember.PropertyOrFieldType != typeof(string)
+        && !(sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsNullableValueType()))
+      {
+
+        return false;
+      }
+
+      return true;
+
+      //var canUseSimpleTypeMapping = sourceMember != null;
+
+      //if (canUseSimpleTypeMapping)
+      //{
+      //  canUseSimpleTypeMapping &= (destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType))
+      //    || (sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsAssignableFrom(nullableType));
+
+
+
+      //  if ((pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+      //    && !(destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType)
+      //    && destinationMember.PropertyOrFieldType.IsNullableValueType() && sourceMember.PropertyOrFieldType.IsNullableValueType()))
+      //  {
+      //    canUseSimpleTypeMapping &= sourceMember.PropertyOrFieldType.IsPrimitive || sourceMember.PropertyOrFieldType == typeof(string);
+      //  }
+      //}
+      //return canUseSimpleTypeMapping;
     }
 
     private static Type TryGetNullableType(PropertyOrFieldInfo sourceMember)
