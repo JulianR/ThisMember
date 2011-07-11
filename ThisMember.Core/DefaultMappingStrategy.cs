@@ -282,22 +282,56 @@ namespace ThisMember.Core
         return false;
       }
 
-      if (!(destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType))
-        && !(sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsAssignableFrom(nullableType)))
+      if (!destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType))
       {
-        return false;
+
+        if (sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsAssignableFrom(nullableType))
+        {
+          return true;
+        }
+        else
+        {
+          return false;
+        }
       }
 
-      if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
-        && !sourceMember.PropertyOrFieldType.IsPrimitive
-        && sourceMember.PropertyOrFieldType != typeof(string)
-        && !(sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsNullableValueType()))
-      {
+      //if (destinationMember.PropertyOrFieldType.IsNullableValueType() || destinationMember.PropertyOrFieldType.IsNullableValueType())
+      //{
+      //  return false;
+      //}
 
-        return false;
+      if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+      {
+        if (sourceMember.PropertyOrFieldType.IsPrimitive || sourceMember.PropertyOrFieldType == typeof(string)
+          || sourceMember.PropertyOrFieldType.IsNullableValueType())
+        {
+          return true;
+        }
+        else
+        {
+          return false;
+        }
+
       }
 
       return true;
+
+      //if (!(destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType))
+      //  && !(sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsAssignableFrom(nullableType)))
+      //{
+      //  return false;
+      //}
+
+      //if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
+      //  && !sourceMember.PropertyOrFieldType.IsPrimitive
+      //  && sourceMember.PropertyOrFieldType != typeof(string)
+      //  && !(sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsNullableValueType()))
+      //{
+
+      //  return false;
+      //}
+
+      //return true;
 
       //var canUseSimpleTypeMapping = sourceMember != null;
 
