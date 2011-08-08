@@ -23,9 +23,9 @@ namespace System.Linq
       return new OptionalQueryableProjectable<T>(query);
     }
 
-    public static IOptionalProjectable<T> AsCollectionProjectable<T>(this IQueryable<T> query)
+    public static ICollectionProjectable<T> AsCollectionProjectable<T>(this IQueryable<T> query)
     {
-      return new OptionalQueryableProjectable<T>(query);
+      return new CollectionQueryableProjectable<T>(query);
     }
   }
 }

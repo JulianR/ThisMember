@@ -77,6 +77,32 @@ namespace ThisMember.Core.Projectables
     {
       return query.Count();
     }
+
+    public static IList<TResult> Page<T, TResult>(IQueryable<T> query, Expression<Func<T, TResult>> projection, int start = 0, int limit = -1)
+    {
+      query = query.Skip(start);
+
+      if(limit > 0)
+      {
+        query = query.Take(limit);
+      }
+
+      return GetProjection(query, projection).ToList();
+
+    }
+
+    public static IList<T> Page<T>(IQueryable<T> query, int start = 0, int limit = -1)
+    {
+      query = query.Skip(start);
+
+      if (limit > 0)
+      {
+        query = query.Take(limit);
+      }
+
+      return query.ToList();
+
+    }
   }
 
   public abstract class QueryableProjectableBase<T>
@@ -179,6 +205,15 @@ namespace ThisMember.Core.Projectables
       return ProjectableMethods.Count(query);
     }
 
+    public IList<TResult> Page<TResult>(Expression<Func<T, TResult>> projection, int start = 0, int limit = -1)
+    {
+      return ProjectableMethods.Page(query, projection, start, limit);
+    }
+
+    public IList<T> Page(int start = 0, int limit = -1)
+    {
+      return ProjectableMethods.Page(query, start, limit);
+    }
   }
 
   public class QueryableProjectable<T> : QueryableProjectableBase<T>, IProjectable<T>
@@ -252,6 +287,16 @@ namespace ThisMember.Core.Projectables
     public int Count()
     {
       return ProjectableMethods.Count(query);
+    }
+
+    public IList<TResult> Page<TResult>(Expression<Func<T, TResult>> projection, int start = 0, int limit = -1)
+    {
+      return ProjectableMethods.Page(query, projection, start, limit);
+    }
+
+    public IList<T> Page(int start = 0, int limit = -1)
+    {
+      return ProjectableMethods.Page(query, start, limit);
     }
   }
 

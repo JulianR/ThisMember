@@ -40,12 +40,6 @@ namespace ThisMember.Core
   /// </summary>
   public class MemberMap<TSource, TDestination> : MemberMap
   {
-
-    public new Func<TSource, TDestination, TDestination> MappingFunction
-    {
-      get;
-      set;
-    }
-
+    public new Func<TSource, TDestination, TDestination> MappingFunction { get; set; }
   }
 }

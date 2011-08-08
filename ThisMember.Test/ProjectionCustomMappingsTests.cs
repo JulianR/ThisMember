@@ -40,5 +40,32 @@ namespace ThisMember.Test
       Assert.AreEqual("First Last", result.FullName);
 
     }
+
+
+    [TestMethod]
+    public void ProjectionsAffectMaps()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateProjection<SourceType, DestinationType>(src => new DestinationType
+      {
+        FullName = src.FirstName + " " + src.LastName
+      });
+
+      var projection = mapper.Project<SourceType, DestinationType>().Compile();
+
+      var source = new SourceType { FirstName = "First", LastName = "Last" };
+
+      var result = projection(source);
+
+      Assert.AreEqual("First Last", result.FullName);
+
+      result = mapper.Map<SourceType, DestinationType>(source);
+
+      Assert.AreEqual("First Last", result.FullName);
+
+
+
+    }
   }
 }
