@@ -189,5 +189,124 @@ namespace ThisMember.Test
       Assert.IsTrue(result.Bar.Foos.SequenceEqual(source.Bar.Foos));
       Assert.IsTrue(object.ReferenceEquals(result.Bars.Single(), source.Bars.Single()));
     }
+
+    class NestedA
+    {
+      public string Bar { get; set; }
+      public NestedB Nested { get; set; }
+    }
+
+    class NestedB
+    {
+      public string Bar { get; set; }
+      public NestedC[] Nested { get; set; }
+    }
+
+    class NestedC
+    {
+      public string Bar { get; set; }
+      public NestedD Nested { get; set; }
+    }
+
+    class NestedD
+    {
+      public string Bar { get; set; }
+    }
+
+    [TestMethod]
+    public void DefaultNestingDepthWorksAsExpected()
+    {
+      var mapper = new MemberMapper();
+
+      var nested = new NestedA
+      {
+        Bar = "A",
+        Nested = new NestedB
+        {
+          Bar = "B",
+          Nested = new[]
+          {
+            new NestedC
+            {
+              Bar = "C",
+              Nested = new NestedD
+              {
+                Bar = "D"
+              }
+            }
+          }
+        }
+      };
+
+      var clone = mapper.DeepClone(nested);
+
+      Assert.IsNotNull(clone.Nested);
+      Assert.IsNotNull(clone.Nested.Nested);
+      Assert.IsNull(clone.Nested.Nested.Single().Nested);
+    }
+
+    [TestMethod]
+    public void ChangedNestingDepthWorksAsExpected()
+    {
+      var mapper = new MemberMapper();
+
+      var nested = new NestedA
+      {
+        Bar = "A",
+        Nested = new NestedB
+        {
+          Bar = "B",
+          Nested = new[]
+          {
+            new NestedC
+            {
+              Bar = "C",
+              Nested = new NestedD
+              {
+                Bar = "D"
+              }
+            }
+          }
+        }
+      };
+      mapper.Options.Conventions.MaxCloneDepth = 1;
+      var clone = mapper.DeepClone(nested);
+
+      Assert.IsNotNull(clone.Nested);
+      Assert.IsNull(clone.Nested.Nested);
+    }
+
+    [TestMethod]
+    public void UnlimitedNestingDepthWorksAsExpected()
+    {
+      var mapper = new MemberMapper();
+
+      var nested = new NestedA
+      {
+        Bar = "A",
+        Nested = new NestedB
+        {
+          Bar = "B",
+          Nested = new[]
+          {
+            new NestedC
+            {
+              Bar = "C",
+              Nested = new NestedD
+              {
+                Bar = "D"
+              }
+            }
+          }
+        }
+      };
+
+      mapper.Options.Conventions.MaxCloneDepth = null;
+      var clone = mapper.DeepClone(nested);
+
+      Assert.IsNotNull(clone.Nested);
+      Assert.IsNotNull(clone.Nested.Nested);
+      Assert.IsNotNull(clone.Nested.Nested.Single().Nested);
+    }
   }
 }

@@ -246,6 +246,80 @@ namespace ThisMember.Core
       return true;
     }
 
+
+    public bool HasProjection<TSource, TDestination>()
+    {
+      return this.projections.ContainsKey(new TypePair(typeof(TSource), typeof(TDestination)));
+    }
+
+    public bool HasProjection(Type source, Type destination)
+    {
+      return this.projections.ContainsKey(new TypePair(source, destination));
+    }
+
+    public Projection<TSource, TDestination> GetProjection<TSource, TDestination>()
+    {
+      Projection projection;
+
+      if (!this.projections.TryGetValue(new TypePair(typeof(TSource), typeof(TDestination)), out projection))
+      {
+        throw new MapNotFoundException(typeof(TSource), typeof(TDestination));
+      }
+
+      var genericProjection = projection as Projection<TSource, TDestination>;
+
+      return genericProjection ?? ToGenericProjection<TSource, TDestination>(projection);
+    }
+
+    public Projection GetProjection(Type source, Type destination)
+    {
+      Projection projection;
+
+      if (!this.projections.TryGetValue(new TypePair(source, destination), out projection))
+      {
+        throw new MapNotFoundException(source, destination);
+      }
+      return projection;
+    }
+
+    public bool TryGetProjection<TSource, TDestination>(out Projection<TSource, TDestination> map)
+    {
+      Projection nonGeneric;
+
+      var pair = new TypePair(typeof(TSource), typeof(TDestination));
+
+      if (this.projections.TryGetValue(pair, out nonGeneric))
+      {
+        map = nonGeneric as Projection<TSource, TDestination>;
+
+        if (map == null)
+        {
+          map = ToGenericProjection<TSource, TDestination>(nonGeneric);
+
+          lock (this.maps)
+          {
+            this.projections.Remove(pair);
+            this.projections.Add(pair, map);
+          }
+        }
+
+        return true;
+      }
+
+      map = null;
+
+      return false;
+    }
+
+    public bool TryGetProjection(Type source, Type destination, out Projection map)
+    {
+      if (!this.projections.TryGetValue(new TypePair(source, destination), out map))
+      {
+        return false;
+      }
+      return true;
+    }
+
     public void ClearMapCache()
     {
       this.maps.Clear();
