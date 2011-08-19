@@ -117,6 +117,18 @@ namespace ThisMember.Core.Interfaces
 
     bool TryGetMap(Type source, Type destination, out MemberMap map);
 
+    bool HasProjection<TSource, TDestination>();
+
+    bool HasProjection(Type source, Type destination);
+
+    Projection<TSource, TDestination> GetProjection<TSource, TDestination>();
+
+    Projection GetProjection(Type source, Type destination);
+
+    bool TryGetProjection<TSource, TDestination>(out Projection<TSource, TDestination> map);
+
+    bool TryGetProjection(Type source, Type destination, out Projection map);
+
     void RegisterMap(MemberMap map);
 
     void RegisterProjection(Projection projection);

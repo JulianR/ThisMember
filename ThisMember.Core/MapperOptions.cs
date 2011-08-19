@@ -38,7 +38,8 @@ namespace ThisMember.Core
         IgnoreMemberAttributeShouldBeRespected = true,
         ReuseNonNullComplexMembersOnDestination = true,
         IgnoreCaseWhenFindingMatch = true,
-        IgnoreMembersWithNullValueOnSource = false
+        IgnoreMembersWithNullValueOnSource = false,
+        MaxCloneDepth = 2
       };
 
       Safety = new MapperSafetyOptions
@@ -135,6 +136,14 @@ namespace ThisMember.Core
     /// </summary>
     /// <remarks>Defaults to false.</remarks>
     public bool IgnoreMembersWithNullValueOnSource { get; set; }
+
+    /// <summary>
+    /// Maximum depth that ThisMember will traverse into the type hierarchy when making a deep clone of an object. 
+    /// Setting this to null means unlimited. There is no chance of a stackoverflow
+    /// happening if it is set too high, but for complex and large types the generated mapping code may become very large (thousands of lines), complex and slow. 
+    /// </summary>
+    /// <remarks>Defaults to 2.</remarks>
+    public int? MaxCloneDepth { get; set; }
 
   }
 
