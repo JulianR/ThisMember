@@ -412,7 +412,7 @@ namespace ThisMember.Core
 
       TryGetCustomMapping(pair, out customMapping);
 
-      var mapping = GetComplexTypeMapping(pair, options, customMapping, true);
+      var mapping = GetComplexTypeMapping(0, pair, options, customMapping, true);
 
 
       if (mapping.CustomMapping == null)

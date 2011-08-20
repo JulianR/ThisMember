@@ -826,7 +826,7 @@ namespace ThisMember.Core
         var paramExpr = Expression.Parameter(param, "arg" + argCount);
         lambdaParameters.Add(paramExpr);
 
-        this.Parameters.Add(new IndexedParameterExpression { Parameter = paramExpr, Index = argCount + 1 });
+        this.Parameters.Add(new IndexedParameterExpression { Parameter = paramExpr, Index = argCount });
 
         argCount++;
       }

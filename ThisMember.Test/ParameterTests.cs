@@ -53,6 +53,10 @@ namespace ThisMember.Test
       var result = mapper.Map(new SourceType(), new DestinationType(), 10);
 
       Assert.AreEqual(10, result.ID);
+
+      result = mapper.Map(new SourceType(), new DestinationType(), 15);
+
+      Assert.AreEqual(15, result.ID);
     }
   }
 }

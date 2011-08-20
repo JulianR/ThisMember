@@ -10,5 +10,6 @@ namespace ThisMember.Core
   {
     public int Index { get; set; }
     public ParameterExpression Parameter { get; set; }
+    public string Name { get; set; }
   }
 }
