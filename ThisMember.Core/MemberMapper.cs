@@ -43,11 +43,34 @@ namespace ThisMember.Core
 
       newMap.DestinationType = map.DestinationType;
       newMap.SourceType = map.SourceType;
-      newMap.MappingFunction = (Func<TSource, TDestination, TDestination>)map.MappingFunction;
+      newMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TDestination>;
+
+      if (newMap.MappingFunction == null)
+      {
+        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called without parameters. Use another overload of Map or recreate the map without a parameter.", typeof(TSource), typeof(TDestination)));
+      }
 
       ((MemberMap)newMap).MappingFunction = map.MappingFunction;
 
       return newMap;
+    }
+
+    private static bool TryToGenericMemberMap<TSource, TDestination>(MemberMap map, out MemberMap<TSource, TDestination> genericMap)
+    {
+      genericMap = new MemberMap<TSource, TDestination>();
+
+      genericMap.DestinationType = map.DestinationType;
+      genericMap.SourceType = map.SourceType;
+      genericMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TDestination>;
+
+      if (genericMap.MappingFunction == null)
+      {
+        return false;
+      }
+
+      ((MemberMap)genericMap).MappingFunction = map.MappingFunction;
+
+      return true;
     }
 
     private static Projection<TSource, TDestination> ToGenericProjection<TSource, TDestination>(Projection projection)
@@ -235,7 +258,12 @@ namespace ThisMember.Core
 
         if (map == null)
         {
-          map = ToGenericMemberMap<TSource, TDestination>(nonGeneric);
+          var success = TryToGenericMemberMap<TSource, TDestination>(nonGeneric, out map);
+
+          if (!success)
+          {
+            return false;
+          }
 
           lock (this.maps)
           {
@@ -437,7 +465,7 @@ namespace ThisMember.Core
       }
       if (BeforeMapping != null) BeforeMapping(this, pair);
 
-      var func = map.MappingFunction as Func<TSource, TDestination, TParam,  TDestination>;
+      var func = map.MappingFunction as Func<TSource, TDestination, TParam, TDestination>;
 
       if (func == null)
       {
