@@ -174,7 +174,7 @@ namespace ThisMember.Core
 
       if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
       {
-        processor.ParametersToReplace.Add(new ParameterTuple(customMapping.Parameters.First().Parameter, sourceParam));
+        processor.ParametersToReplace.Add(new ParameterTuple(customMapping.SourceParameter, sourceParam));
 
         bindSourceToDest = Expression.Bind(member.DestinationMember, customExpression);
       }

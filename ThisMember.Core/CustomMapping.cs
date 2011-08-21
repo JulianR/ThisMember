@@ -35,13 +35,15 @@ namespace ThisMember.Core.Interfaces
 
     public Type DestinationType { get; set; }
 
-    public IList<IndexedParameterExpression> Parameters { get; set; }
+    public ParameterExpression SourceParameter { get; set; }
+
+    public IList<IndexedParameterExpression> ArgumentParameters { get; set; }
 
     public CustomMapping()
     {
       CustomMappings = new List<CustomMapping>();
       Members = new List<MemberExpressionTuple>();
-      Parameters = new List<IndexedParameterExpression>();
+      ArgumentParameters = new List<IndexedParameterExpression>();
     }
 
     public static CustomMapping GetCustomMapping(Type destinationType, Expression expression)
@@ -72,7 +74,14 @@ namespace ThisMember.Core.Interfaces
       int index = 0;
       foreach (var param in lambda.Parameters)
       {
-        mapping.Parameters.Add(new IndexedParameterExpression { Index = index, Parameter = param });
+        if (mapping.SourceParameter == null)
+        {
+          mapping.SourceParameter = param;
+        }
+        else
+        {
+          mapping.ArgumentParameters.Add(new IndexedParameterExpression { Index = index, Parameter = param });
+        }
         index++;
       }
 
@@ -81,10 +90,10 @@ namespace ThisMember.Core.Interfaces
 
     public class ParameterVisitor : ExpressionVisitor
     {
-      private IList<IndexedParameterExpression> _newParams;
-      private IList<IndexedParameterExpression> _oldParams;
+      private IList<ParameterExpression> _newParams;
+      private IList<ParameterExpression> _oldParams;
 
-      public ParameterVisitor(IList<IndexedParameterExpression> oldParams, IList<IndexedParameterExpression> newParams)
+      public ParameterVisitor(IList<ParameterExpression> oldParams, IList<ParameterExpression> newParams)
       {
         _oldParams = oldParams;
         _newParams = newParams;
@@ -94,9 +103,9 @@ namespace ThisMember.Core.Interfaces
       {
         for (var i = 0; i < _oldParams.Count; i++)
         {
-          if (_oldParams[i].Parameter == node)
+          if (_oldParams[i] == node)
           {
-            return _newParams[i].Parameter;
+            return _newParams[i];
           }
         }
         return base.VisitParameter(node);
@@ -116,7 +125,13 @@ namespace ThisMember.Core.Interfaces
         {
           if (!root.Members.Contains(m))
           {
-            var visitor = new ParameterVisitor(otherMapping.Parameters, root.Parameters);
+            var oldParams = otherMapping.ArgumentParameters.Select(p => p.Parameter).ToList();
+            var newParams = root.ArgumentParameters.Select(p => p.Parameter).ToList();
+
+            oldParams.Add(otherMapping.SourceParameter);
+            newParams.Add(root.SourceParameter);
+
+            var visitor = new ParameterVisitor(oldParams, newParams);
 
             var member = new MemberExpressionTuple
             {

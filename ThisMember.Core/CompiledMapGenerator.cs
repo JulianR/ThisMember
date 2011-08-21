@@ -108,6 +108,17 @@ namespace ThisMember.Core
     )
     {
 
+      if (customMapping != null)
+      {
+        mapProcessor.ParametersToReplace.Add(new ParameterTuple(customMapping.SourceParameter, source));
+
+        foreach (var param in customMapping.ArgumentParameters)
+        {
+          var correspondingParam = this.Parameters.Single(p => p.Index == param.Index);
+          mapProcessor.ParametersToReplace.Add(new ParameterTuple(param.Parameter, correspondingParam.Parameter));
+        }
+      }
+
       foreach (var member in typeMapping.ProposedMappings)
       {
         BuildMemberAssignmentExpressions(source, destination, member, expressions, customMapping);
@@ -185,12 +196,6 @@ namespace ThisMember.Core
 
       if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
       {
-        foreach (var param in customMapping.Parameters)
-        {
-          var correspondingParam = this.Parameters.Single(p => p.Index == param.Index);
-          mapProcessor.ParametersToReplace.Add(new ParameterTuple(param.Parameter, correspondingParam.Parameter));
-        }
-       
         assignSourceToDest = Expression.Assign(destMember, customExpression);
       }
       else
