@@ -64,6 +64,7 @@
     <Compile Include="Interfaces\IMappingStrategy.cs" />
     <Compile Include="Interfaces\IMapRepository.cs" />
     <Compile Include="Interfaces\IMemberMapper.cs" />
+    <Compile Include="Interfaces\IMemberMapperConfiguration.cs" />
     <Compile Include="Interfaces\IProjectionGenerator.cs" />
     <Compile Include="Interfaces\IProjectionGeneratorFactory.cs" />
     <Compile Include="MapCollection.cs" />
@@ -72,6 +73,7 @@
     <Compile Include="DefaultMappingStrategy.cs" />
     <Compile Include="MapProposalProcessor.cs" />
     <Compile Include="MapRepositoryBase.cs" />
+    <Compile Include="DefaultMemberMapperConfiguration.cs" />
     <Compile Include="Projectables\IProjectable.cs" />
     <Compile Include="Projectables\QueryableExtensions.cs" />
     <Compile Include="Projectables\QueryableProjectable.cs" />

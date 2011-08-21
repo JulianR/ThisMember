@@ -61,7 +61,7 @@ namespace ThisMember.Test
     }
 
     [TestMethod]
-    [ExpectedException(typeof(MapNotFoundException))]
+    [ExpectedException(typeof(InvalidOperationException))]
     public void GetMapWithoutSupplyingParameterTypeThrowsMapNotFoundException()
     {
       var mapper = new MemberMapper();

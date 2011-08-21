@@ -53,6 +53,7 @@
     <Compile Include="CustomMappingTests.cs" />
     <Compile Include="DefaultMappingStrategyTests.cs" />
     <Compile Include="DefaultMemberMapperEnumerableTests.cs" />
+    <Compile Include="GenericsTests.cs" />
     <Compile Include="IgnoreAttributeTests.cs" />
     <Compile Include="InheritanceTests.cs" />
     <Compile Include="MappingProfilesTests.cs" />

@@ -41,6 +41,8 @@ namespace ThisMember.Core.Interfaces
 
     TDestination Map<TSource, TDestination, TParam>(TSource source, TDestination destination, TParam param);
 
+    TDestination Map<TSource, TDestination, TParam>(TSource source, TParam param) where TDestination : new();
+
     object Map(object source, object destination);
 
     /// <summary>
@@ -67,7 +69,7 @@ namespace ThisMember.Core.Interfaces
     /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
-    ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MappingOptions options = null);
+    ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping, MappingOptions options = null);
 
     /// <summary>
     /// Creates and finalizes a map that may no longer be modified.
@@ -86,6 +88,14 @@ namespace ThisMember.Core.Interfaces
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
     MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null);
+
+    /// <summary>
+    /// Creates a map proposal that may be modified later.
+    /// </summary>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    MemberMap<TSource, TDestination, TParam> CreateMap<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping, MappingOptions options = null);
 
     /// <summary>
     /// Creates and finalizes a projection from one type to another that may no longer be modified.
@@ -113,9 +123,13 @@ namespace ThisMember.Core.Interfaces
 
     MemberMap GetMap(Type source, Type destination);
 
+    MemberMap<TSource, TDestination, TParam> GetMap<TSource, TDestination, TParam>();
+
     bool TryGetMap<TSource, TDestination>(out MemberMap<TSource, TDestination> map);
 
     bool TryGetMap(Type source, Type destination, out MemberMap map);
+
+    bool TryGetMap<TSource, TDestination, TParam>(out MemberMap<TSource, TDestination, TParam> map);
 
     bool HasProjection<TSource, TDestination>();
 

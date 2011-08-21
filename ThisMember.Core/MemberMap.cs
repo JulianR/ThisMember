@@ -40,6 +40,42 @@ namespace ThisMember.Core
   /// </summary>
   public class MemberMap<TSource, TDestination> : MemberMap
   {
-    public new Func<TSource, TDestination, TDestination> MappingFunction { get; set; }
+    private Func<TSource, TDestination, TDestination> mappingFunction;
+
+    public new Func<TSource, TDestination, TDestination> MappingFunction
+    {
+      get
+      {
+        return this.mappingFunction;
+      }
+      set
+      {
+        this.mappingFunction = value;
+        ((MemberMap)this).MappingFunction = value;
+      }
+    }
+
+  }
+
+  /// <summary>
+  /// The final, compiled map for a certain source and destination type.
+  /// </summary>
+  public class MemberMap<TSource, TDestination, TParam> : MemberMap
+  {
+    private Func<TSource, TDestination, TParam, TDestination> mappingFunction;
+
+    public new Func<TSource, TDestination, TParam, TDestination> MappingFunction
+    {
+      get
+      {
+        return this.mappingFunction;
+      }
+      set
+      {
+        this.mappingFunction = value;
+        ((MemberMap)this).MappingFunction = value;
+      }
+    }
+
   }
 }

@@ -22,7 +22,7 @@ namespace ThisMember.Core
 
     public IList<Type> ParameterTypes { get; set; }
 
-    private readonly IMemberMapper mapper;
+    protected readonly IMemberMapper mapper;
 
     public ProposedMap(IMemberMapper mapper)
     {
@@ -32,7 +32,7 @@ namespace ThisMember.Core
 
     protected Dictionary<Type, LambdaExpression> constructorCache = new Dictionary<Type, LambdaExpression>();
 
-    public MemberMap FinalizeMap()
+    public virtual MemberMap FinalizeMap()
     {
       EnsureNoInvalidMappings();
 
@@ -50,7 +50,7 @@ namespace ThisMember.Core
       return map;
     }
 
-    public Projection FinalizeProjection()
+    public virtual Projection FinalizeProjection()
     {
       EnsureNoInvalidMappings();
 
@@ -73,7 +73,7 @@ namespace ThisMember.Core
       EnsureNoInvalidMappings();
     }
 
-    private void EnsureNoInvalidMappings()
+    protected void EnsureNoInvalidMappings()
     {
       var invalidPropertyMappings = new List<PropertyOrFieldInfo>();
 
@@ -147,6 +147,43 @@ namespace ThisMember.Core
     public ProposedMap(IMemberMapper mapper)
       : base(mapper)
     {
+    }
+
+    public override MemberMap FinalizeMap()
+    {
+      EnsureNoInvalidMappings();
+
+      var map = new MemberMap<TSource, TDestination>();
+
+      map.SourceType = this.SourceType;
+      map.DestinationType = this.DestinationType;
+
+      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper);
+
+      map.MappingFunction = (Func<TSource,TDestination,TDestination>)generator.GenerateMappingFunction(this);
+
+      mapper.RegisterMap(map);
+
+      return map;
+    }
+
+    public override Projection FinalizeProjection()
+    {
+      EnsureNoInvalidMappings();
+
+      var projection = new Projection<TSource, TDestination>();
+
+      projection.SourceType = this.SourceType;
+      projection.DestinationType = this.DestinationType;
+
+      var generator = this.mapper.ProjectionGeneratorFactory.GetGenerator(this.mapper);
+
+      projection.Expression = (Expression<Func<TSource, TDestination>>)generator.GetProjection(this);
+
+      mapper.RegisterProjection(projection);
+
+      return projection;
+
     }
 
     /// <summary>
@@ -289,6 +326,24 @@ namespace ThisMember.Core
     public ProposedMap(IMemberMapper mapper)
       : base(mapper)
     {
+    }
+
+    public override MemberMap FinalizeMap()
+    {
+      EnsureNoInvalidMappings();
+
+      var map = new MemberMap<TSource, TDestination, TParam>();
+
+      map.SourceType = this.SourceType;
+      map.DestinationType = this.DestinationType;
+
+      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper);
+
+      map.MappingFunction = (Func<TSource, TDestination, TParam, TDestination>)generator.GenerateMappingFunction(this);
+
+      mapper.RegisterMap(map);
+
+      return map;
     }
   }
 }

@@ -23,6 +23,19 @@ namespace ThisMember.Core
   /// </summary>
   public class Projection<TSource, TDestination> : Projection
   {
-    public new Expression<Func<TSource, TDestination>> Expression { get; set; }
+    private Expression<Func<TSource, TDestination>> expression;
+
+    public new Expression<Func<TSource, TDestination>> Expression
+    {
+      get
+      {
+        return this.expression;
+      }
+      set
+      {
+        this.expression = value;
+        ((Projection)this).Expression = value;
+      }
+    }
   }
 }

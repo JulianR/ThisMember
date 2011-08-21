@@ -189,9 +189,12 @@ namespace ThisMember.Core
           }
         }
 
-        lock (mappingCache)
+        if (!typeMapping.DoNotCache)
         {
-          mappingCache[pair] = typeMapping;
+          lock (mappingCache)
+          {
+            mappingCache[pair] = typeMapping;
+          }
         }
 
         _typeStack.Pop();
@@ -226,6 +229,10 @@ namespace ThisMember.Core
           complexTypeMapping.CustomMapping = customMappingForType;
 
           typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
+        }
+        else
+        {
+          typeMapping.DoNotCache = true;
         }
       }
 
@@ -268,6 +275,10 @@ namespace ThisMember.Core
             complexTypeMapping.CustomMapping = customMappingForType;
 
             typeMapping.ProposedTypeMappings.Add(complexTypeMapping);
+          }
+          else
+          {
+            typeMapping.DoNotCache = true;
           }
         }
       }
