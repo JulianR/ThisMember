@@ -143,18 +143,11 @@ namespace ThisMember.Core
     {
       if (destination.Type.IsNullableValueType() && !source.Type.IsNullableValueType())
       {
-        var nullableType = destination.Type.GetGenericArguments().Single();
-
-        source = Expression.New(destination.Type.GetConstructor(new[] { nullableType }), source);
+        source = HandleDestinationNullableValueType(destination, source);
       }
       else if (!destination.Type.IsNullableValueType() && source.Type.IsNullableValueType())
       {
-        var nullableType = source.Type.GetGenericArguments().Single();
-
-        Expression elseClause = mapper.Options.Conventions.IgnoreMembersWithNullValueOnSource ?
-        (Expression)destination : Expression.Default(nullableType);
-
-        source = Expression.Condition(Expression.IsTrue(Expression.Property(source, "HasValue")), Expression.Property(source, "Value"), elseClause);
+        source = HandleSourceNullableValueType(destination, source);
       }
       else if (source.Type.IsClass && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
         && source.Type.IsAssignableFrom(destination.Type))
@@ -163,6 +156,25 @@ namespace ThisMember.Core
       }
 
       return Expression.Assign(destination, source);
+    }
+
+    private Expression HandleSourceNullableValueType(MemberExpression destination, Expression source)
+    {
+      var nullableType = source.Type.GetGenericArguments().Single();
+
+      Expression elseClause = mapper.Options.Conventions.IgnoreMembersWithNullValueOnSource ?
+      (Expression)destination : Expression.Default(nullableType);
+
+      source = Expression.Condition(Expression.IsTrue(Expression.Property(source, "HasValue")), Expression.Property(source, "Value"), elseClause);
+      return source;
+    }
+
+    private static Expression HandleDestinationNullableValueType(MemberExpression destination, Expression source)
+    {
+      var nullableType = destination.Type.GetGenericArguments().Single();
+
+      source = Expression.New(destination.Type.GetConstructor(new[] { nullableType }), source);
+      return source;
     }
 
     private void BuildMemberAssignmentExpressions

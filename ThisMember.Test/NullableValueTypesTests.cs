@@ -151,5 +151,55 @@ namespace ThisMember.Test
 
     }
 
+    public enum FooEnum
+    {
+      A,
+      B
+    }
+
+    class EnumSourceType
+    {
+      public FooEnum Foo { get; set; }
+    }
+
+    class EnumDestinationType
+    {
+      public FooEnum? Foo { get; set; }
+    }
+
+
+    [TestMethod]
+    public void NonNullableToNullableWithProjectionsWorksAsExpected()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Project<EnumSourceType, EnumDestinationType>().Compile()(new EnumSourceType { Foo = FooEnum.B });
+
+      Assert.AreEqual(FooEnum.B, result.Foo);
+
+    }
+
+    [TestMethod]
+    public void NullableToNonNullableWithProjectionsWorksAsExpectedWithSourceNull()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Project<EnumDestinationType, EnumSourceType>().Compile()(new EnumDestinationType { Foo = null });
+
+      Assert.AreEqual(default(FooEnum), result.Foo);
+
+    }
+
+    [TestMethod]
+    public void NullableToNonNullableWithProjectionsWorksAsExpectedWithSourceNotNull()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Project<EnumDestinationType, EnumSourceType>().Compile()(new EnumDestinationType { Foo = FooEnum.B });
+
+      Assert.AreEqual(FooEnum.B, result.Foo);
+
+    }
+
   }
 }

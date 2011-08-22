@@ -180,12 +180,40 @@ namespace ThisMember.Core
       }
       else
       {
-        var accessMember = Expression.MakeMemberAccess(sourceAccess, member.SourceMember);
+        Expression accessMember = Expression.MakeMemberAccess(sourceAccess, member.SourceMember);
+
+        accessMember = HandleNullableValueTypes(member, accessMember);
 
         bindSourceToDest = Expression.Bind(member.DestinationMember, accessMember);
       }
 
       memberBindings.Add(bindSourceToDest);
+    }
+
+    private static Expression HandleNullableValueTypes(ProposedMemberMapping member, Expression accessMember)
+    {
+      if (member.DestinationMember.PropertyOrFieldType.IsNullableValueType() &&
+        !member.SourceMember.PropertyOrFieldType.IsNullableValueType())
+      {
+        var nullableType = member
+          .DestinationMember
+          .PropertyOrFieldType
+          .GetGenericArguments()
+          .Single();
+
+        accessMember = Expression.New(member.DestinationMember.PropertyOrFieldType.GetConstructor(new[] { nullableType }), accessMember);
+      }
+      else if (!member.DestinationMember.PropertyOrFieldType.IsNullableValueType()
+        && member.SourceMember.PropertyOrFieldType.IsNullableValueType())
+      {
+        var nullableType = member.SourceMember.PropertyOrFieldType.GetGenericArguments().Single();
+
+
+        accessMember = Expression.Condition(Expression.IsTrue(Expression.Property(accessMember, "HasValue")),
+          Expression.Property(accessMember, "Value"),
+          Expression.Default(member.DestinationMember.PropertyOrFieldType));
+      }
+      return accessMember;
     }
   }
 }
