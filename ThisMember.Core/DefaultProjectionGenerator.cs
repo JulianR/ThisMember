@@ -117,7 +117,7 @@ namespace ThisMember.Core
 
       Expression finalExpression;
 
-      var conversionMethod = DetermineIEnumerableConversionMethod(complexMember.DestinationMember.PropertyOrFieldType, typeOfSourceEnumerable,typeOfDestEnumerable);
+      var conversionMethod = DetermineIEnumerableConversionMethod(complexMember.DestinationMember.PropertyOrFieldType, typeOfSourceEnumerable, typeOfDestEnumerable);
 
       if (conversionMethod != null)
       {
@@ -174,7 +174,7 @@ namespace ThisMember.Core
 
       if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
       {
-        processor.ParametersToReplace.Add(new ParameterTuple(customMapping.SourceParameter, sourceParam));
+        processor.ParametersToReplace.Add(new ProjectionExpressionTuple(customMapping.SourceParameter, sourceAccess));
 
         bindSourceToDest = Expression.Bind(member.DestinationMember, customExpression);
       }

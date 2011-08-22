@@ -19,6 +19,8 @@ namespace ThisMember.Core.Projectables
     TSource First();
 
     TSource Single();
+
+    ISingularProjectable<TResult> Project<TResult>(Expression<Func<TSource, TResult>> projection);
   }
 
   /// <summary>
@@ -34,6 +36,8 @@ namespace ThisMember.Core.Projectables
     TSource FirstOrDefault();
 
     TSource SingleOrDefault();
+
+    IOptionalProjectable<TResult> Project<TResult>(Expression<Func<TSource, TResult>> projection);
   }
 
   /// <summary>
@@ -55,10 +59,12 @@ namespace ThisMember.Core.Projectables
     IList<TResult> Page<TResult>(Expression<Func<TSource, TResult>> projection, int start = 0, int limit = -1);
 
     IList<TSource> Page(int start = 0, int limit = -1);
+
+    ICollectionProjectable<TResult> Project<TResult>(Expression<Func<TSource, TResult>> projection);
   }
 
   public interface IProjectable<TSource> : ISingularProjectable<TSource>, IOptionalProjectable<TSource>, ICollectionProjectable<TSource>
   {
-
+    IProjectable<TResult> Project<TResult>(Expression<Func<TSource, TResult>> projection);
   }
 }

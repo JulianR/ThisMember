@@ -67,5 +67,103 @@ namespace ThisMember.Test
 
 
     }
+
+
+    class Customer
+    {
+      public IList<Address> Addresses { get; set; }
+    }
+
+    class Address
+    {
+      public Country Country { get; set; }
+    }
+
+    class Country
+    {
+      public string Name { get; set; }
+    }
+
+    class CustomerDto
+    {
+      public IList<AddressDto> Addresses { get; set; }
+    }
+
+    class AddressDto
+    {
+      public string CountryName { get; set; }
+    }
+
+    [TestMethod]
+    public void NestedCollectionWithCustomMappingWorks()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<Address, AddressDto>(src => new AddressDto
+      {
+        CountryName = src.Country.Name
+      });
+
+      var projection = mapper.Project<Customer, CustomerDto>();
+
+      var method = projection.Compile();
+
+      var result = method(new Customer
+      {
+        Addresses = new List<Address>
+        {
+          new Address
+          {
+            Country = new Country
+            {
+              Name = "X"
+            }
+          }
+        }
+      });
+
+      Assert.AreEqual("X", result.Addresses.Single().CountryName);
+
+    }
+
+    class CustomerSingleAddress
+    {
+      public Address Address { get; set; }
+    }
+
+    class CustomerSingleAddressDto
+    {
+      public AddressDto Address { get; set; }
+    }
+
+    [TestMethod]
+    public void NestedPropertyWithCustomMappingWorks()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<Address, AddressDto>(src => new AddressDto
+      {
+        CountryName = src.Country.Name
+      });
+
+      var projection = mapper.Project<CustomerSingleAddress, CustomerSingleAddressDto>();
+
+      var method = projection.Compile();
+
+      var result = method(new CustomerSingleAddress
+      {
+        Address =
+          new Address
+          {
+            Country = new Country
+            {
+              Name = "X"
+            }
+          }
+      });
+
+      Assert.AreEqual("X", result.Address.CountryName);
+
+    }
   }
 }

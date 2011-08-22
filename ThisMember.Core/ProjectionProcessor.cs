@@ -7,15 +7,27 @@ using System.Linq.Expressions;
 
 namespace ThisMember.Core
 {
+  internal class ProjectionExpressionTuple
+  {
+    public ParameterExpression OldParameter { get; set; }
+    public Expression NewExpression { get; set; }
+
+    public ProjectionExpressionTuple(ParameterExpression oldParam, Expression newParam)
+    {
+      OldParameter = oldParam;
+      NewExpression = newParam;
+    }
+  }
+
   internal class ProjectionProcessor
   {
-    public IList<ParameterTuple> ParametersToReplace { get; private set; }
+    public IList<ProjectionExpressionTuple> ParametersToReplace { get; private set; }
 
     public IMemberMapper MemberMapper { get; private set; }
 
     public ProjectionProcessor(IMemberMapper mapper)
     {
-      ParametersToReplace = new List<ParameterTuple>();
+      ParametersToReplace = new List<ProjectionExpressionTuple>();
       this.MemberMapper = mapper;
     }
 
@@ -30,9 +42,9 @@ namespace ThisMember.Core
 
     private class ParameterVisitor : ExpressionVisitor
     {
-      private IList<ParameterTuple> parameters;
+      private IList<ProjectionExpressionTuple> parameters;
 
-      public ParameterVisitor(IList<ParameterTuple> parameters)
+      public ParameterVisitor(IList<ProjectionExpressionTuple> parameters)
       {
         this.parameters = parameters;
       }
@@ -43,7 +55,7 @@ namespace ThisMember.Core
         {
           if (param.OldParameter == parameter)
           {
-            return param.NewParameter;
+            return param.NewExpression;
           }
         }
 

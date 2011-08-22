@@ -101,7 +101,16 @@ namespace ThisMember.Core.Projectables
       }
 
       return query.ToList();
+    }
 
+    public static Dictionary<TKey, TElement> ToDictionary<T, TKey, TElement>(IQueryable<T> query, Func<T, TKey> keySelector, Func<T, TElement> elementSelector)
+    {
+      return query.ToDictionary(keySelector, elementSelector);
+    }
+
+    public static Dictionary<TKey, T> ToDictionary<T, TKey>(IQueryable<T> query, Func<T, TKey> keySelector)
+    {
+      return query.ToDictionary(keySelector);
     }
   }
 
@@ -143,6 +152,11 @@ namespace ThisMember.Core.Projectables
     {
       return ProjectableMethods.Single(query);
     }
+
+    public ISingularProjectable<TResult> Project<TResult>(Expression<Func<T, TResult>> projection)
+    {
+      return new SingularQueryableProjectable<TResult>(query.Select(projection));
+    }
   }
 
   public class OptionalQueryableProjectable<T> : QueryableProjectableBase<T>, IOptionalProjectable<T>
@@ -170,6 +184,11 @@ namespace ThisMember.Core.Projectables
     public T SingleOrDefault()
     {
       return ProjectableMethods.SingleOrDefault(query);
+    }
+
+    public IOptionalProjectable<TResult> Project<TResult>(Expression<Func<T, TResult>> projection)
+    {
+      return new OptionalQueryableProjectable<TResult>(query.Select(projection));
     }
   }
 
@@ -213,6 +232,21 @@ namespace ThisMember.Core.Projectables
     public IList<T> Page(int start = 0, int limit = -1)
     {
       return ProjectableMethods.Page(query, start, limit);
+    }
+
+    public Dictionary<TKey, TElement> ToDictionary<TKey, TElement>(Func<T, TKey> keySelector, Func<T, TElement> elementSelector)
+    {
+      return ProjectableMethods.ToDictionary<T, TKey, TElement>(query, keySelector, elementSelector);
+    }
+
+    public Dictionary<TKey, T> ToDictionary<TKey>(Func<T, TKey> keySelector)
+    {
+      return ProjectableMethods.ToDictionary<T, TKey>(query, keySelector);
+    }
+
+    public ICollectionProjectable<TResult> Project<TResult>(Expression<Func<T, TResult>> projection)
+    {
+      return new CollectionQueryableProjectable<TResult>(query.Select(projection));
     }
   }
 
@@ -298,6 +332,25 @@ namespace ThisMember.Core.Projectables
     {
       return ProjectableMethods.Page(query, start, limit);
     }
-  }
 
+    public IProjectable<TResult> Project<TResult>(Expression<Func<T, TResult>> projection)
+    {
+      return new QueryableProjectable<TResult>(query.Select(projection));
+    }
+
+    ISingularProjectable<TResult> ISingularProjectable<T>.Project<TResult>(Expression<Func<T, TResult>> projection)
+    {
+      return new SingularQueryableProjectable<TResult>(query.Select(projection)); 
+    }
+
+    IOptionalProjectable<TResult> IOptionalProjectable<T>.Project<TResult>(Expression<Func<T, TResult>> projection)
+    {
+      return new OptionalQueryableProjectable<TResult>(query.Select(projection));
+    }
+
+    ICollectionProjectable<TResult> ICollectionProjectable<T>.Project<TResult>(Expression<Func<T, TResult>> projection)
+    {
+      return new CollectionQueryableProjectable<TResult>(query.Select(projection));
+    }
+  }
 }
