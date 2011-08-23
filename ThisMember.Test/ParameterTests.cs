@@ -46,10 +46,10 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMapProposal<SourceType, DestinationType, int>((src, i) => new DestinationType
+      mapper.CreateMap<SourceType, DestinationType, int>((src, i) => new DestinationType
       {
         ID = i
-      }).FinalizeMap();
+      });
 
       var result = mapper.Map(new SourceType(), new DestinationType(), 10);
 

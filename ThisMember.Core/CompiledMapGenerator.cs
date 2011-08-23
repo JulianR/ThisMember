@@ -82,7 +82,7 @@ namespace ThisMember.Core
 
       if (typeof(int) == t)
       {
-        return new String(validIntNames[intCounter++], 1);
+        return new String(validIntNames[(intCounter++) % validIntNames.Length], 1);
       }
 
       if (typeof(IEnumerable).IsAssignableFrom(t))

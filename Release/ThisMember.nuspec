@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>ThisMember</id>
+    <version>1.0.2</version>
+    <authors>Julian Rooze</authors>
+    <owners>Julian Rooze</owners>
+    <licenseUrl>https://raw.github.com/JulianR/ThisMember/master/license.txt</licenseUrl>
+    <projectUrl>https://github.com/JulianR/ThisMember/wiki</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Easy and fast convention-based mapping between arbitrary types.</description>
+    <summary>View the wiki on the project's GitHub site for more information.</summary>
+    <tags>Mapping Map Performance Fast Convention</tags>
+  </metadata>
+  <files>
+    <file src="lib\ThisMember.dll" target="lib\ThisMember.dll" />
+  </files>
+</package>
