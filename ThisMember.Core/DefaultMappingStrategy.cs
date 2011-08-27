@@ -318,6 +318,10 @@ namespace ThisMember.Core
           {
             return true;
           }
+          else if (ConversionTypeHelper.AreConvertible(sourceMember.PropertyOrFieldType, destinationMember.PropertyOrFieldType))
+          {
+            return true;
+          }
           else
           {
             return false;

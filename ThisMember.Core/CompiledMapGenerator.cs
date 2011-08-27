@@ -154,6 +154,10 @@ namespace ThisMember.Core
       {
         source = Expression.Condition(Expression.NotEqual(source, Expression.Constant(null)), source, destination);
       }
+      else if(!source.Type.IsAssignableFrom(destination.Type))
+      {
+        source = Expression.Convert(source, destination.Type);
+      }
 
       return Expression.Assign(destination, source);
     }

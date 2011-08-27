@@ -23,6 +23,10 @@ namespace ThisMember.Core
 
     private Dictionary<TypePair, Projection> projections = new Dictionary<TypePair, Projection>();
 
+    public MemberMapper() : this(new DefaultMemberMapperConfiguration())
+    {
+    }
+
     public MemberMapper(IMemberMapperConfiguration config)
     {
       this.MappingStrategy = config.GetMappingStrategy(this);
