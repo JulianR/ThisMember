@@ -10,7 +10,8 @@ namespace ThisMember.Core
     public static bool AreConvertible(Type source, Type destination)
     {
       return AreExplicitlyConvertible(source, destination)
-        || AreImplicitlyConvertible(source, destination);
+        || AreImplicitlyConvertible(source, destination)
+        || CanConvertToOrFromEnum(source, destination);
     }
 
     public static bool AreImplicitlyConvertible(Type source, Type destination)
@@ -25,6 +26,12 @@ namespace ThisMember.Core
       var method = source.GetMethod("op_Explicit", new[] { source });
 
       return (method != null && method.ReturnType == destination) || legalConversions.Contains(new TypePair(source, destination));
+    }
+
+    public static bool CanConvertToOrFromEnum(Type source, Type destination)
+    {
+      return (source.IsEnum && (destination == typeof(int) || legalConversions.Contains(new TypePair(destination, typeof(int)))))
+      || (destination.IsEnum && (source == typeof(int) || legalConversions.Contains(new TypePair(source, typeof(int)))));
     }
 
     private readonly static HashSet<TypePair> legalConversions = new HashSet<TypePair>

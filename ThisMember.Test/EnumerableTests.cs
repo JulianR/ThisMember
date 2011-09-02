@@ -8,7 +8,7 @@ using ThisMember.Core;
 namespace ThisMember.Test
 {
   [TestClass]
-  public class MemberMapperEnumerableTests
+  public class EnumerableTests
   {
 
     private class SourceElement
@@ -981,6 +981,22 @@ namespace ThisMember.Test
       var result = mapper.Map<SourceElement[], ICollection<DestElement>>(source, destination);
 
       Assert.AreEqual("X", result.First().Value);
+    }
+
+    [TestMethod]
+    public void ExistingListsValuesArePersisted()
+    {
+      var mapper = new MemberMapper();
+
+      var list = new List<int> { 1, 2, 3, 4, 5 };
+
+      var array = new[] { 6, 7, 8, 9, 0 };
+
+      mapper.Map<int[], List<int>>(array, list);
+
+      Assert.IsTrue(list.Contains(9));
+      Assert.AreEqual(10, list.Count);
+
     }
 
   }

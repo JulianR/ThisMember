@@ -51,9 +51,11 @@
     <Compile Include="ComplexMappingTests.cs" />
     <Compile Include="ConstructorTests.cs" />
     <Compile Include="ConversionTests.cs" />
+    <Compile Include="CustomMappingAutoConversionTests.cs" />
     <Compile Include="CustomMappingTests.cs" />
     <Compile Include="DefaultMappingStrategyTests.cs" />
-    <Compile Include="DefaultMemberMapperEnumerableTests.cs" />
+    <Compile Include="EnumerableTests.cs" />
+    <Compile Include="EnumTests.cs" />
     <Compile Include="GenericsTests.cs" />
     <Compile Include="IgnoreAttributeTests.cs" />
     <Compile Include="InheritanceTests.cs" />

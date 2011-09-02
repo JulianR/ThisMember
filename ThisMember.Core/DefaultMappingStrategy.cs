@@ -136,7 +136,7 @@ namespace ThisMember.Core
 
           var nullableType = TryGetNullableType(sourceMember);
 
-          var canUseSimpleTypeMapping = CanUseSimpleTypeMapping(pair, destinationMember, sourceMember, nullableType);
+          var canUseSimpleTypeMapping = CanUseDirectAssignment(pair, destinationMember, sourceMember, nullableType);
 
           if (canUseSimpleTypeMapping || customExpression != null)
           {
@@ -304,7 +304,7 @@ namespace ThisMember.Core
         return false;
       }
 
-      private bool CanUseSimpleTypeMapping(TypePair pair, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type nullableType)
+      private bool CanUseDirectAssignment(TypePair pair, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type nullableType)
       {
 
         if (sourceMember == null)

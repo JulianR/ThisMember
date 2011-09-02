@@ -128,7 +128,7 @@ namespace ThisMember.Core
       {
         if (typeMapping.IsEnumerable || CollectionTypeHelper.IsEnumerable(complexTypeMapping))
         {
-          BuildCollectionComplexTypeMappingExpressions(source, destination, complexTypeMapping, expressions);
+          BuildCollectionComplexTypeMappingExpressions(source, destination, complexTypeMapping, expressions, typeMapping.IsEnumerable);
         }
         else
         {
@@ -236,7 +236,8 @@ namespace ThisMember.Core
       ParameterExpression source,
       ParameterExpression destination,
       ProposedTypeMapping complexTypeMapping,
-      List<Expression> expressions
+      List<Expression> expressions,
+      bool isEnumerable
     )
     {
       if (complexTypeMapping.Ignored)
@@ -334,13 +335,21 @@ namespace ThisMember.Core
       {
         destinationCollectionType = typeof(List<>).MakeGenericType(destinationCollectionElementType);
 
+        Expression assignListTypeToParameter;
+
         var createDestinationCollection = Expression.New(destinationCollectionType);
 
-        //destinationCollection = Expression.Parameter(destinationCollectionType, GetCollectionName());
+        if (false && IsListType(destinationCollectionType) && !destinationCollectionType.IsArray)
+        {
+          assignListTypeToParameter = null;
+        }
+        else
+        {
+          assignListTypeToParameter = Expression.New(destinationCollectionType);
+        }
+
 
         destinationCollection = ObtainParameter(destinationCollectionType);
-
-        //newParameters.Add(destinationCollection);
 
         // destination = new List<DestinationType>();
         var assignNewCollectionToDestination = Expression.Assign(destinationCollection, createDestinationCollection);
@@ -404,7 +413,7 @@ namespace ThisMember.Core
 
       }
 
-      // If it's an IList, we want to iterate through it using a good old for-loop for speed.
+      // If it's an IList, we want to iterate through it using a good old for-loop for maximum efficiency.
       if (IsListType(sourceMemberPropertyType))
       {
         var assignZeroToIteratorVar = Expression.Assign(iteratorVar, Expression.Constant(0));
@@ -443,16 +452,9 @@ namespace ThisMember.Core
       }
       else // If it's any normal IEnumerable, use this faux foreach loop
       {
-
-        //var getEnumeratorOnSourceMethod = sourceMemberPropertyType.GetMethod("GetEnumerator", Type.EmptyTypes);
-
         var getEnumeratorOnSourceMethod = typeof(IEnumerable<>).MakeGenericType(sourceCollectionElementType).GetMethod("GetEnumerator", Type.EmptyTypes);
 
         var sourceEnumeratorType = getEnumeratorOnSourceMethod.ReturnType;
-
-        //var sourceEnumerator = Expression.Parameter(sourceEnumeratorType, GetEnumeratorName());
-
-        //newParameters.Add(sourceEnumerator);
 
         var sourceEnumerator = ObtainParameter(sourceEnumeratorType);
 
