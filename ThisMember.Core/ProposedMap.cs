@@ -87,7 +87,14 @@ namespace ThisMember.Core
 
         foreach (var property in invalidPropertyMappings)
         {
-          sb.AppendLine(property.DeclaringType.Name + "." + property.Name + ", ");
+          if (!property.CanWrite)
+          {
+            sb.AppendLine(property.DeclaringType.Name + "." + property.Name + " (private setter), ");
+          }
+          else
+          {
+            sb.AppendLine(property.DeclaringType.Name + "." + property.Name + ", ");
+          }
         }
 
         throw new IncompatibleMappingException(sb.ToString());

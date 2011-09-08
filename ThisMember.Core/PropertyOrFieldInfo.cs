@@ -26,6 +26,25 @@ namespace ThisMember.Core.Interfaces
       this.member = member;
     }
 
+    public bool CanWrite
+    {
+      get
+      {
+        if (member.MemberType == MemberTypes.Property)
+        {
+          var property = (PropertyInfo)member;
+
+          return property.GetSetMethod() != null && !property.GetSetMethod().IsPrivate;
+        }
+        else if(member.MemberType == MemberTypes.Field)
+        {
+          return true;
+        }
+
+        return false;
+      }
+    }
+
     public Type PropertyOrFieldType
     {
       get

@@ -125,7 +125,9 @@ namespace ThisMember.Core
 
           var sourceMember = memberProvider.GetMatchingSourceMember(destinationMember);
 
-          if (HasNoSourceMember(customExpression, sourceMember))
+
+
+          if (HasNoSourceMember(customExpression, sourceMember) || !destinationMember.CanWrite)
           {
             typeMapping.IncompatibleMappings.Add(destinationMember);
           }
