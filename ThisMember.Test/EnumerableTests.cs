@@ -791,7 +791,7 @@ namespace ThisMember.Test
 
     class ICollectionElement
     {
-      public string Name { get;set;}
+      public string Name { get; set; }
     }
 
     class ICollectionType
@@ -993,6 +993,78 @@ namespace ThisMember.Test
       var array = new[] { 6, 7, 8, 9, 0 };
 
       mapper.Map<int[], List<int>>(array, list);
+
+      Assert.IsTrue(list.Contains(9));
+      Assert.AreEqual(10, list.Count);
+
+    }
+
+    class SourceArrayPropertyClass
+    {
+      public int[] Foo { get; set; }
+    }
+
+    class DestinationListPropertyClass
+    {
+      public List<int> Foo { get; set; }
+    }
+
+    [TestMethod]
+    public void ExistingListsValuesArePersistedOnListsThatAreProperties()
+    {
+      var mapper = new MemberMapper();
+
+      var list = new List<int> { 1, 2, 3, 4, 5 };
+
+      var array = new[] { 6, 7, 8, 9, 0 };
+
+      var source = new SourceArrayPropertyClass
+      {
+        Foo = array
+      };
+
+      var destination = new DestinationListPropertyClass
+      {
+        Foo = list
+      };
+
+      mapper.Map(source, destination);
+
+      Assert.IsTrue(list.Contains(9));
+      Assert.AreEqual(10, list.Count);
+
+    }
+
+    class SourceEnumerablePropertyClass
+    {
+      public IEnumerable<int> Foo { get; set; }
+    }
+
+    class DestinationIListPropertyClass
+    {
+      public IList<int> Foo { get; set; }
+    }
+
+    [TestMethod]
+    public void ExistingListsValuesArePersistedOnIListsThatAreProperties()
+    {
+      var mapper = new MemberMapper();
+
+      var list = new List<int> { 1, 2, 3, 4, 5 };
+
+      var array = new[] { 6, 7, 8, 9, 0 };
+
+      var source = new SourceEnumerablePropertyClass
+      {
+        Foo = array
+      };
+
+      var destination = new DestinationIListPropertyClass
+      {
+        Foo = list
+      };
+
+      mapper.Map(source, destination);
 
       Assert.IsTrue(list.Contains(9));
       Assert.AreEqual(10, list.Count);

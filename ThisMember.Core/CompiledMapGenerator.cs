@@ -154,7 +154,7 @@ namespace ThisMember.Core
       {
         source = Expression.Condition(Expression.NotEqual(source, Expression.Constant(null)), source, destination);
       }
-      else if(!source.Type.IsAssignableFrom(destination.Type))
+      else if (!source.Type.IsAssignableFrom(destination.Type))
       {
         source = Expression.Convert(source, destination.Type);
       }
@@ -276,6 +276,7 @@ namespace ThisMember.Core
       Type destinationCollectionType;
       ParameterExpression destinationCollection;
 
+      // If SourceMember is null, it means that the root type that is being mapped is enumerable itself.
       Expression accessSourceCollection = complexTypeMapping.SourceMember != null ? (Expression)Expression.MakeMemberAccess(source, complexTypeMapping.SourceMember) : source;
 
       Expression accessSourceCollectionSize;
@@ -314,6 +315,9 @@ namespace ThisMember.Core
         }
       }
 
+      // destination.Collection = newCollection OR return destination, if destination is enumerable itself
+      Expression accessDestinationCollection = complexTypeMapping.DestinationMember != null ? (Expression)Expression.MakeMemberAccess(destination, complexTypeMapping.DestinationMember) : destination;
+
       if (destinationMemberPropertyType.IsArray)
       {
         destinationCollectionType = destinationMemberPropertyType;
@@ -339,20 +343,39 @@ namespace ThisMember.Core
 
         var createDestinationCollection = Expression.New(destinationCollectionType);
 
-        if (false && IsListType(destinationCollectionType) && !destinationCollectionType.IsArray)
+        // If it's an IList but not an array we want to check if the destination property isn't null
+        // and if it isn't, we want to reuse it.
+        if (mapper.Options.Conventions.PreserveDestinationListContents
+          && IsCollectionType(accessDestinationCollection.Type)
+          && !accessDestinationCollection.Type.IsArray)
         {
-          assignListTypeToParameter = null;
+
+          Expression reuseCondition;
+
+          if (mapper.Options.Safety.EnsureCollectionIsNotArrayType)
+          {
+            reuseCondition = Expression.And(Expression.NotEqual(accessDestinationCollection, Expression.Constant(null)),
+              Expression.IsFalse(Expression.TypeIs(accessDestinationCollection, destinationCollectionElementType.MakeArrayType())));
+          }
+          else
+          {
+            reuseCondition = Expression.NotEqual(accessDestinationCollection, Expression.Constant(null));
+          }
+
+          assignListTypeToParameter = Expression.Condition(reuseCondition,
+            accessDestinationCollection,
+            Expression.Convert(createDestinationCollection, accessDestinationCollection.Type));
+
+          destinationCollection = ObtainParameter(accessDestinationCollection.Type);
         }
         else
         {
-          assignListTypeToParameter = Expression.New(destinationCollectionType);
+          assignListTypeToParameter = createDestinationCollection;
+          destinationCollection = ObtainParameter(destinationCollectionType);
         }
 
-
-        destinationCollection = ObtainParameter(destinationCollectionType);
-
         // destination = new List<DestinationType>();
-        var assignNewCollectionToDestination = Expression.Assign(destinationCollection, createDestinationCollection);
+        var assignNewCollectionToDestination = Expression.Assign(destinationCollection, assignListTypeToParameter);
 
         ifNotNullBlock.Add(assignNewCollectionToDestination);
       }
@@ -405,7 +428,8 @@ namespace ThisMember.Core
       }
       else
       {
-        var addMethod = destinationCollectionType.GetMethod("Add", new[] { destinationCollectionElementType });
+        var addMethod = typeof(ICollection<>).MakeGenericType(destinationCollectionElementType).GetMethod("Add", new[] { destinationCollectionElementType });
+       // var addMethod = destinationCollectionType.GetMethod("Add", new[] { destinationCollectionElementType });
         var callAddOnDestinationCollection = Expression.Call(destinationCollection, addMethod, destinationCollectionItem);
 
         // destination.Add(destinationItem);
@@ -494,24 +518,21 @@ namespace ThisMember.Core
 
       }
 
-      // destination.Collection = newCollection OR return destination, if destination is enumerable itself
-      Expression accessDestinationCollection = complexTypeMapping.DestinationMember != null ? (Expression)Expression.MakeMemberAccess(destination, complexTypeMapping.DestinationMember) : destination;
-
       var assignDestinationCollection = Expression.Assign(accessDestinationCollection, destinationCollection);
 
       ifNotNullBlock.Add(assignDestinationCollection);
 
 
-      Expression condition = Expression.NotEqual(accessSourceCollection, Expression.Constant(null));
+      Expression sourceNotNullCondition = Expression.NotEqual(accessSourceCollection, Expression.Constant(null));
 
       if (complexTypeMapping.Condition != null)
       {
         mapProcessor.ParametersToReplace.Add(new ParameterTuple(complexTypeMapping.Condition.Parameters.Single(), this.sourceParameter));
 
-        condition = Expression.AndAlso(condition, complexTypeMapping.Condition.Body);
+        sourceNotNullCondition = Expression.AndAlso(sourceNotNullCondition, complexTypeMapping.Condition.Body);
       }
 
-      var ifNotNullCheck = Expression.IfThen(condition, Expression.Block(ifNotNullBlock));
+      var ifNotNullCheck = Expression.IfThen(sourceNotNullCondition, Expression.Block(ifNotNullBlock));
 
       expressions.Add(ifNotNullCheck);
 
@@ -545,10 +566,39 @@ namespace ThisMember.Core
       return canAssignSourceElementToDest;
     }
 
+    private static bool IsCollectionType(Type sourceMemberPropertyType)
+    {
+      if (typeof(ICollection).IsAssignableFrom(sourceMemberPropertyType))
+      {
+        return true;
+      }
+      else if(sourceMemberPropertyType.IsGenericType)
+      {
+        var genericArg = sourceMemberPropertyType.GetGenericArguments().First();
+
+        return typeof(ICollection<>).MakeGenericType(genericArg).IsAssignableFrom(sourceMemberPropertyType);
+
+      }
+
+      return false;
+    }
+
     private static bool IsListType(Type sourceMemberPropertyType)
     {
-      return typeof(IList).IsAssignableFrom(sourceMemberPropertyType)
-              || (sourceMemberPropertyType.IsGenericType && typeof(IList<>).IsAssignableFrom(sourceMemberPropertyType.GetGenericTypeDefinition()));
+
+      if (typeof(IList).IsAssignableFrom(sourceMemberPropertyType))
+      {
+        return true;
+      }
+      else if (sourceMemberPropertyType.IsGenericType)
+      {
+        var genericArg = sourceMemberPropertyType.GetGenericArguments().First();
+
+        return typeof(IList<>).MakeGenericType(genericArg).IsAssignableFrom(sourceMemberPropertyType);
+
+      }
+
+      return false;
     }
 
     private static bool TypeReceivesSpecialTreatment(Type type)

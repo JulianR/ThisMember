@@ -141,5 +141,13 @@ namespace ThisMember.Test
 
       mapper.Map<SourceType, DestinationType, int>(new SourceType(), 0);
     }
+    [TestMethod]
+    public void UsingNonGenericMapAsGenericWorks()
+    {
+      var mapper = new MemberMapper();
+      mapper.CreateMap(typeof(SourceType), typeof(DestinationType));
+
+      var result = mapper.Map<SourceType, DestinationType>(new SourceType());
+    }
   }
 }

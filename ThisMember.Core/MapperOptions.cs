@@ -39,7 +39,8 @@ namespace ThisMember.Core
         ReuseNonNullComplexMembersOnDestination = true,
         IgnoreCaseWhenFindingMatch = true,
         IgnoreMembersWithNullValueOnSource = false,
-        MaxCloneDepth = 2
+        MaxCloneDepth = 2,
+        PreserveDestinationListContents = true
       };
 
       Safety = new MapperSafetyOptions
@@ -47,7 +48,8 @@ namespace ThisMember.Core
         PerformNullChecksOnCustomMappings = true,
         IfSourceIsNull = SourceObjectNullOptions.ReturnNullWhenSourceIsNull,
         IfRecursiveRelationshipIsDetected = RecursivePropertyOptions.IgnoreRecursiveProperties,
-        ThrowIfDestinationIsNull = true
+        ThrowIfDestinationIsNull = true,
+        EnsureCollectionIsNotArrayType = true
       };
 
       Compilation = new CompilationOptions
@@ -145,6 +147,14 @@ namespace ThisMember.Core
     /// <remarks>Defaults to 2.</remarks>
     public int? MaxCloneDepth { get; set; }
 
+    /// <summary>
+    /// If set to true, ThisMember will preserve the values inside properties that are of type IList. This means
+    /// that if you pass in a destination object with a list property that has been filled, those values
+    /// are preserved, the list will only be added to. Does not work for arrays.
+    /// </summary>
+    /// <remarks>Defaults to true.</remarks>
+    public bool PreserveDestinationListContents { get; set; }
+
   }
 
   public enum SourceObjectNullOptions
@@ -217,5 +227,11 @@ namespace ThisMember.Core
     /// <remarks>Defaults to true.</remarks>
     public bool ThrowIfDestinationIsNull { get; set; }
 
+    /// <summary>
+    /// Ensures that an ICollection property is not an array before calling Add on it, which would result in a
+    /// 'Collection was of a fixed size' System.NotSupportedException.  
+    /// </summary>
+    /// <remarks>Defaults to true.</remarks>
+    public bool EnsureCollectionIsNotArrayType { get; set; }
   }
 }
