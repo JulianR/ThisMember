@@ -19,9 +19,10 @@ namespace ThisMember.Core
 
     public IProjectionGeneratorFactory ProjectionGeneratorFactory { get; set; }
 
-    private Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
+    private readonly Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
 
-    private Dictionary<TypePair, Projection> projections = new Dictionary<TypePair, Projection>();
+    private readonly Dictionary<TypePair, Projection> projections = new Dictionary<TypePair, Projection>();
+
 
     public MemberMapper() : this(new DefaultMemberMapperConfiguration())
     {
