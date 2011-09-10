@@ -47,7 +47,7 @@ namespace ThisMember.Benchmarks
 
       var mapper = new MemberMapper();
 
-      for (var i = 0; i < 10000; i++)
+      for (var i = 0; i < 1000; i++)
       {
         mapper.CreateMap<Customer, CustomerDto>(customMapping: src => new CustomerDto
         {
@@ -73,7 +73,7 @@ namespace ThisMember.Benchmarks
         destination.FirstName = source.FirstName;
         destination.LastName = source.LastName;
         destination.FullName = source.FirstName + " " + source.LastName;
-        //destination.OrderAmount = source.Orders.Sum(o => o.Amount);
+        destination.OrderAmount = source.Orders.Sum(o => o.Amount);
 
         return destination;
       };
@@ -83,7 +83,7 @@ namespace ThisMember.Benchmarks
       var map = mapper.CreateMap<Customer, CustomerDto>(customMapping: src => new CustomerDto
       {
         FullName = src.FirstName + " " + src.LastName,
-        //OrderAmount = src.Orders.Sum(o => o.Amount)
+        OrderAmount = src.Orders.Sum(o => o.Amount)
       });
 
       sw.Stop();
@@ -91,8 +91,8 @@ namespace ThisMember.Benchmarks
       Console.WriteLine("Compiling the map took: " + sw.Elapsed);
 
       Mapper.CreateMap<Customer, CustomerDto>()
-      .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FirstName + " " + src.LastName));
-      //.ForMember(dest => dest.OrderAmount, opt => opt.MapFrom(src => src.Orders.Sum(o => o.Amount)));
+      .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.FirstName + " " + src.LastName))
+      .ForMember(dest => dest.OrderAmount, opt => opt.MapFrom(src => src.Orders.Sum(o => o.Amount)));
 
 
       var mappingFunc = map.MappingFunction;
@@ -119,6 +119,8 @@ namespace ThisMember.Benchmarks
         }
       };
 
+      Dto = Mapper.Map<Customer, CustomerDto>(customer);
+
       sw.Restart();
 
       for (var i = 0; i < 1000000; i++)
@@ -128,7 +130,7 @@ namespace ThisMember.Benchmarks
         Dto.FirstName = customer.FirstName;
         Dto.LastName = customer.LastName;
         Dto.FullName = customer.FirstName + " " + customer.LastName;
-        //Dto.OrderAmount = customer.Orders.Sum(o => o.Amount);
+        Dto.OrderAmount = customer.Orders.Sum(o => o.Amount);
       }
 
       sw.Stop();
@@ -139,7 +141,7 @@ namespace ThisMember.Benchmarks
 
       for (var i = 0; i < 1000000; i++)
       {
-        Dto = mapper.Map<Customer, CustomerDto>(customer);
+        Dto = mapper.Map<Customer, CustomerDto>(customer, new CustomerDto());
       }
 
       sw.Stop();
