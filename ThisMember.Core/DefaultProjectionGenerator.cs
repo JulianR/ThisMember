@@ -209,7 +209,7 @@ namespace ThisMember.Core
         var nullableType = member.SourceMember.PropertyOrFieldType.GetGenericArguments().Single();
 
 
-        accessMember = Expression.Condition(Expression.IsTrue(Expression.Property(accessMember, "HasValue")),
+        accessMember = Expression.Condition(Expression.Property(accessMember, "HasValue"),
           Expression.Property(accessMember, "Value"),
           Expression.Default(member.DestinationMember.PropertyOrFieldType));
       }
