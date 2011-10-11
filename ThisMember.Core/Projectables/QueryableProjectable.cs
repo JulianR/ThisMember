@@ -338,6 +338,16 @@ namespace ThisMember.Core.Projectables
       return new QueryableProjectable<TResult>(query.Select(projection));
     }
 
+    public Dictionary<TKey, TElement> ToDictionary<TKey, TElement>(Func<T, TKey> keySelector, Func<T, TElement> elementSelector)
+    {
+      return ProjectableMethods.ToDictionary<T, TKey, TElement>(query, keySelector, elementSelector);
+    }
+
+    public Dictionary<TKey, T> ToDictionary<TKey>(Func<T, TKey> keySelector)
+    {
+      return ProjectableMethods.ToDictionary<T, TKey>(query, keySelector);
+    }
+
     ISingularProjectable<TResult> ISingularProjectable<T>.Project<TResult>(Expression<Func<T, TResult>> projection)
     {
       return new SingularQueryableProjectable<TResult>(query.Select(projection)); 

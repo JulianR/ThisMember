@@ -61,10 +61,13 @@ namespace ThisMember.Core.Projectables
     IList<TSource> Page(int start = 0, int limit = -1);
 
     ICollectionProjectable<TResult> Project<TResult>(Expression<Func<TSource, TResult>> projection);
+
+    Dictionary<TKey, TElement> ToDictionary<TKey, TElement>(Func<TSource, TKey> keySelector, Func<TSource, TElement> elementSelector);
+
+    Dictionary<TKey, TSource> ToDictionary<TKey>(Func<TSource, TKey> keySelector);
   }
 
   public interface IProjectable<TSource> : ISingularProjectable<TSource>, IOptionalProjectable<TSource>, ICollectionProjectable<TSource>
   {
-    IProjectable<TResult> Project<TResult>(Expression<Func<TSource, TResult>> projection);
   }
 }
