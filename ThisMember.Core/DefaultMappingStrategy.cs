@@ -109,6 +109,8 @@ namespace ThisMember.Core
 
         var memberProvider = new DefaultMemberProvider(sourceType, destinationType, mapper);
 
+        //GetTypeMembers(memberProvider, options);
+
         foreach (var destinationMember in memberProvider.GetDestinationMembers())
         {
           if (memberProvider.IsMemberIgnored(sourceType, destinationMember))
@@ -124,8 +126,6 @@ namespace ThisMember.Core
           }
 
           var sourceMember = memberProvider.GetMatchingSourceMember(destinationMember);
-
-
 
           if (HasNoSourceMember(customExpression, sourceMember) || !destinationMember.CanWrite)
           {
@@ -202,6 +202,21 @@ namespace ThisMember.Core
         _typeStack.Pop();
 
         return typeMapping;
+      }
+
+      private static void GetTypeMembers(DefaultMemberProvider memberProvider, MappingOptions options)
+      {
+        var destinationMembers = memberProvider.GetDestinationMembers();
+
+        foreach (var destinationMember in destinationMembers)
+        {
+          var sourceMember = memberProvider.GetMatchingSourceMember(destinationMember);
+
+
+
+        }
+
+
       }
 
       private static bool AreMembersIEnumerable(PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
