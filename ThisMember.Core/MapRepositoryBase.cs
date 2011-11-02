@@ -36,7 +36,19 @@ namespace ThisMember.Core
     /// <param name="action">The function that describes how the map should be created.</param>
     protected void DefineMap<TSource, TDestination>(Func<IMemberMapper, MappingOptions, ProposedMap<TSource, TDestination>> action)
     {
-      cache.Add(new TypePair(typeof(TSource), typeof(TDestination)), new MapFuncWrapper { CreateMapFunction = action });
+      var pair = new TypePair(typeof(TSource), typeof(TDestination));
+
+      lock (cache)
+      {
+        if (!cache.ContainsKey(pair))
+        {
+          cache.Add(pair, new MapFuncWrapper { CreateMapFunction = action });
+        }
+        else
+        {
+          throw new InvalidOperationException("Map repository already contains map for types " + pair);
+        }
+      }
     }
 
     /// <summary>
