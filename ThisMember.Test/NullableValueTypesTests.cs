@@ -201,5 +201,104 @@ namespace ThisMember.Test
 
     }
 
+    class NullabeTimeSpanSource
+    {
+      public TimeSpan? Foo { get; set; }
+    }
+
+    class NullabeTimeSpanDestination
+    {
+      public TimeSpan? Foo { get; set; }
+    }
+
+    class NonNullabeTimeSpanSource
+    {
+      public TimeSpan Foo { get; set; }
+    }
+
+    class NonNullabeTimeSpanDestination
+    {
+      public TimeSpan Foo { get; set; }
+    }
+
+    [TestMethod]
+    public void NullableTimeSpanGetsMappedToNullableTimeSpan()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullabeTimeSpanSource, NullabeTimeSpanDestination>(new NullabeTimeSpanSource
+        {
+          Foo = new TimeSpan(888)
+        });
+
+      Assert.AreEqual(888, result.Foo.Value.Ticks);
+
+    }
+
+    [TestMethod]
+    public void NonNullableTimeSpanGetsMappedToNonNullableTimeSpan()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NonNullabeTimeSpanSource, NonNullabeTimeSpanDestination>(new NonNullabeTimeSpanSource
+      {
+        Foo = new TimeSpan(888)
+      });
+
+      Assert.AreEqual(888, result.Foo.Ticks);
+    }
+
+
+    [TestMethod]
+    public void NonNullableTimeSpanGetsMappedToNullableTimeSpan()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NonNullabeTimeSpanSource, NullabeTimeSpanDestination>(new NonNullabeTimeSpanSource
+      {
+        Foo = new TimeSpan(888)
+      });
+
+      Assert.AreEqual(888, result.Foo.Value.Ticks);
+    }
+
+    [TestMethod]
+    public void NullableTimeSpanGetsMappedToNonNullableTimeSpan()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullabeTimeSpanSource, NonNullabeTimeSpanDestination>(new NullabeTimeSpanSource
+      {
+        Foo = new TimeSpan(888)
+      });
+
+      Assert.AreEqual(888, result.Foo.Ticks);
+    }
+
+    [TestMethod]
+    public void NullableTimeSpanWithNullValueGetsMappedToNonNullableTimeSpan()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullabeTimeSpanSource, NonNullabeTimeSpanDestination>(new NullabeTimeSpanSource
+      {
+        Foo = null
+      });
+
+      Assert.AreEqual(new TimeSpan().Ticks, result.Foo.Ticks);
+    }
+
+    [TestMethod]
+    public void NullableTimeSpanWithNullValueGetsMappedToNullableTimeSpan()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullabeTimeSpanSource, NullabeTimeSpanDestination>(new NullabeTimeSpanSource
+      {
+        Foo = null
+      });
+
+      Assert.IsNull(result.Foo);
+    }
   }
 }
