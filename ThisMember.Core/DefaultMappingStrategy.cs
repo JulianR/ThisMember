@@ -218,11 +218,23 @@ namespace ThisMember.Core
 
             if (option.Source != null)
             {
+
+              if (option.Source.DeclaringType != sourceMember.DeclaringType)
+              {
+                throw new InvalidOperationException("Cannot use member declared on another type.");
+              }
+
               sourceMember = option.Source;
             }
 
             if (option.Destination != null)
             {
+
+              if (option.Destination.DeclaringType != destination.DeclaringType)
+              {
+                throw new InvalidOperationException("Cannot use member declared on another type.");
+              }
+
               destination = option.Destination;
             }
 

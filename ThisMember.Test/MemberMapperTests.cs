@@ -353,5 +353,21 @@ namespace ThisMember.Test
       Assert.AreEqual(10, result.Foo);
       Assert.AreNotEqual(1, result.TypeID);
     }
+
+    [TestMethod]
+    [ExpectedException(typeof(InvalidOperationException))]
+    public void CustomConventionsCannotUseMembersOnDifferentType()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<CustomConventionSource, CustomConventionDestination>(
+        options: (source, dest, options, depth) =>
+        {
+          if (source != null)
+          {
+            options.MapProperty(typeof(string).GetProperties().First(), dest);
+          }
+        });
+    }
   }
 }
