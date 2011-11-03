@@ -18,6 +18,16 @@ namespace ThisMember.Core
 
     public MemberOptionState State { get; private set; }
 
+    public PropertyOrFieldInfo Source { get; private set; }
+
+    public PropertyOrFieldInfo Destination { get; private set; }
+
+    public void MapProperty(PropertyOrFieldInfo source, PropertyOrFieldInfo destination)
+    {
+      this.Source = source;
+      this.Destination = destination;
+    }
+
     public void IgnoreMember()
     {
       State = MemberOptionState.Ignored;

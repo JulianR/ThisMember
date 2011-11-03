@@ -11,8 +11,8 @@ namespace ThisMember.Samples
 
     public class Order
     {
-      public int ID { get;set;}
-      public decimal Amount { get;set;}
+      public int ID { get; set; }
+      public decimal Amount { get; set; }
     }
 
     public class Customer
@@ -25,8 +25,8 @@ namespace ThisMember.Samples
 
     public class OrderDto
     {
-      public int ID { get;set;}
-      public decimal Amount { get;set;}
+      public int ID { get; set; }
+      public decimal Amount { get; set; }
     }
 
     public class CustomerDto
@@ -34,6 +34,7 @@ namespace ThisMember.Samples
       public int ID { get; set; }
       public string FirstName { get; set; }
       public string LastName { get; set; }
+      public string FullName { get; set; }
       public IList<OrderDto> Orders { get; set; }
     }
 
@@ -47,10 +48,19 @@ namespace ThisMember.Samples
       var customer = mapper.Map<CustomerDto, Customer>(new CustomerDto());
 
       // The second way is explicit, which allows you to modify the map
+
+
       mapper.CreateMap<CustomerDto, Customer>(source => new Customer
       {
         FirstName = source.FirstName.ToLower()
       });
+
+
+      mapper.CreateMap<Customer, CustomerDto>(source => new CustomerDto
+      {
+        FullName = source.FirstName + " " + source.LastName
+      });
+
 
       // The third way is more explicit, allowing you to modify the map in several steps until you 'finalize' it.
       mapper.CreateMapProposal<CustomerDto, Customer>(source => new Customer
@@ -146,10 +156,9 @@ namespace ThisMember.Samples
 
       mapper.Options.Conventions.IgnoreMemberAttributeShouldBeRespected = false;
 
-      // Now we'll ignore through the fluent configuration interface
       mapper.CreateMapProposal<UserDto, User>()
         .ForMember(u => u.Password).Ignore()
-        .FinalizeMap(); // Maps can be modified until you call this method.
+        .FinalizeMap();
 
       // Or you could use it like this:
 
@@ -165,7 +174,7 @@ namespace ThisMember.Samples
       map.FinalizeMap();
 
       // The third way:
-      mapper.CreateMap<UserDto, User>(options: (source, destination, option) =>
+      mapper.CreateMap<UserDto, User>(options: (source, destination, option, depth) =>
       {
         // You can make this as complicated as you want
         if (destination.Name == "Password")

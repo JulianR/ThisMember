@@ -166,7 +166,7 @@ namespace ThisMember.Test
 
       var proposition = mapper.MappingStrategy.CreateMapProposal(
         new TypePair(typeof(Poco_From), typeof(Poco_To)),
-        (s, m, option) =>
+        (s, m, option, depth) =>
         {
           if (s.Name == "ID")
           {

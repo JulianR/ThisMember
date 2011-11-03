@@ -109,10 +109,10 @@ namespace ThisMember.Core
 
         var memberProvider = new DefaultMemberProvider(sourceType, destinationType, mapper);
 
-        //GetTypeMembers(memberProvider, options);
-
-        foreach (var destinationMember in memberProvider.GetDestinationMembers())
+        foreach (var mapping in GetTypeMembers(memberProvider, options, currentDepth))
         {
+          var destinationMember = mapping.Destination;
+
           if (memberProvider.IsMemberIgnored(sourceType, destinationMember))
           {
             continue;
@@ -125,7 +125,7 @@ namespace ThisMember.Core
             customExpression = customMapping.GetExpressionForMember(destinationMember);
           }
 
-          var sourceMember = memberProvider.GetMatchingSourceMember(destinationMember);
+          var sourceMember = mapping.Source;
 
           if (HasNoSourceMember(customExpression, sourceMember) || !destinationMember.CanWrite)
           {
@@ -142,21 +142,6 @@ namespace ThisMember.Core
 
           if (canUseSimpleTypeMapping || customExpression != null)
           {
-
-            if (options != null)
-            {
-              var option = new MemberOption();
-
-              options(sourceMember, destinationMember, option);
-
-              switch (option.State)
-              {
-                case MemberOptionState.Ignored:
-                  continue;
-              }
-
-            }
-
             typeMapping.ProposedMappings.Add
             (
               new ProposedMemberMapping
@@ -204,19 +189,54 @@ namespace ThisMember.Core
         return typeMapping;
       }
 
-      private static void GetTypeMembers(DefaultMemberProvider memberProvider, MappingOptions options)
+      private class SourceDestinationMapping
+      {
+        public PropertyOrFieldInfo Source { get; set; }
+        public PropertyOrFieldInfo Destination { get; set; }
+      }
+
+      private static IEnumerable<SourceDestinationMapping> GetTypeMembers(DefaultMemberProvider memberProvider, MappingOptions options, int currentDepth)
       {
         var destinationMembers = memberProvider.GetDestinationMembers();
 
         foreach (var destinationMember in destinationMembers)
         {
+          var destination = destinationMember;
           var sourceMember = memberProvider.GetMatchingSourceMember(destinationMember);
 
+          if (options != null)
+          {
+            var option = new MemberOption();
 
+            options(sourceMember, destinationMember, option, currentDepth);
+
+            switch (option.State)
+            {
+              case MemberOptionState.Ignored:
+                continue;
+            }
+
+            if (option.Source != null)
+            {
+              sourceMember = option.Source;
+            }
+
+            if (option.Destination != null)
+            {
+              destination = option.Destination;
+            }
+
+          }
+
+          var mapping = new SourceDestinationMapping
+          {
+            Source = sourceMember,
+            Destination = destination
+          };
+
+          yield return mapping;
 
         }
-
-
       }
 
       private static bool AreMembersIEnumerable(PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)

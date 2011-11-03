@@ -202,7 +202,7 @@ namespace ThisMember.Test
       var mapper = new MemberMapper();
 
       var proposed = mapper.CreateMapProposal(typeof(ComplexSourceType), typeof(ComplexDestinationType),
-      options: (s, p, option) =>
+      options: (s, p, option, depth) =>
       {
         if (s.Name == "Name")
         {
@@ -236,7 +236,7 @@ namespace ThisMember.Test
       var mapper = new MemberMapper();
 
       var proposed = mapper.CreateMapProposal(typeof(NestedSourceType), typeof(NestedDestinationType),
-      options: (s, p, option) =>
+      options: (s, p, option, depth) =>
       {
         if (s.Name == "Name")
         {
@@ -317,6 +317,41 @@ namespace ThisMember.Test
       var result = mapper.CreateMapProposal<SourceType, DestinationType>();
 
       Assert.IsFalse(mapper.HasMap(typeof(SourceType), typeof(DestinationType)));
+    }
+
+    private class CustomConventionSource
+    {
+      public int Type { get; set; }
+      public int TypeID { get; set; }
+    }
+
+    private class CustomConventionDestination
+    {
+      public int Foo { get; set; }
+      public int TypeID { get; set; }
+    }
+
+    [TestMethod]
+    public void MappingOptionsAllowCustomConventions()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<CustomConventionSource, CustomConventionDestination>(
+        options: (source, dest, options, depth) =>
+        {
+          if (source != null && source.Name.EndsWith("ID"))
+          {
+            var sourceType = source.DeclaringType;
+            var destType = dest.DeclaringType;
+
+            options.MapProperty(sourceType.GetProperty("Type"), destType.GetProperty("Foo"));
+          }
+        });
+
+      var result = mapper.Map(new CustomConventionSource { TypeID = 1, Type = 10 }, new CustomConventionDestination());
+
+      Assert.AreEqual(10, result.Foo);
+      Assert.AreNotEqual(1, result.TypeID);
     }
   }
 }

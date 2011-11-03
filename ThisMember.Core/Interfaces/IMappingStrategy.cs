@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 namespace ThisMember.Core.Interfaces
 {
 
-  public delegate void MappingOptions(PropertyOrFieldInfo source, PropertyOrFieldInfo destination, MemberOption option);
+  public delegate void MappingOptions(PropertyOrFieldInfo source, PropertyOrFieldInfo destination, MemberOption option, int depth);
 
   public interface IMappingStrategy
   {
