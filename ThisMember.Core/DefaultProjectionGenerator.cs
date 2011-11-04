@@ -55,7 +55,10 @@ namespace ThisMember.Core
       {
         if (complexMember.IsEnumerable || CollectionTypeHelper.IsEnumerable(complexMember))
         {
-          BuildCollectionComplexTypeExpression(sourceAccess, memberBindings, complexMember);
+          if (mapper.Options.Projection.MapCollectionMembers)
+          {
+            BuildCollectionComplexTypeExpression(sourceAccess, memberBindings, complexMember);
+          }
         }
         else
         {

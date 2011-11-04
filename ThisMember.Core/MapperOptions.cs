@@ -17,6 +17,10 @@ namespace ThisMember.Core
 
     public CompilationOptions Compilation { get; set; }
 
+    public ProjectionOptions Projection { get; set; }
+
+    public CloneOptions Cloning { get; set; }
+
     public MapperOptions()
     {
 
@@ -39,7 +43,6 @@ namespace ThisMember.Core
         ReuseNonNullComplexMembersOnDestination = true,
         IgnoreCaseWhenFindingMatch = true,
         IgnoreMembersWithNullValueOnSource = false,
-        MaxCloneDepth = 2,
         PreserveDestinationListContents = true
       };
 
@@ -55,6 +58,16 @@ namespace ThisMember.Core
       Compilation = new CompilationOptions
       {
         CompileToDynamicAssembly = true
+      };
+
+      Projection = new ProjectionOptions
+      {
+        MapCollectionMembers = true
+      };
+
+      Cloning = new CloneOptions
+      {
+        MaxCloneDepth = 2,
       };
 
     }
@@ -140,14 +153,6 @@ namespace ThisMember.Core
     public bool IgnoreMembersWithNullValueOnSource { get; set; }
 
     /// <summary>
-    /// Maximum depth that ThisMember will traverse into the type hierarchy when making a deep clone of an object. 
-    /// Setting this to null means unlimited. There is no chance of a stackoverflow
-    /// happening if it is set too high, but for complex and large types the generated mapping code may become very large (thousands of lines), complex and slow. 
-    /// </summary>
-    /// <remarks>Defaults to 2.</remarks>
-    public int? MaxCloneDepth { get; set; }
-
-    /// <summary>
     /// If set to true, ThisMember will preserve the values inside properties that are of type IList. This means
     /// that if you pass in a destination object with a list property that has been filled, those values
     /// are preserved, the list will only be added to. Does not work for arrays.
@@ -155,6 +160,24 @@ namespace ThisMember.Core
     /// <remarks>Defaults to true.</remarks>
     public bool PreserveDestinationListContents { get; set; }
 
+    /// <summary>
+    /// Controls to what depth into the object hierarchy properties get mapped for all mappings.
+    /// If a clone is being made then Cloning.MaxCloneDepth takes precedence.
+    /// </summary>
+    /// <remarks>Defaults to null.</remarks>
+    public int? MaxDepth { get; set; }
+
+  }
+
+  public class CloneOptions
+  {
+    /// <summary>
+    /// Maximum depth that ThisMember will traverse into the type hierarchy when making a deep clone of an object. 
+    /// Setting this to null means unlimited. There is no chance of a stackoverflow
+    /// happening if it is set too high, but for complex and large types the generated mapping code may become very large (thousands of lines), complex and slow. 
+    /// </summary>
+    /// <remarks>Defaults to 2.</remarks>
+    public int? MaxCloneDepth { get; set; }
   }
 
   public enum SourceObjectNullOptions
@@ -214,7 +237,7 @@ namespace ThisMember.Core
     /// <remarks>Defaults to ReturnNullWhenSourceIsNull.</remarks>
     public SourceObjectNullOptions IfSourceIsNull { get; set; }
 
-   
+
     /// <summary>
     /// What to do when a recursive relationship is detected. For example a User type that defines an Address that defines a User.
     /// </summary>
@@ -233,5 +256,16 @@ namespace ThisMember.Core
     /// </summary>
     /// <remarks>Defaults to true.</remarks>
     public bool EnsureCollectionIsNotArrayType { get; set; }
+  }
+
+  public class ProjectionOptions
+  {
+    /// <summary>
+    /// Determines whether or not collection-type members should be included in the projection.
+    /// This is usually not supported when the resulting expression gets translated into SQL
+    /// by for example the Entity Framework. 
+    /// </summary>
+    /// <remarks>Defaults to true.</remarks>
+    public bool MapCollectionMembers { get; set; }
   }
 }

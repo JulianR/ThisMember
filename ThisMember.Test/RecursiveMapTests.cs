@@ -76,7 +76,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.Options.Conventions.MaxCloneDepth = null;
+      mapper.Options.Cloning.MaxCloneDepth = null;
 
       mapper.CreateMap<ClassA, ClassA>();
 
@@ -124,7 +124,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.Options.Conventions.MaxCloneDepth = 2;
+      mapper.Options.Cloning.MaxCloneDepth = 2;
 
       mapper.CreateMap<ClassA, ClassA>();
 

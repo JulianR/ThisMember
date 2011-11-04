@@ -415,12 +415,22 @@ namespace ThisMember.Core
       {
         if (complexPair.SourceType == complexPair.DestinationType)
         {
-          var maxDepth = mapper.Options.Conventions.MaxCloneDepth;
+          var maxDepth = mapper.Options.Cloning.MaxCloneDepth;
 
           if (maxDepth.HasValue && currentDepth > maxDepth)
           {
             return null;
           }
+        }
+        else
+        {
+          var maxDepth = mapper.Options.Conventions.MaxDepth;
+
+          if (maxDepth.HasValue && currentDepth > maxDepth)
+          {
+            return null;
+          }
+
         }
 
         ProposedTypeMapping complexTypeMapping;

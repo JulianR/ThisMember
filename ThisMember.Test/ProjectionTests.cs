@@ -543,5 +543,29 @@ namespace ThisMember.Test
 
       Assert.AreEqual("Test", result.Foos.Single().Name);
     }
+
+    [TestMethod]
+    public void NoCollectionMappingOptionIsRespected()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Projection.MapCollectionMembers = false;
+
+      var projection = mapper.Project<IListType, OtherListType>().Compile();
+
+      var result = projection(new IListType
+      {
+        ID = 10,
+        Foos = new List<NestedEnumerableSourceType>
+          {
+            new NestedEnumerableSourceType
+            {
+              Name = "Test"
+            }
+          }
+      });
+
+      Assert.IsNull(result.Foos);
+    }
   }
 }

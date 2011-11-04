@@ -422,7 +422,7 @@ namespace ThisMember.Test
       public SourceObjectComplexType Complex { get; set; }
       public bool? Bool { get; set; }
 
-      public int NonNullableID { get; set;}
+      public int NonNullableID { get; set; }
       public DateTime NonNullableDate { get; set; }
       public bool NonNullableBool { get; set; }
     }
@@ -494,6 +494,74 @@ namespace ThisMember.Test
       var result = mapper.Map<Source, Destination>(new Source { ID = 1 }, null);
 
       Assert.IsNull(result);
+    }
+
+    class DepthNestedNestedSource
+    {
+      public int ID { get; set; }
+    }
+
+    class DepthNestedNestedDestination
+    {
+      public int ID;
+    }
+
+    class DepthNestedSource
+    {
+      public int ID { get; set; }
+      public DepthNestedNestedSource Nested { get; set; }
+    }
+
+    class DepthNestedDestination
+    {
+      public int ID { get; set; }
+      public DepthNestedNestedDestination Nested { get; set; }
+    }
+
+    class DepthSource
+    {
+      public DepthNestedSource Foo { get; set; }
+    }
+
+    class DepthDestination
+    {
+      public DepthNestedDestination Foo { get; set; }
+    }
+
+    [TestMethod]
+    public void MaxDepthOptionIsRespectedForDepthZero()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Conventions.MaxDepth = 0;
+
+      var result = mapper.Map(new DepthSource { Foo = new DepthNestedSource { ID = 10 } }, new DepthDestination());
+
+      Assert.IsNull(result.Foo);
+
+    }
+
+    [TestMethod]
+    public void MaxDepthOptionIsRespectedForDepthOne()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Conventions.MaxDepth = 1;
+
+      var result = mapper.Map(new DepthSource
+      {
+        Foo = new DepthNestedSource
+        {
+          ID = 10,
+          Nested = new DepthNestedNestedSource
+          {
+            ID = 20
+          }
+        },
+      }, new DepthDestination());
+
+      Assert.AreEqual(10, result.Foo.ID);
+      Assert.IsNull(result.Foo.Nested);
     }
   }
 }

@@ -269,7 +269,7 @@ namespace ThisMember.Test
           }
         }
       };
-      mapper.Options.Conventions.MaxCloneDepth = 1;
+      mapper.Options.Cloning.MaxCloneDepth = 1;
       var clone = mapper.DeepClone(nested);
 
       Assert.IsNotNull(clone.Nested);
@@ -301,7 +301,7 @@ namespace ThisMember.Test
         }
       };
 
-      mapper.Options.Conventions.MaxCloneDepth = null;
+      mapper.Options.Cloning.MaxCloneDepth = null;
       var clone = mapper.DeepClone(nested);
 
       Assert.IsNotNull(clone.Nested);
