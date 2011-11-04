@@ -15,6 +15,11 @@ using System.Security.Policy;
 
 namespace ThisMember.Core
 {
+  /// <summary>
+  /// Generates an expression from all members that need to be mapped
+  /// and then compiles the expression to a dynamic method.
+  /// </summary>
+  /// <remarks>This class is not thread safe and an instance cannot be shared by multiple threads.</remarks>
   internal class CompiledMapGenerator : IMapGenerator
   {
 
@@ -44,6 +49,11 @@ namespace ThisMember.Core
 
     private Dictionary<Type, Stack<ParameterExpression>> paramCache = new Dictionary<Type, Stack<ParameterExpression>>();
 
+    /// <summary>
+    /// Gets a reusable parameter for a certain type and with a certain name influenced by <param name="purpose">purpose</param>.
+    /// Property obtained must later returned to the cache when done with it by calling ReleaseParameter.
+    /// </summary>
+    /// <returns></returns>
     private ParameterExpression ObtainParameter(Type type, string purpose = null)
     {
       Stack<ParameterExpression> parameters;
@@ -98,6 +108,9 @@ namespace ThisMember.Core
       return new string(Char.ToLower(t.Name[0]), 1) + t.Name.Substring(1) + "#" + currentID++;
     }
 
+    /// <summary>
+    /// Processes a mapping for a type.
+    /// </summary>
     private void BuildTypeMappingExpressions
     (
       ParameterExpression source,
@@ -107,48 +120,61 @@ namespace ThisMember.Core
       CustomMapping customMapping = null
     )
     {
-
-      if (customMapping != null)
+      // If there's custom mapping defined
+      if (customMapping != null) 
       {
+        // Custom mapping has a source parameter that needs to be replaced with actual parameter
         mapProcessor.ParametersToReplace.Add(new ParameterTuple(customMapping.SourceParameter, source));
 
+        // Custom mapping may contain more parameters that represent arguments in the custom mapping
         foreach (var param in customMapping.ArgumentParameters)
         {
+          // Find the corresponding parameter that we want to replace the custom mapping's placeholder with
           var correspondingParam = this.Parameters.Single(p => p.Index == param.Index);
           mapProcessor.ParametersToReplace.Add(new ParameterTuple(param.Parameter, correspondingParam.Parameter));
         }
       }
 
+      // Simple property assignments
       foreach (var member in typeMapping.ProposedMappings)
       {
         BuildMemberAssignmentExpressions(source, destination, member, expressions, customMapping);
       }
 
+      // Nested type mappings
       foreach (var complexTypeMapping in typeMapping.ProposedTypeMappings)
       {
+        // If it's a collection type
         if (typeMapping.IsEnumerable || CollectionTypeHelper.IsEnumerable(complexTypeMapping))
         {
           BuildCollectionComplexTypeMappingExpressions(source, destination, complexTypeMapping, expressions, typeMapping.IsEnumerable);
         }
         else
         {
+          // If it's not a collection but just a nested type
           BuildNonCollectionComplexTypeMappingExpressions(source, destination, complexTypeMapping, expressions);
         }
       }
     }
 
 
-
+    /// <summary>
+    /// Assigns an expression that can be pretty much anythig to a destination mapping.
+    /// </summary>
+    /// <returns></returns>
     private BinaryExpression AssignSimpleProperty(MemberExpression destination, Expression source)
     {
+      // If the destination is nullable but the source expression returns a non-nullable value type.
       if (destination.Type.IsNullableValueType() && !source.Type.IsNullableValueType())
       {
         source = HandleDestinationNullableValueType(destination, source);
       }
+      // If the destination is not a nullable value type but the source expression does return one.
       else if (!destination.Type.IsNullableValueType() && source.Type.IsNullableValueType())
       {
         source = HandleSourceNullableValueType(destination, source);
       }
+      // dest.Member = source.Member != null ? source.Member : dest.Member 
       else if (source.Type.IsClass && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
         && source.Type.IsAssignableFrom(destination.Type))
       {
@@ -156,6 +182,7 @@ namespace ThisMember.Core
       }
       else if (!source.Type.IsAssignableFrom(destination.Type))
       {
+        // cast
         source = Expression.Convert(source, destination.Type);
       }
 
@@ -166,9 +193,14 @@ namespace ThisMember.Core
     {
       var nullableType = source.Type.GetGenericArguments().Single();
 
+      // If the source is null then ignore it if option is turned on, preserving the 
+      // original value.
       Expression elseClause = mapper.Options.Conventions.IgnoreMembersWithNullValueOnSource ?
       (Expression)destination : Expression.Default(nullableType);
 
+      // Depending on the above option this can either be
+      // source.Member.HasValue ? source.Member.Value : default(T)
+      // OR source.Member.HasValue ? source.Member.Value : dest.Member
       source = Expression.Condition(Expression.IsTrue(Expression.Property(source, "HasValue")), Expression.Property(source, "Value"), elseClause);
       return source;
     }
@@ -177,10 +209,14 @@ namespace ThisMember.Core
     {
       var nullableType = destination.Type.GetGenericArguments().Single();
 
+      // new Nullable<T>(source.Member)
       source = Expression.New(destination.Type.GetConstructor(new[] { nullableType }), source);
       return source;
     }
 
+    /// <summary>
+    /// Assign source member to a destination mapping, applying any custom mappings in the process.
+    /// </summary>
     private void BuildMemberAssignmentExpressions
     (
       ParameterExpression source,
@@ -220,6 +256,7 @@ namespace ThisMember.Core
         assignSourceToDest = AssignSimpleProperty(destMember, sourceExpression);
       }
 
+      // If a condition to the mapping was specified
       if (condition != null)
       {
         var ifCondition = Expression.IfThen(condition, assignSourceToDest);
@@ -231,6 +268,9 @@ namespace ThisMember.Core
       }
     }
 
+    /// <summary>
+    /// Generates the loop that maps any IEnumerable type
+    /// </summary>
     private void BuildCollectionComplexTypeMappingExpressions
     (
       ParameterExpression source,
@@ -429,7 +469,7 @@ namespace ThisMember.Core
       else
       {
         var addMethod = typeof(ICollection<>).MakeGenericType(destinationCollectionElementType).GetMethod("Add", new[] { destinationCollectionElementType });
-       // var addMethod = destinationCollectionType.GetMethod("Add", new[] { destinationCollectionElementType });
+        // var addMethod = destinationCollectionType.GetMethod("Add", new[] { destinationCollectionElementType });
         var callAddOnDestinationCollection = Expression.Call(destinationCollection, addMethod, destinationCollectionItem);
 
         // destination.Add(destinationItem);
@@ -572,7 +612,7 @@ namespace ThisMember.Core
       {
         return true;
       }
-      else if(sourceMemberPropertyType.IsGenericType)
+      else if (sourceMemberPropertyType.IsGenericType)
       {
         var genericArg = sourceMemberPropertyType.GetGenericArguments().First();
 

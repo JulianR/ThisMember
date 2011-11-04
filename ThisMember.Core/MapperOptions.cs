@@ -148,6 +148,7 @@ namespace ThisMember.Core
     /// <summary>
     /// If set to true, this will stop a map from using members on the source object that have a null
     /// equivalent value (so either nullable value types or reference types).
+    /// If you passed in an existing destination object, the values of properties are preserved.
     /// </summary>
     /// <remarks>Defaults to false.</remarks>
     public bool IgnoreMembersWithNullValueOnSource { get; set; }
