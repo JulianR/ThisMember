@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Reflection;
 
 namespace ThisMember.Core
 {
@@ -14,18 +15,49 @@ namespace ThisMember.Core
         || CanConvertToOrFromEnum(source, destination);
     }
 
+    private static readonly Dictionary<Type, IList<MethodInfo>> _conversionMethodCache = new Dictionary<Type, IList<MethodInfo>>();
+
     public static bool AreImplicitlyConvertible(Type source, Type destination)
     {
-      var method = source.GetMethod("op_Implicit", new[] { source });
+      if (legalConversions.Contains(new TypePair(source, destination)))
+      {
+        return true;
+      }
 
-      return (method != null && method.ReturnType == destination) || legalConversions.Contains(new TypePair(source, destination));
+      var methods = GetConversionMethods(source);
+
+      var method = methods.Where(m => m.Name == "op_Implicit" && m.ReturnType == destination).SingleOrDefault();
+
+      return method != null;
+    }
+
+    private static IList<MethodInfo> GetConversionMethods(Type source)
+    {
+      lock (_conversionMethodCache)
+      {
+        IList<MethodInfo> methods;
+        if (!_conversionMethodCache.TryGetValue(source, out methods))
+        {
+          methods = source.GetMethods().Where(m => m.Name.StartsWith("op_")).ToList();
+
+          _conversionMethodCache.Add(source, methods);
+        }
+        return methods;
+      }
     }
 
     public static bool AreExplicitlyConvertible(Type source, Type destination)
     {
-      var method = source.GetMethod("op_Explicit", new[] { source });
+      if (legalConversions.Contains(new TypePair(source, destination)))
+      {
+        return true;
+      }
 
-      return (method != null && method.ReturnType == destination) || legalConversions.Contains(new TypePair(source, destination));
+      var methods = GetConversionMethods(source);
+
+      var method = methods.Where(m => m.Name == "op_Explicit" && m.ReturnType == destination).SingleOrDefault();
+
+      return method != null;
     }
 
     public static bool CanConvertToOrFromEnum(Type source, Type destination)
