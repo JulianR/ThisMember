@@ -151,5 +151,32 @@ namespace ThisMember.Test
       Assert.AreEqual(8, result.Foo.OtherID);
       Assert.AreEqual(10, result.Foo.ID);
     }
+
+    class ConstructorParameterClass
+    {
+      public int Foo { get; set; }
+    }
+
+    class ConstructorClass
+    {
+      public int Foo { get; private set; }
+      public ConstructorClass(ConstructorParameterClass cls)
+      {
+        this.Foo = cls.Foo;
+      }
+    }
+
+    [TestMethod]
+    public void PassingInInstanceOfClassToMapWorks()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMapProposal<ConstructorParameterClass, ConstructorClass>().WithConstructorFor((c, c1) => new ConstructorClass(c));
+
+      var result = mapper.Map(new ConstructorParameterClass { Foo = 23 }, new ConstructorClass(new ConstructorParameterClass()));
+
+      Assert.AreEqual(23, result.Foo);
+
+    }
   }
 }

@@ -199,6 +199,19 @@ namespace ThisMember.Core
         new TypePair(typeof(System.UInt64), typeof(System.UIntPtr)),
         new TypePair(typeof(System.UIntPtr), typeof(System.UInt32)),
         new TypePair(typeof(System.UIntPtr), typeof(System.UInt64)),
+
+        new TypePair(typeof(System.Decimal), typeof(System.Int32)),
+        new TypePair(typeof(System.Int32), typeof(System.Decimal)),
+        new TypePair(typeof(System.Decimal), typeof(System.Int64)),
+        new TypePair(typeof(System.Int64), typeof(System.Decimal)),
+        new TypePair(typeof(System.Decimal), typeof(System.Double)),
+        new TypePair(typeof(System.Double), typeof(System.Decimal)),
+        new TypePair(typeof(System.Decimal), typeof(System.Single)),
+        new TypePair(typeof(System.Single), typeof(System.Decimal)),
+        new TypePair(typeof(System.Decimal), typeof(System.Int16)),
+        new TypePair(typeof(System.Int16), typeof(System.Decimal)),
+        new TypePair(typeof(System.Decimal), typeof(System.Byte)),
+        new TypePair(typeof(System.Byte), typeof(System.Decimal)),
       }
     );
 

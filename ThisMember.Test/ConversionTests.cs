@@ -33,7 +33,7 @@ namespace ThisMember.Test
 
     class DecimalType
     {
-      public long Foo { get; set; }
+      public decimal Foo { get; set; }
     }
 
     [TestMethod]
@@ -228,6 +228,16 @@ namespace ThisMember.Test
       });
 
       Assert.AreEqual("x", result.Foo.Bar);
+
+    }
+
+
+    [TestMethod]
+    public void DecimalToIntWorks()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Map<DecimalType, IntType>(new DecimalType { Foo = 10m });
 
     }
   }

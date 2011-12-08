@@ -129,7 +129,10 @@ namespace ThisMember.Core
 
           if (HasNoSourceMember(customExpression, sourceMember) || !destinationMember.CanWrite)
           {
-            typeMapping.IncompatibleMappings.Add(destinationMember);
+            if (mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember)
+            {
+              typeMapping.IncompatibleMappings.Add(destinationMember);
+            }
           }
           else if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
           {
@@ -407,7 +410,6 @@ namespace ThisMember.Core
       {
         return sourceMember == null
                   && customExpression == null
-                  && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember
                   && !mapper.Options.Conventions.AutomaticallyFlattenHierarchies;
       }
 
