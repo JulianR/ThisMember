@@ -217,6 +217,32 @@ namespace ThisMember.Test
 
     }
 
+    [TestMethod]
+    public void CustomMappingIsRespectedByCollectionMapping()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<SimpleSourceType, SimpleDestinationType>(customMapping: src => new SimpleDestinationType
+      {
+        Foo = "Foo"
+      });
+
+      var result = mapper.Map(new List<SimpleSourceType>
+      {
+        new SimpleSourceType
+        {
+          Foo = "abc",
+        },
+        new SimpleSourceType
+        {
+          Foo = "def",
+        }
+      }, new List<SimpleDestinationType>());
+
+      Assert.IsTrue(result.All(r => r.Foo == "Foo"));
+
+    }
+
 
   }
 }
