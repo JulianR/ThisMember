@@ -218,6 +218,25 @@ namespace ThisMember.Test
     }
 
     [TestMethod]
+    public void CustomMappingWithManualNullCheckIsHandledCorrectly()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<SourceNullCheck, DestinationNullCheck>(s => new DestinationNullCheck
+      {
+        Oof = s.Foo != null ? s.Foo.Bar : string.Empty
+      });
+
+      var result = mapper.Map(new SourceNullCheck { Foo = new SourceNullCheckNested { Bar = "test" } }, new DestinationNullCheck());
+
+      Assert.AreEqual("test", result.Oof);
+
+      result = mapper.Map(new SourceNullCheck { Foo = null }, new DestinationNullCheck());
+
+      Assert.AreEqual("", result.Oof);
+    }
+
+    [TestMethod]
     public void CustomMappingIsRespectedByCollectionMapping()
     {
       var mapper = new MemberMapper();
@@ -242,6 +261,23 @@ namespace ThisMember.Test
       Assert.IsTrue(result.All(r => r.Foo == "Foo"));
 
     }
+
+    class SourceNullCheck
+    {
+      public SourceNullCheckNested Foo { get; set; }
+    }
+
+    class SourceNullCheckNested
+    {
+      public string Bar { get; set; }
+    }
+
+    class DestinationNullCheck
+    {
+      public string Oof { get; set; }
+    }
+
+   
 
 
   }

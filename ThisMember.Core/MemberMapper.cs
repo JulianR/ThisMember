@@ -153,6 +153,20 @@ namespace ThisMember.Core
 
     public TDestination Map<TDestination>(object source) where TDestination : new()
     {
+      if (source == null)
+      {
+        var option = this.Options.Safety.IfSourceIsNull;
+
+        if (option == SourceObjectNullOptions.ReturnDestinationObject)
+        {
+          return new TDestination();
+        }
+        else if (option == SourceObjectNullOptions.ReturnNullWhenSourceIsNull)
+        {
+          return default(TDestination);
+        }
+      }
+
       var pair = new TypePair(source.GetType(), typeof(TDestination));
 
       MemberMap map;
