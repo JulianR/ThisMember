@@ -58,5 +58,48 @@ namespace ThisMember.Test
 
       Assert.IsNotNull(result);
     }
+
+    [TestMethod]
+    public void DynamicInvokeWithSourceNullReturnsNull()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Safety.IfSourceIsNull = SourceObjectNullOptions.ReturnNullWhenSourceIsNull;
+
+      SourceType type = null;
+
+      var result = mapper.Map<DestinationType>(type);
+
+      Assert.IsNull(result);
+
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(NullReferenceException))]
+    public void DynamicInvokeWithSourceNullThrows()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Safety.IfSourceIsNull = SourceObjectNullOptions.AllowNullReferenceExceptionWhenSourceIsNull;
+
+      SourceType type = null;
+
+      var result = mapper.Map<DestinationType>(type);
+
+    }
+
+    [TestMethod]
+    public void DynamicInvokeWithSourceNullReturnsDestination()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Safety.IfSourceIsNull = SourceObjectNullOptions.ReturnDestinationObject;
+
+      SourceType type = null;
+
+      var result = mapper.Map<DestinationType>(type);
+
+      Assert.IsNotNull(result);
+    }
   }
 }
