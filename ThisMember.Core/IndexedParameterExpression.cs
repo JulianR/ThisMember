@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 
 namespace ThisMember.Core
 {
-  public class IndexedParameterExpression
+  internal class IndexedParameterExpression
   {
     public int Index { get; set; }
     public ParameterExpression Parameter { get; set; }

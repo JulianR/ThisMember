@@ -12,6 +12,7 @@ using System.Globalization;
 using System.Security;
 using System.Security.Permissions;
 using System.Security.Policy;
+using ThisMember.Core.Options;
 
 namespace ThisMember.Core
 {
@@ -121,17 +122,17 @@ namespace ThisMember.Core
     )
     {
       // If there's custom mapping defined
-      if (customMapping != null) 
+      if (customMapping != null)
       {
         // Custom mapping has a source parameter that needs to be replaced with actual parameter
-        mapProcessor.ParametersToReplace.Add(new ParameterTuple(customMapping.SourceParameter, source));
+        mapProcessor.ParametersToReplace.Add(new ExpressionTuple(customMapping.SourceParameter, source));
 
         // Custom mapping may contain more parameters that represent arguments in the custom mapping
         foreach (var param in customMapping.ArgumentParameters)
         {
           // Find the corresponding parameter that we want to replace the custom mapping's placeholder with
           var correspondingParam = this.Parameters.Single(p => p.Index == param.Index);
-          mapProcessor.ParametersToReplace.Add(new ParameterTuple(param.Parameter, correspondingParam.Parameter));
+          mapProcessor.ParametersToReplace.Add(new ExpressionTuple(param.Parameter, correspondingParam.Parameter));
         }
       }
 
@@ -235,12 +236,12 @@ namespace ThisMember.Core
 
       if (member.Condition != null)
       {
-        mapProcessor.ParametersToReplace.Add(new ParameterTuple(member.Condition.Parameters.Single(), this.sourceParameter));
+        mapProcessor.ParametersToReplace.Add(new ExpressionTuple(member.Condition.Parameters.Single(), this.sourceParameter));
 
         condition = member.Condition.Body;
       }
 
-      var destMember = Expression.PropertyOrField(destination, member.DestinationMember.Name);
+      var destMember = Expression.MakeMemberAccess(destination, member.DestinationMember);
 
       Expression assignSourceToDest;
 
@@ -252,19 +253,40 @@ namespace ThisMember.Core
       }
       else
       {
-        Expression sourceExpression = Expression.PropertyOrField(source, member.SourceMember.Name);
+        Expression sourceExpression = Expression.MakeMemberAccess(source, member.SourceMember);
         assignSourceToDest = AssignSimpleProperty(destMember, sourceExpression);
+      }
+
+      Expression assignConversionToDest = null;
+
+      if (customMapping != null)
+      {
+        var conversionFunction = customMapping.GetConversionFunction(member.SourceMember, member.DestinationMember);
+
+        this.mapProcessor.ParametersToReplace.Add(new ExpressionTuple(conversionFunction.Parameters.Single(),destMember));
+
+        assignConversionToDest = Expression.Assign(destMember, conversionFunction.Body);
+
       }
 
       // If a condition to the mapping was specified
       if (condition != null)
       {
+        if (assignConversionToDest != null)
+        {
+          assignSourceToDest = Expression.Block(assignSourceToDest, assignConversionToDest);
+        }
+
         var ifCondition = Expression.IfThen(condition, assignSourceToDest);
         expressions.Add(ifCondition);
       }
       else
       {
         expressions.Add(assignSourceToDest);
+        if (assignConversionToDest != null)
+        {
+          expressions.Add(assignConversionToDest);
+        }
       }
     }
 
@@ -567,7 +589,7 @@ namespace ThisMember.Core
 
       if (complexTypeMapping.Condition != null)
       {
-        mapProcessor.ParametersToReplace.Add(new ParameterTuple(complexTypeMapping.Condition.Parameters.Single(), this.sourceParameter));
+        mapProcessor.ParametersToReplace.Add(new ExpressionTuple(complexTypeMapping.Condition.Parameters.Single(), this.sourceParameter));
 
         sourceNotNullCondition = Expression.AndAlso(sourceNotNullCondition, complexTypeMapping.Condition.Body);
       }
@@ -727,8 +749,8 @@ namespace ThisMember.Core
           var oldSrc = constructor.Parameters[0];
           var oldDest = constructor.Parameters[1];
 
-          mapProcessor.ParametersToReplace.Add(new ParameterTuple(oldSrc, source));
-          mapProcessor.ParametersToReplace.Add(new ParameterTuple(oldDest, destination));
+          mapProcessor.ParametersToReplace.Add(new ExpressionTuple(oldSrc, source));
+          mapProcessor.ParametersToReplace.Add(new ExpressionTuple(oldDest, destination));
 
           //constructor = (LambdaExpression)destVisitor.Visit(srcVisitor.Visit(constructor));
 
@@ -773,7 +795,7 @@ namespace ThisMember.Core
 
       var newType = complexTypeMapping.DestinationMember.PropertyOrFieldType;
 
-      var accessDestinationMember = Expression.PropertyOrField(destination, complexTypeMapping.DestinationMember.Name);
+      var accessDestinationMember = Expression.MakeMemberAccess(destination, complexTypeMapping.DestinationMember);
 
       if (TypeReceivesSpecialTreatment(newType))
       {
@@ -818,7 +840,7 @@ namespace ThisMember.Core
         BuildTypeMappingExpressions(complexSource, complexDest, complexTypeMapping, ifNotNullBlock, complexTypeMapping.CustomMapping);
 
         // destination.Member = destinationType;
-        ifNotNullBlock.Add(Expression.Assign(Expression.PropertyOrField(destination, complexTypeMapping.DestinationMember.Name), complexDest));
+        ifNotNullBlock.Add(Expression.Assign(Expression.MakeMemberAccess(destination, complexTypeMapping.DestinationMember), complexDest));
       }
 
       Expression condition;
@@ -836,7 +858,7 @@ namespace ThisMember.Core
 
       if (complexTypeMapping.Condition != null)
       {
-        mapProcessor.ParametersToReplace.Add(new ParameterTuple(complexTypeMapping.Condition.Parameters.Single(), this.sourceParameter));
+        mapProcessor.ParametersToReplace.Add(new ExpressionTuple(complexTypeMapping.Condition.Parameters.Single(), this.sourceParameter));
 
         condition = Expression.AndAlso(condition, complexTypeMapping.Condition.Body);
 

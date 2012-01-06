@@ -50,6 +50,7 @@
     <Compile Include="CompilationTests.cs" />
     <Compile Include="ComplexMappingTests.cs" />
     <Compile Include="ConstructorTests.cs" />
+    <Compile Include="ConversionFunctionTests.cs" />
     <Compile Include="ConversionTests.cs" />
     <Compile Include="CustomMappingAutoConversionTests.cs" />
     <Compile Include="CustomMappingTests.cs" />

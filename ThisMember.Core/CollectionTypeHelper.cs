@@ -11,6 +11,12 @@ namespace ThisMember.Core
   internal static class CollectionTypeHelper
   {
 
+    public static bool IsEnumerable(TypePair pair)
+    {
+      return typeof(IEnumerable).IsAssignableFrom(pair.SourceType) &&
+        typeof(IEnumerable).IsAssignableFrom(pair.DestinationType);
+    }
+
     public static bool IsEnumerable(ProposedTypeMapping mapping)
     {
       return typeof(IEnumerable).IsAssignableFrom(mapping.SourceMember.PropertyOrFieldType)

@@ -10,28 +10,28 @@ using System.Reflection;
 
 namespace ThisMember.Core
 {
-  internal class ParameterTuple
+  internal class ExpressionTuple
   {
-    public ParameterExpression OldParameter { get; set; }
-    public ParameterExpression NewParameter { get; set; }
+    public Expression OldExpression { get; set; }
+    public Expression NewExpression { get; set; }
 
-    public ParameterTuple(ParameterExpression oldParam, ParameterExpression newParam)
+    public ExpressionTuple(Expression oldExpr, Expression newExpr)
     {
-      OldParameter = oldParam;
-      NewParameter = newParam;
+      OldExpression = oldExpr;
+      NewExpression = newExpr;
     }
   }
 
- 
+
   internal class MapExpressionProcessor
   {
-    public ICollection<ParameterTuple> ParametersToReplace { get; private set; }
+    public ICollection<ExpressionTuple> ParametersToReplace { get; private set; }
 
     public bool NonPublicMembersAccessed { get; private set; }
 
     public MapExpressionProcessor(IMemberMapper mapper)
     {
-      ParametersToReplace = new HashSet<ParameterTuple>();
+      ParametersToReplace = new HashSet<ExpressionTuple>();
       this.MemberMapper = mapper;
     }
 
@@ -82,9 +82,9 @@ namespace ThisMember.Core
 
     private class ParameterVisitor : ExpressionVisitor
     {
-      private ICollection<ParameterTuple> parameters;
+      private ICollection<ExpressionTuple> parameters;
 
-      public ParameterVisitor(ICollection<ParameterTuple> parameters)
+      public ParameterVisitor(ICollection<ExpressionTuple> parameters)
       {
         this.parameters = parameters;
       }
@@ -93,9 +93,9 @@ namespace ThisMember.Core
       {
         foreach (var param in parameters)
         {
-          if (param.OldParameter == parameter)
+          if (param.OldExpression == parameter)
           {
-            return param.NewParameter;
+            return param.NewExpression;
           }
         }
 
@@ -118,8 +118,15 @@ namespace ThisMember.Core
         this.mapper = mapper;
       }
 
-      private static bool IsExceptionToNullCheck(MemberExpression memberNode)
+      private bool IsExceptionToNullCheck(MemberExpression memberNode)
       {
+        var memberAccess = memberNode.Expression as MemberExpression;
+
+        if (memberAccess != null && membersExemptFromNullCheck.Contains(memberAccess.Member))
+        {
+          return true;
+        }
+
         if (memberNode.Member.Name == "Count"
           && memberNode.Member.DeclaringType.IsGenericType
           && typeof(ICollection<>).IsAssignableFrom(memberNode.Member.DeclaringType.GetGenericTypeDefinition()))
@@ -153,7 +160,7 @@ namespace ThisMember.Core
         if (newExpression == null)
         {
 
-          if (memberNode.Expression.NodeType == ExpressionType.Parameter || IsExceptionToNullCheck(memberNode))
+          if (memberNode.Expression == null || memberNode.Expression.NodeType == ExpressionType.Parameter || IsExceptionToNullCheck(memberNode))
           {
             return expression;
           }
@@ -166,7 +173,7 @@ namespace ThisMember.Core
         else
         {
 
-          if (memberNode.Expression.NodeType == ExpressionType.Parameter)
+          if (memberNode.Expression == null || memberNode.Expression.NodeType == ExpressionType.Parameter)
           {
             return newExpression;
           }
@@ -179,6 +186,39 @@ namespace ThisMember.Core
 
         return ConvertToConditionals(conditionalReturnType, memberNode.Expression, newExpression);
 
+      }
+
+      private Stack<MemberInfo> membersExemptFromNullCheck = new Stack<MemberInfo>();
+
+      protected override Expression VisitConditional(ConditionalExpression node)
+      {
+        MemberInfo member = null;
+
+        var test = node.Test as BinaryExpression;
+
+        if (test != null && test.NodeType == ExpressionType.NotEqual)
+        {
+          var left = test.Left as MemberExpression;
+          var right = test.Right as ConstantExpression;
+
+          if (left != null && right != null)
+          {
+            member = left.Member;
+            membersExemptFromNullCheck.Push(member);
+          }
+
+        }
+
+        //if(node.Test)
+
+        var result = base.VisitConditional(node);
+
+        if (member != null)
+        {
+          membersExemptFromNullCheck.Pop();
+        }
+
+        return result;
       }
 
       protected override Expression VisitMember(MemberExpression node)
@@ -238,7 +278,7 @@ namespace ThisMember.Core
 
           var genericParams = delType.GetGenericArguments();
 
-          foreach(var genericArg in genericParams)
+          foreach (var genericArg in genericParams)
           {
             if (!IsPublicClass(genericArg))
             {

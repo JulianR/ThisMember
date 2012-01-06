@@ -6,18 +6,18 @@ using System.Reflection;
 
 namespace ThisMember.Core
 {
-  public static class ConversionTypeHelper
+  internal static class ConversionTypeHelper
   {
-    public static bool AreConvertible(Type source, Type destination)
+    internal static bool AreConvertible(Type source, Type destination)
     {
       return AreExplicitlyConvertible(source, destination)
         || AreImplicitlyConvertible(source, destination)
         || CanConvertToOrFromEnum(source, destination);
     }
 
-    private static readonly Dictionary<Type, IList<MethodInfo>> _conversionMethodCache = new Dictionary<Type, IList<MethodInfo>>();
+    private static readonly Dictionary<Type, IList<MethodInfo>> conversionMethodCache = new Dictionary<Type, IList<MethodInfo>>();
 
-    public static bool AreImplicitlyConvertible(Type source, Type destination)
+    internal static bool AreImplicitlyConvertible(Type source, Type destination)
     {
       if (legalConversions.Contains(new TypePair(source, destination)))
       {
@@ -33,20 +33,20 @@ namespace ThisMember.Core
 
     private static IList<MethodInfo> GetConversionMethods(Type source)
     {
-      lock (_conversionMethodCache)
+      lock (conversionMethodCache)
       {
         IList<MethodInfo> methods;
-        if (!_conversionMethodCache.TryGetValue(source, out methods))
+        if (!conversionMethodCache.TryGetValue(source, out methods))
         {
           methods = source.GetMethods().Where(m => m.Name.StartsWith("op_")).ToList();
 
-          _conversionMethodCache.Add(source, methods);
+          conversionMethodCache.Add(source, methods);
         }
         return methods;
       }
     }
 
-    public static bool AreExplicitlyConvertible(Type source, Type destination)
+    internal static bool AreExplicitlyConvertible(Type source, Type destination)
     {
       if (legalConversions.Contains(new TypePair(source, destination)))
       {
@@ -60,7 +60,7 @@ namespace ThisMember.Core
       return method != null;
     }
 
-    public static bool CanConvertToOrFromEnum(Type source, Type destination)
+    internal static bool CanConvertToOrFromEnum(Type source, Type destination)
     {
       return (source.IsEnum && (destination == typeof(int) || legalConversions.Contains(new TypePair(destination, typeof(int)))))
       || (destination.IsEnum && (source == typeof(int) || legalConversions.Contains(new TypePair(source, typeof(int)))));

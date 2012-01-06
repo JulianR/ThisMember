@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ThisMember.Core;
+using ThisMember.Core.Options;
 
 namespace ThisMember.Test
 {

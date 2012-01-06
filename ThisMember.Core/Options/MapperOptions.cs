@@ -5,7 +5,7 @@ using System.Text;
 using ThisMember.Core.Interfaces;
 using System.Globalization;
 
-namespace ThisMember.Core
+namespace ThisMember.Core.Options
 {
   public class MapperOptions
   {

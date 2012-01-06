@@ -264,26 +264,26 @@ namespace ThisMember.Core
 
     private class IncompatibleMapping : IMappingProposition
     {
-      private PropertyOrFieldInfo _member;
-      private ProposedTypeMapping _mapping;
+      private PropertyOrFieldInfo member;
+      private ProposedTypeMapping mapping;
 
       public IncompatibleMapping(PropertyOrFieldInfo member, ProposedTypeMapping mapping = null)
       {
-        _mapping = mapping;
-        _member = member;
+        mapping = mapping;
+        member = member;
       }
 
       public bool Ignored
       {
         get
         {
-          throw new MemberNotFoundException(_member);
+          throw new MemberNotFoundException(member);
         }
         set
         {
-          if (_mapping != null)
+          if (mapping != null)
           {
-            _mapping.IncompatibleMappings.Remove(_member);
+            mapping.IncompatibleMappings.Remove(member);
           }
         }
       }
@@ -292,11 +292,11 @@ namespace ThisMember.Core
       {
         get
         {
-          throw new MemberNotFoundException(_member);
+          throw new MemberNotFoundException(member);
         }
         set
         {
-          throw new MemberNotFoundException(_member);
+          throw new MemberNotFoundException(member);
         }
       }
 
@@ -304,11 +304,11 @@ namespace ThisMember.Core
       {
         get
         {
-          return _member;
+          return member;
         }
         set
         {
-          _member = value;
+          member = value;
         }
       }
 

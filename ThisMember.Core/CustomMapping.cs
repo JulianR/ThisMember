@@ -29,21 +29,38 @@ namespace ThisMember.Core.Interfaces
 
   public class CustomMapping
   {
-    public IList<MemberExpressionTuple> Members { get; set; }
+    public IList<MemberExpressionTuple> Members { get; internal set; }
 
-    public IList<CustomMapping> CustomMappings { get; set; }
+    public IList<CustomMapping> CustomMappings { get; internal set; }
 
-    public Type DestinationType { get; set; }
+    public Type DestinationType { get; internal set; }
 
-    public ParameterExpression SourceParameter { get; set; }
+    internal ParameterExpression SourceParameter { get; set; }
 
-    public IList<IndexedParameterExpression> ArgumentParameters { get; set; }
+    internal IList<IndexedParameterExpression> ArgumentParameters { get; set; }
+
+    private Dictionary<Tuple<PropertyOrFieldInfo, PropertyOrFieldInfo>, LambdaExpression> conversionFunctions;
 
     public CustomMapping()
     {
       CustomMappings = new List<CustomMapping>();
       Members = new List<MemberExpressionTuple>();
       ArgumentParameters = new List<IndexedParameterExpression>();
+      this.conversionFunctions = new Dictionary<Tuple<PropertyOrFieldInfo, PropertyOrFieldInfo>, LambdaExpression>();
+    }
+
+    public void AddConversionFunction(PropertyOrFieldInfo source, PropertyOrFieldInfo destination, LambdaExpression conversion)
+    {
+      this.conversionFunctions.Add(Tuple.Create(source, destination), conversion);
+    }
+
+    public LambdaExpression GetConversionFunction(PropertyOrFieldInfo source, PropertyOrFieldInfo destination)
+    {
+      LambdaExpression conversion;
+
+      this.conversionFunctions.TryGetValue(Tuple.Create(source, destination), out conversion);
+
+      return conversion;
     }
 
     public static CustomMapping GetCustomMapping(Type destinationType, Expression expression)
@@ -90,22 +107,22 @@ namespace ThisMember.Core.Interfaces
 
     public class ParameterVisitor : ExpressionVisitor
     {
-      private IList<ParameterExpression> _newParams;
-      private IList<ParameterExpression> _oldParams;
+      private IList<ParameterExpression> newParams;
+      private IList<ParameterExpression> oldParams;
 
       public ParameterVisitor(IList<ParameterExpression> oldParams, IList<ParameterExpression> newParams)
       {
-        _oldParams = oldParams;
-        _newParams = newParams;
+        oldParams = oldParams;
+        newParams = newParams;
       }
 
       protected override Expression VisitParameter(ParameterExpression node)
       {
-        for (var i = 0; i < _oldParams.Count; i++)
+        for (var i = 0; i < oldParams.Count; i++)
         {
-          if (_oldParams[i] == node)
+          if (oldParams[i] == node)
           {
-            return _newParams[i];
+            return newParams[i];
           }
         }
         return base.VisitParameter(node);
@@ -149,6 +166,55 @@ namespace ThisMember.Core.Interfaces
       //  CombineWithOtherCustomMappings(mapping.
       //}
 
+    }
+
+    private bool HasCustomMappingForMember(PropertyOrFieldInfo member)
+    {
+      var match = this.Members.FirstOrDefault(m => m.Equals(member));
+
+      return match != null;
+    }
+
+    private CustomMapping GetCustomMappingForMember(PropertyOrFieldInfo member)
+    {
+
+      if (!this.HasCustomMappingForMember(member))
+      {
+        foreach (var cm in this.CustomMappings)
+        {
+          var mapping = cm.GetCustomMappingForMember(member);
+
+          if (mapping == null)
+          {
+            return mapping;
+          }
+        }
+        return null;
+      }
+      else
+      {
+        return this;
+      }
+
+
+    }
+
+    public void AddExpressionForMember(PropertyOrFieldInfo member, Expression expression)
+    {
+      var cm = GetCustomMappingForMember(member);
+
+      if (cm != null)
+      {
+        cm.Members.Add(new MemberExpressionTuple
+        {
+          Member = member,
+          Expression = expression
+        });
+      }
+      else
+      {
+
+      }
     }
 
     public Expression GetExpressionForMember(PropertyOrFieldInfo member)
@@ -215,6 +281,8 @@ namespace ThisMember.Core.Interfaces
 
       for (var i = 0; i < expression.Arguments.Count; i++)
       {
+        if (expression.Members == null) return null;
+
         var member = expression.Members[i];
         var argument = expression.Arguments[i];
 
@@ -231,7 +299,12 @@ namespace ThisMember.Core.Interfaces
 
         if (argument is NewExpression)
         {
-          newMapping.CustomMappings.Add(GetCustomMappingFromNewExpression(memberExpression.Member.PropertyOrFieldType, (NewExpression)argument));
+          var cm = GetCustomMappingFromNewExpression(memberExpression.Member.PropertyOrFieldType, (NewExpression)argument);
+
+          if (cm != null)
+          {
+            newMapping.CustomMappings.Add(cm);
+          }
         }
         else
         {

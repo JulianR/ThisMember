@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Collections;
 using System.Linq.Expressions;
 using ThisMember.Core.Exceptions;
+using ThisMember.Core.Options;
 
 namespace ThisMember.Core
 {
@@ -65,13 +66,13 @@ namespace ThisMember.Core
         this.customMappingCache = customMappingCache;
       }
 
-      private Stack<TypePair> _typeStack = new Stack<TypePair>();
+      private Stack<TypePair> typeStack = new Stack<TypePair>();
 
       private ProposedTypeMapping GetTypeMapping(int currentDepth, TypePair pair, MappingOptions options = null, CustomMapping customMapping = null)
       {
-        if (!_typeStack.Contains(pair))
+        if (!typeStack.Contains(pair))
         {
-          _typeStack.Push(pair);
+          typeStack.Push(pair);
         }
         else if (mapper.Options.Safety.IfRecursiveRelationshipIsDetected == RecursivePropertyOptions.ThrowIfRecursionIsDetected)
         {
@@ -126,6 +127,26 @@ namespace ThisMember.Core
           }
 
           var sourceMember = mapping.Source;
+
+          if (mapping.ConversionFunction != null)
+          {
+            if (customMapping == null)
+            {
+              customMapping = new CustomMapping
+              {
+                DestinationType = destinationType
+              };
+              customMappingCache.Add(pair, customMapping);
+
+              typeMapping.CustomMapping = customMapping;
+
+              customMapping.AddConversionFunction(sourceMember, destinationMember, mapping.ConversionFunction);
+            }
+            else
+            {
+              customMapping.AddConversionFunction(sourceMember, destinationMember, mapping.ConversionFunction);
+            }
+          }
 
           if (HasNoSourceMember(customExpression, sourceMember) || !destinationMember.CanWrite)
           {
@@ -187,7 +208,7 @@ namespace ThisMember.Core
           }
         }
 
-        _typeStack.Pop();
+        typeStack.Pop();
 
         return typeMapping;
       }
@@ -196,6 +217,7 @@ namespace ThisMember.Core
       {
         public PropertyOrFieldInfo Source { get; set; }
         public PropertyOrFieldInfo Destination { get; set; }
+        public LambdaExpression ConversionFunction { get; set; }
       }
 
       private static IEnumerable<SourceDestinationMapping> GetTypeMembers(DefaultMemberProvider memberProvider, MappingOptions options, int currentDepth)
@@ -206,12 +228,15 @@ namespace ThisMember.Core
         {
           var destination = destinationMember;
           var sourceMember = memberProvider.GetMatchingSourceMember(destinationMember);
+          LambdaExpression conversion = null;
 
           if (options != null)
           {
-            var option = new MemberOption();
+            var option = new MemberOption(sourceMember, destinationMember);
 
             options(sourceMember, destinationMember, option, currentDepth);
+
+            conversion = option.ConversionFunction;
 
             switch (option.State)
             {
@@ -246,7 +271,8 @@ namespace ThisMember.Core
           var mapping = new SourceDestinationMapping
           {
             Source = sourceMember,
-            Destination = destination
+            Destination = destination,
+            ConversionFunction = conversion
           };
 
           yield return mapping;
@@ -586,6 +612,13 @@ namespace ThisMember.Core
 
       private bool TryGetCustomMapping(TypePair pair, out CustomMapping customMapping)
       {
+        if (CollectionTypeHelper.IsEnumerable(pair))
+        {
+          var source = CollectionTypeHelper.GetTypeInsideEnumerable(pair.SourceType);
+          var destination = CollectionTypeHelper.GetTypeInsideEnumerable(pair.DestinationType);
+          pair = new TypePair(source, destination);
+        }
+
         customMappingCache.TryGetValue(pair, out customMapping);
 
         var matchingMappings = (from m in customMappingCache

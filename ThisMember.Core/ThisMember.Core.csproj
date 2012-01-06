@@ -46,6 +46,7 @@
     <Compile Include="CollectionTypeHelper.cs" />
     <Compile Include="CompiledMapGenerator.cs" />
     <Compile Include="CompiledMapGeneratorFactory.cs" />
+    <Compile Include="ConversionFunctionHelper.cs" />
     <Compile Include="ConversionTypeHelper.cs" />
     <Compile Include="CustomMapping.cs" />
     <Compile Include="DefaultMemberProvider.cs" />
@@ -69,7 +70,7 @@
     <Compile Include="Interfaces\IProjectionGenerator.cs" />
     <Compile Include="Interfaces\IProjectionGeneratorFactory.cs" />
     <Compile Include="MapCollection.cs" />
-    <Compile Include="MapperOptions.cs" />
+    <Compile Include="Options\MapperOptions.cs" />
     <Compile Include="MappingOption.cs" />
     <Compile Include="DefaultMappingStrategy.cs" />
     <Compile Include="MapProposalProcessor.cs" />

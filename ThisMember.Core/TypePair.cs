@@ -23,7 +23,7 @@ namespace ThisMember.Core
 
     public override int GetHashCode()
     {
-      return this.SourceType.GetHashCode();
+      return this.SourceType.GetHashCode() ^ this.DestinationType.GetHashCode();
     }
 
     public override string ToString()
