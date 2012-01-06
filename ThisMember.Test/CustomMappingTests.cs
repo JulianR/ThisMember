@@ -278,7 +278,45 @@ namespace ThisMember.Test
     }
 
    
+    class SourceConstructor
+    {
+      public string Foo { get; set; }
+    }
 
+    class DestinationConstructorNested
+    {
+      public string Foobar { get; set; }
+      public string Test { get; set; }
+    }
+
+    class DestinationConstructor
+    {
+      public DestinationConstructorNested Nested { get; set; }
+    }
+
+    [TestMethod]
+    public void NewExpressionCanBeUsedAsMapping()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<SourceConstructor, DestinationConstructor>(src => new DestinationConstructor
+      {
+        Nested = new DestinationConstructorNested
+        {
+          Foobar = src.Foo + "x",
+          Test = src.Foo + src.Foo
+        }
+      });
+
+      var result = mapper.Map(new SourceConstructor
+        {
+          Foo = "12"
+        }, new DestinationConstructor());
+
+      Assert.AreEqual("12x", result.Nested.Foobar);
+      Assert.AreEqual("1212", result.Nested.Test);
+
+    }
 
   }
 }

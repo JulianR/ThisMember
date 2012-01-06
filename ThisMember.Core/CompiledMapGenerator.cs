@@ -262,11 +262,12 @@ namespace ThisMember.Core
       if (customMapping != null)
       {
         var conversionFunction = customMapping.GetConversionFunction(member.SourceMember, member.DestinationMember);
+        if (conversionFunction != null)
+        {
+          this.mapProcessor.ParametersToReplace.Add(new ExpressionTuple(conversionFunction.Parameters.Single(), destMember));
 
-        this.mapProcessor.ParametersToReplace.Add(new ExpressionTuple(conversionFunction.Parameters.Single(),destMember));
-
-        assignConversionToDest = Expression.Assign(destMember, conversionFunction.Body);
-
+          assignConversionToDest = Expression.Assign(destMember, conversionFunction.Body);
+        }
       }
 
       // If a condition to the mapping was specified

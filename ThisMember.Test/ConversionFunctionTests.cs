@@ -215,7 +215,8 @@ namespace ThisMember.Test
         }
       });
 
-      mapper.CreateMap<SourceDate, DestinationDate>(options: func, customMapping: src => new DestinationDate
+      mapper.CreateMap<SourceDate, DestinationDate>(options: func, 
+      customMapping: src => new DestinationDate
       {
         Start = new DateTime(2001, 12, 1, 10, 0, 0, DateTimeKind.Local)
       });
