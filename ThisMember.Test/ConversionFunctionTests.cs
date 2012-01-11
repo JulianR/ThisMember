@@ -22,7 +22,6 @@ namespace ThisMember.Test
     class Destination
     {
       public int Foo { get; set; }
-      public DateTime Start { get; set; }
     }
 
     class SourceDate

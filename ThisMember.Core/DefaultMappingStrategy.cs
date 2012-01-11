@@ -139,13 +139,10 @@ namespace ThisMember.Core
               customMappingCache.Add(pair, customMapping);
 
               typeMapping.CustomMapping = customMapping;
+            }
 
-              customMapping.AddConversionFunction(sourceMember, destinationMember, mapping.ConversionFunction);
-            }
-            else
-            {
-              customMapping.AddConversionFunction(sourceMember, destinationMember, mapping.ConversionFunction);
-            }
+            customMapping.AddConversionFunction(sourceMember, destinationMember, mapping.ConversionFunction);
+
           }
 
           if (HasNoSourceMember(customExpression, sourceMember) || !destinationMember.CanWrite)

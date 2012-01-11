@@ -245,7 +245,7 @@ namespace ThisMember.Core
 
       Expression assignSourceToDest;
 
-      Expression customExpression;
+      Expression customExpression = null;
 
       if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
       {
@@ -262,9 +262,28 @@ namespace ThisMember.Core
       if (customMapping != null)
       {
         var conversionFunction = customMapping.GetConversionFunction(member.SourceMember, member.DestinationMember);
+
+
         if (conversionFunction != null)
         {
-          this.mapProcessor.ParametersToReplace.Add(new ExpressionTuple(conversionFunction.Parameters.Single(), destMember));
+          var parameter = conversionFunction.Parameters.Single();
+
+          if (customExpression != null)
+          {
+            if (!parameter.Type.IsAssignableFrom(customExpression.Type))
+            {
+              throw new InvalidOperationException(string.Format("Invalid parameter type {0} for conversion", parameter.Type));
+            }
+          }
+          else
+          {
+            if (!parameter.Type.IsAssignableFrom(member.SourceMember.PropertyOrFieldType))
+            {
+              throw new InvalidOperationException(string.Format("Invalid parameter type {0} for conversion", parameter.Type));
+            }
+          }
+
+          this.mapProcessor.ParametersToReplace.Add(new ExpressionTuple(parameter, destMember));
 
           assignConversionToDest = Expression.Assign(destMember, conversionFunction.Body);
         }

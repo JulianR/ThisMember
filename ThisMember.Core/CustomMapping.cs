@@ -112,8 +112,8 @@ namespace ThisMember.Core.Interfaces
 
       public ParameterVisitor(IList<ParameterExpression> oldParams, IList<ParameterExpression> newParams)
       {
-        oldParams = oldParams;
-        newParams = newParams;
+        this.oldParams = oldParams;
+        this.newParams = newParams;
       }
 
       protected override Expression VisitParameter(ParameterExpression node)
@@ -258,7 +258,9 @@ namespace ThisMember.Core.Interfaces
 
         memberExpression.Member = memberOnDestination;
 
-        if (argument is NewExpression)
+        var argAsNewExpression = argument as NewExpression;
+
+        if (argAsNewExpression != null && argAsNewExpression.Members != null)
         {
           newMapping.CustomMappings.Add(GetCustomMappingFromNewExpression(memberExpression.Member.PropertyOrFieldType, (NewExpression)argument));
         }
@@ -281,8 +283,6 @@ namespace ThisMember.Core.Interfaces
 
       for (var i = 0; i < expression.Arguments.Count; i++)
       {
-        if (expression.Members == null) return null;
-
         var member = expression.Members[i];
         var argument = expression.Arguments[i];
 

@@ -269,8 +269,8 @@ namespace ThisMember.Core
 
       public IncompatibleMapping(PropertyOrFieldInfo member, ProposedTypeMapping mapping = null)
       {
-        mapping = mapping;
-        member = member;
+        this.mapping = mapping;
+        this.member = member;
       }
 
       public bool Ignored
