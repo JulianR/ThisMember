@@ -245,13 +245,19 @@ namespace ThisMember.Core
 
       var destMember = Expression.MakeMemberAccess(destination, member.DestinationMember);
 
-      Expression assignSourceToDest;
+      Expression assignSourceToDest = null;
 
       Expression customExpression = null;
 
       if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
       {
         assignSourceToDest = Expression.Assign(destMember, customExpression);
+      }
+      else if (member.HierarchicalMapping != null)
+      {
+        var accessHierarchy = BuildHierarchicalExpression(source, member.HierarchicalMapping, null);
+
+        assignSourceToDest = Expression.Assign(destMember, accessHierarchy);
       }
       else
       {
@@ -296,6 +302,25 @@ namespace ThisMember.Core
           expressions.Add(assignConversionToDest);
         }
       }
+    }
+
+    private static Expression BuildHierarchicalExpression(ParameterExpression sourceParam, ProposedHierarchicalMapping mapping, Expression expression)
+    {
+
+      foreach (var member in mapping.Members)
+      {
+        if (expression == null)
+        {
+          expression = Expression.MakeMemberAccess(sourceParam, member);
+        }
+        else
+        {
+          expression = Expression.MakeMemberAccess(expression, member);
+        }
+
+      }
+
+      return expression;
     }
 
     private static void ValidateConversionFunction(ProposedMemberMapping member, Expression customExpression, ParameterExpression parameter)

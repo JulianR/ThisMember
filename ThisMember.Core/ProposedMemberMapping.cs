@@ -23,6 +23,13 @@ namespace ThisMember.Core
     /// </summary>
     public LambdaExpression Condition { get; set; }
 
+    /// <summary>
+    /// Used when a destination member is not directly mapped to a source member,
+    /// but when a hierarchy is flattened like when employee.Company.Name is mapped to a property 
+    /// called CompanyName.
+    /// </summary>
+    public ProposedHierarchicalMapping HierarchicalMapping { get; set; }
+
     public override bool Equals(object obj)
     {
       var other = obj as ProposedMemberMapping;

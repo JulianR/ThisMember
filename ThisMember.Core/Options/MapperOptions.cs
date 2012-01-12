@@ -39,7 +39,7 @@ namespace ThisMember.Core.Options
           ParseCulture = null,
           ParseStringsToDateTime = true
         },
-        AutomaticallyFlattenHierarchies = false,
+        AutomaticallyFlattenHierarchies = true,
         MakeCloneIfDestinationIsTheSameAsSource = true,
         IgnoreMemberAttributeShouldBeRespected = true,
         ReuseNonNullComplexMembersOnDestination = true,

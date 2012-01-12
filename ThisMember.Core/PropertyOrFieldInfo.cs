@@ -150,5 +150,10 @@ namespace ThisMember.Core.Interfaces
       return this.member.ToString();
     }
 
+    public static bool IsPropertyOrField(MemberInfo member)
+    {
+      return member.MemberType == MemberTypes.Property || member.MemberType == MemberTypes.Field;
+    }
+
   }
 }

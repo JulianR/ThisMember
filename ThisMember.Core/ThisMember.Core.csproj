@@ -43,6 +43,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CamelCaseHelper.cs" />
     <Compile Include="CollectionTypeHelper.cs" />
     <Compile Include="CompiledMapGenerator.cs" />
     <Compile Include="CompiledMapGeneratorFactory.cs" />
@@ -83,6 +84,7 @@
     <Compile Include="Projection.cs" />
     <Compile Include="ProjectionProcessor.cs" />
     <Compile Include="PropertyOrFieldInfo.cs" />
+    <Compile Include="ProposedHierarchicalMapping.cs" />
     <Compile Include="ProposedMemberMapping.cs" />
     <Compile Include="MemberMap.cs" />
     <Compile Include="MemberMapper.cs" />

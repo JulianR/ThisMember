@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using ThisMember.Core.Interfaces;
 using System.Reflection;
+using System.Linq.Expressions;
 
 namespace ThisMember.Core
 {
@@ -21,16 +22,70 @@ namespace ThisMember.Core
       this.destinationType = destinationType;
     }
 
-    public Dictionary<string, PropertyOrFieldInfo> GetSourceMembers()
+    private bool GetMemberOnType(Type type, IList<string> members, int index, IList<PropertyOrFieldInfo> memberStack)
     {
-      var sourceProperties = (from p in sourceType.GetProperties()
-                              where p.CanRead && !p.GetIndexParameters().Any()
-                              select (PropertyOrFieldInfo)p)
-                              .Union(from f in sourceType.GetFields()
-                                     where !f.IsStatic
-                                     select (PropertyOrFieldInfo)f)
-                                     .ToDictionary(k => k.Name, mapper.Options.Conventions.IgnoreCaseWhenFindingMatch ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
-      return sourceProperties;
+      var name = members[index];
+
+      var member = type.GetMember(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy).FirstOrDefault();
+
+      if (member == null) return false;
+
+      if (!PropertyOrFieldInfo.IsPropertyOrField(member))
+      {
+        return false;
+      }
+
+      memberStack.Add(member);
+
+      if (index < members.Count - 1)
+      {
+        return GetMemberOnType(((PropertyOrFieldInfo)member).PropertyOrFieldType, members, index + 1, memberStack);
+      }
+
+      return true;
+    }
+
+    public ProposedHierarchicalMapping FindHierarchy(PropertyOrFieldInfo destinationMember)
+    {
+      
+      var split = CamelCaseHelper.SplitOnCamelCase(destinationMember.Name);
+      
+      if (split.Count <= 1)
+      {
+        return null;
+      }
+
+      var sourceMembers = SourceMembers;
+
+      var memberStack = new List<PropertyOrFieldInfo>();
+
+      var applies = GetMemberOnType(sourceType, split, 0, memberStack);
+
+      if (applies)
+      {
+        return new ProposedHierarchicalMapping(memberStack);
+      }
+
+      return null;
+    }
+
+
+    private Dictionary<string, PropertyOrFieldInfo> SourceMembers
+    {
+      get
+      {
+        if (this.sourceProperties == null)
+        {
+          this.sourceProperties = (from p in sourceType.GetProperties()
+                                   where p.CanRead && !p.GetIndexParameters().Any()
+                                   select (PropertyOrFieldInfo)p)
+                                  .Union(from f in sourceType.GetFields()
+                                         where !f.IsStatic
+                                         select (PropertyOrFieldInfo)f)
+                                         .ToDictionary(k => k.Name, mapper.Options.Conventions.IgnoreCaseWhenFindingMatch ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        }
+        return this.sourceProperties;
+      }
     }
 
     public IEnumerable<PropertyOrFieldInfo> GetDestinationMembers()
@@ -46,14 +101,9 @@ namespace ThisMember.Core
 
     public PropertyOrFieldInfo GetMatchingSourceMember(PropertyOrFieldInfo destinationProperty)
     {
-      if (sourceProperties == null)
-      {
-        sourceProperties = GetSourceMembers();
-      }
-
       PropertyOrFieldInfo sourceProperty;
 
-      sourceProperties.TryGetValue(destinationProperty.Name, out sourceProperty);
+      SourceMembers.TryGetValue(destinationProperty.Name, out sourceProperty);
 
       return sourceProperty;
 

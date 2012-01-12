@@ -145,21 +145,24 @@ namespace ThisMember.Core
 
           }
 
+          ProposedHierarchicalMapping hierarchicalMapping = null;
+
           if (HasNoSourceMember(customExpression, sourceMember) || !destinationMember.CanWrite)
           {
-            if (mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember)
+            if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
+            {
+              hierarchicalMapping = memberProvider.FindHierarchy(destinationMember);
+            }
+
+            if (hierarchicalMapping == null && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember)
             {
               typeMapping.IncompatibleMappings.Add(destinationMember);
             }
           }
-          else if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
-          {
-            throw new NotImplementedException("Sorry, this hasn't been implemented yet");
-          }
 
-          var nullableType = TryGetNullableType(sourceMember);
+          var nullableType = NullableTypeHelper.TryGetNullableType(sourceMember);
 
-          var canUseSimpleTypeMapping = CanUseDirectAssignment(pair, destinationMember, sourceMember, nullableType);
+          var canUseSimpleTypeMapping = CanUseDirectAssignment(pair, destinationMember, sourceMember, nullableType, hierarchicalMapping);
 
           if (canUseSimpleTypeMapping || customExpression != null)
           {
@@ -168,7 +171,8 @@ namespace ThisMember.Core
               new ProposedMemberMapping
               {
                 SourceMember = sourceMember,
-                DestinationMember = destinationMember
+                DestinationMember = destinationMember,
+                HierarchicalMapping = hierarchicalMapping
               }
             );
           }
@@ -379,12 +383,20 @@ namespace ThisMember.Core
         return false;
       }
 
-      private bool CanUseDirectAssignment(TypePair pair, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type nullableType)
+      private bool CanUseDirectAssignment(TypePair pair, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type nullableType, ProposedHierarchicalMapping hierarchicalMapping)
       {
 
         if (sourceMember == null)
         {
-          return false;
+          if (hierarchicalMapping == null)
+          {
+            return false;
+          }
+        }
+
+        if (hierarchicalMapping != null)
+        {
+          return true;
         }
 
         if (!destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType))
@@ -418,22 +430,12 @@ namespace ThisMember.Core
         return true;
       }
 
-      private static Type TryGetNullableType(PropertyOrFieldInfo sourceMember)
-      {
-        Type nullableType = null;
-
-        if (sourceMember != null && sourceMember.PropertyOrFieldType.IsNullableValueType())
-        {
-          nullableType = sourceMember.PropertyOrFieldType.GetGenericArguments().Single();
-        }
-        return nullableType;
-      }
+      
 
       private bool HasNoSourceMember(Expression customExpression, PropertyOrFieldInfo sourceMember)
       {
         return sourceMember == null
-                  && customExpression == null
-                  && !mapper.Options.Conventions.AutomaticallyFlattenHierarchies;
+                  && customExpression == null;
       }
 
       private ProposedTypeMapping GetComplexTypeMapping(int currentDepth, TypePair complexPair, MappingOptions options, CustomMapping customMapping, bool skipCache = false)

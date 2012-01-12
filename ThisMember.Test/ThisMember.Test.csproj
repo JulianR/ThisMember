@@ -46,6 +46,7 @@
     </CodeAnalysisDependentAssemblyPaths>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CamelCaseTests.cs" />
     <Compile Include="CloningTests.cs" />
     <Compile Include="CompilationTests.cs" />
     <Compile Include="ComplexMappingTests.cs" />
@@ -58,6 +59,7 @@
     <Compile Include="DefaultMappingStrategyTests.cs" />
     <Compile Include="EnumerableTests.cs" />
     <Compile Include="EnumTests.cs" />
+    <Compile Include="FlattenHierarchyTests.cs" />
     <Compile Include="GenericsTests.cs" />
     <Compile Include="IgnoreAttributeTests.cs" />
     <Compile Include="InheritanceTests.cs" />
