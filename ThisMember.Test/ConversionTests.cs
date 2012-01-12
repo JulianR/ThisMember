@@ -36,6 +36,32 @@ namespace ThisMember.Test
       public decimal Foo { get; set; }
     }
 
+
+    class NullableIntType
+    {
+      public int? Foo { get; set; }
+    }
+
+    class NullableLongType
+    {
+      public long? Foo { get; set; }
+    }
+
+    class NullableDoubleType
+    {
+      public int? Foo { get; set; }
+    }
+
+    class NullableFloatType
+    {
+      public long? Foo { get; set; }
+    }
+
+    class NullableDecimalType
+    {
+      public decimal? Foo { get; set; }
+    }
+
     [TestMethod]
     public void IntIsConvertedToLong()
     {
@@ -239,6 +265,91 @@ namespace ThisMember.Test
 
       mapper.Map<DecimalType, IntType>(new DecimalType { Foo = 10m });
 
+    }
+
+    //--------------------
+
+
+    [TestMethod]
+    public void NullableIntIsConvertedToLong()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullableIntType, LongType>(new NullableIntType
+      {
+        Foo = 10
+      });
+
+      Assert.AreEqual(10, result.Foo);
+
+    }
+
+    [TestMethod]
+    public void NullableIntIsConvertedToLongWithNullValue()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullableIntType, LongType>(new NullableIntType
+      {
+        Foo = null
+      });
+
+      Assert.AreEqual(0, result.Foo);
+
+    }
+
+    [TestMethod]
+    public void NullableLongIsConvertedToInt()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullableLongType, IntType>(new NullableLongType
+      {
+        Foo = 10
+      });
+
+      Assert.AreEqual(10, result.Foo);
+
+    }
+
+    [TestMethod]
+    public void NullableLongIsConvertedToIntWithNullValue()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullableLongType, IntType>(new NullableLongType
+      {
+        Foo = null
+      });
+
+      Assert.AreEqual(0, result.Foo);
+
+    }
+
+
+
+    [TestMethod]
+    public void IntIsConvertedToNullableDecimal()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<IntType, NullableDecimalType>(new IntType
+      {
+        Foo = 10
+      });
+
+      Assert.AreEqual(10, result.Foo);
+
+    }
+
+
+    [TestMethod]
+    public void NullableDecimalToIntWorks()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map<NullableDecimalType, IntType>(new NullableDecimalType { Foo = 10m });
+      Assert.AreEqual(10, result.Foo);
     }
   }
 }

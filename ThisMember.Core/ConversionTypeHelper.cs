@@ -10,6 +10,13 @@ namespace ThisMember.Core
   {
     internal static bool AreConvertible(Type source, Type destination)
     {
+
+      var nullableSource = NullableTypeHelper.TryGetNullableType(source);
+      source = nullableSource ?? source;
+
+      var nullableDestination = NullableTypeHelper.TryGetNullableType(destination);
+      destination = nullableDestination ?? destination;
+
       return AreExplicitlyConvertible(source, destination)
         || AreImplicitlyConvertible(source, destination)
         || CanConvertToOrFromEnum(source, destination);

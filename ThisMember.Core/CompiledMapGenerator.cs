@@ -183,7 +183,8 @@ namespace ThisMember.Core
       {
         source = Expression.Condition(Expression.NotEqual(source, Expression.Constant(null)), source, destination);
       }
-      else if (!source.Type.IsAssignableFrom(destination.Type))
+      
+      if (!source.Type.IsAssignableFrom(destination.Type))
       {
         // cast
         source = Expression.Convert(source, destination.Type);
@@ -211,6 +212,11 @@ namespace ThisMember.Core
     private static Expression HandleDestinationNullableValueType(MemberExpression destination, Expression source)
     {
       var nullableType = destination.Type.GetGenericArguments().Single();
+
+      if (!source.Type.IsAssignableFrom(nullableType))
+      {
+        source = Expression.Convert(source, nullableType);
+      }
 
       // new Nullable<T>(source.Member)
       source = Expression.New(destination.Type.GetConstructor(new[] { nullableType }), source);
