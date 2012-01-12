@@ -44,6 +44,7 @@ namespace ThisMember.Core
       var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper);
 
       map.MappingFunction = generator.GenerateMappingFunction(this);
+      map.DebugInformation = generator.DebugInformation;
 
       mapper.RegisterMap(map);
 
@@ -168,6 +169,7 @@ namespace ThisMember.Core
       var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper);
 
       map.MappingFunction = (Func<TSource,TDestination,TDestination>)generator.GenerateMappingFunction(this);
+      map.DebugInformation = generator.DebugInformation;
 
       mapper.RegisterMap(map);
 
@@ -347,6 +349,7 @@ namespace ThisMember.Core
       var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper);
 
       map.MappingFunction = (Func<TSource, TDestination, TParam, TDestination>)generator.GenerateMappingFunction(this);
+      map.DebugInformation = generator.DebugInformation;
 
       mapper.RegisterMap(map);
 

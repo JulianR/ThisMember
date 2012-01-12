@@ -58,7 +58,8 @@ namespace ThisMember.Core
       newMap.DestinationType = map.DestinationType;
       newMap.SourceType = map.SourceType;
       newMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TDestination>;
-      
+      newMap.DebugInformation = map.DebugInformation;
+
       if (newMap.MappingFunction == null)
       {
         throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called without parameters. Use another overload of Map or recreate the map without a parameter.", typeof(TSource), typeof(TDestination)));

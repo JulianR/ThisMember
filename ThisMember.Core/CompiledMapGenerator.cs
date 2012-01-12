@@ -32,6 +32,8 @@ namespace ThisMember.Core
     private ProposedMap proposedMap;
     private IList<IndexedParameterExpression> Parameters { get; set; }
 
+    public DebugInformation DebugInformation { get; private set; }
+
     public CompiledMapGenerator(IMemberMapper mapper)
     {
       this.mapper = mapper;
@@ -263,25 +265,11 @@ namespace ThisMember.Core
       {
         var conversionFunction = customMapping.GetConversionFunction(member.SourceMember, member.DestinationMember);
 
-
         if (conversionFunction != null)
         {
           var parameter = conversionFunction.Parameters.Single();
 
-          if (customExpression != null)
-          {
-            if (!parameter.Type.IsAssignableFrom(customExpression.Type))
-            {
-              throw new InvalidOperationException(string.Format("Invalid parameter type {0} for conversion", parameter.Type));
-            }
-          }
-          else
-          {
-            if (!parameter.Type.IsAssignableFrom(member.SourceMember.PropertyOrFieldType))
-            {
-              throw new InvalidOperationException(string.Format("Invalid parameter type {0} for conversion", parameter.Type));
-            }
-          }
+          ValidateConversionFunction(member, customExpression, parameter);
 
           this.mapProcessor.ParametersToReplace.Add(new ExpressionTuple(parameter, destMember));
 
@@ -306,6 +294,24 @@ namespace ThisMember.Core
         if (assignConversionToDest != null)
         {
           expressions.Add(assignConversionToDest);
+        }
+      }
+    }
+
+    private static void ValidateConversionFunction(ProposedMemberMapping member, Expression customExpression, ParameterExpression parameter)
+    {
+      if (customExpression != null)
+      {
+        if (!parameter.Type.IsAssignableFrom(customExpression.Type))
+        {
+          throw new InvalidOperationException(string.Format("Invalid parameter type {0} for conversion", parameter.Type));
+        }
+      }
+      else
+      {
+        if (!parameter.Type.IsAssignableFrom(member.SourceMember.PropertyOrFieldType))
+        {
+          throw new InvalidOperationException(string.Format("Invalid parameter type {0} for conversion", parameter.Type));
         }
       }
     }
@@ -914,6 +920,15 @@ namespace ThisMember.Core
 
     private Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
     {
+
+      if (this.mapper.Options.Debug.DebugInformationEnabled)
+      {
+        this.DebugInformation = new DebugInformation
+        {
+          MappingExpression = expression
+        };
+      }
+
       if (this.mapper.Options.Compilation.CompileToDynamicAssembly && !mapProcessor.NonPublicMembersAccessed)
       {
         var typeBuilder = DefineMappingType(string.Format("From_{0}_to_{1}_{2}", sourceType.Name, destinationType.Name, Guid.NewGuid().ToString("N")));

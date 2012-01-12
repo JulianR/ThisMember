@@ -21,6 +21,8 @@ namespace ThisMember.Core.Options
 
     public CloneOptions Cloning { get; set; }
 
+    public DebugOptions Debug { get; set; }
+
     public MapperOptions()
     {
 
@@ -68,6 +70,11 @@ namespace ThisMember.Core.Options
       Cloning = new CloneOptions
       {
         MaxCloneDepth = 2,
+      };
+
+      Debug = new DebugOptions
+      {
+        DebugInformationEnabled = false
       };
 
     }
@@ -208,6 +215,16 @@ namespace ThisMember.Core.Options
     /// </summary>
     ThrowIfRecursionIsDetected,
 
+  }
+
+  public class DebugOptions
+  {
+    /// <summary>
+    /// Set this to true to retain some debug information on the final map, so you can inspect
+    /// the generated expression tree. 
+    /// </summary>
+    /// <remarks>Defaults to false.</remarks>
+    public bool DebugInformationEnabled { get; set; }
   }
 
   public class CompilationOptions

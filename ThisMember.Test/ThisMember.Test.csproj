@@ -54,6 +54,7 @@
     <Compile Include="ConversionTests.cs" />
     <Compile Include="CustomMappingAutoConversionTests.cs" />
     <Compile Include="CustomMappingTests.cs" />
+    <Compile Include="DebugInformationTests.cs" />
     <Compile Include="DefaultMappingStrategyTests.cs" />
     <Compile Include="EnumerableTests.cs" />
     <Compile Include="EnumTests.cs" />

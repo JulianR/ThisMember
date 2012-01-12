@@ -49,6 +49,7 @@
     <Compile Include="ConversionFunctionHelper.cs" />
     <Compile Include="ConversionTypeHelper.cs" />
     <Compile Include="CustomMapping.cs" />
+    <Compile Include="DebugInformation.cs" />
     <Compile Include="DefaultMemberProvider.cs" />
     <Compile Include="DefaultProjectionGenerator.cs" />
     <Compile Include="DefaultProjectionGeneratorFactory.cs" />

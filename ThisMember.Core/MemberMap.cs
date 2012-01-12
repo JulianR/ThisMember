@@ -33,6 +33,8 @@ namespace ThisMember.Core
       set;
     }
 
+    public DebugInformation DebugInformation { get; set; }
+
   }
 
   /// <summary>
