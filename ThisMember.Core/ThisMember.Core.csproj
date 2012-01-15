@@ -52,6 +52,7 @@
     <Compile Include="CustomMapping.cs" />
     <Compile Include="DebugInformation.cs" />
     <Compile Include="DefaultMemberProvider.cs" />
+    <Compile Include="DefaultMemberProviderFactory.cs" />
     <Compile Include="DefaultProjectionGenerator.cs" />
     <Compile Include="DefaultProjectionGeneratorFactory.cs" />
     <Compile Include="Exceptions\CodeGenerationException.cs" />
@@ -61,6 +62,7 @@
     <Compile Include="Exceptions\RecursiveRelationshipException.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="IgnoreMemberAttribute.cs" />
+    <Compile Include="Interfaces\IMemberProvider.cs" />
     <Compile Include="IndexedParameterExpression.cs" />
     <Compile Include="Interfaces\IMapGenerator.cs" />
     <Compile Include="Interfaces\IMapGeneratorFactory.cs" />
@@ -69,6 +71,7 @@
     <Compile Include="Interfaces\IMapRepository.cs" />
     <Compile Include="Interfaces\IMemberMapper.cs" />
     <Compile Include="Interfaces\IMemberMapperConfiguration.cs" />
+    <Compile Include="Interfaces\IMemberProviderFactory.cs" />
     <Compile Include="Interfaces\IProjectionGenerator.cs" />
     <Compile Include="Interfaces\IProjectionGeneratorFactory.cs" />
     <Compile Include="MapCollection.cs" />

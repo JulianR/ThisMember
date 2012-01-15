@@ -22,25 +22,28 @@ namespace ThisMember.Core
     public DefaultMappingStrategy(IMemberMapper mapper)
     {
       this.mapper = mapper;
+      this.MemberProviderFactory = new DefaultMemberProviderFactory();
     }
+
+    public IMemberProviderFactory MemberProviderFactory { get; set; }
 
     public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMappingExpression = null)
     {
-      var processor = new StrategyProcessor(mapper, mappingCache, customMappingCache);
+      var processor = new StrategyProcessor(this, mapper, mappingCache, customMappingCache);
 
       return processor.CreateMapProposal<TSource, TDestination>(options, customMappingExpression);
     }
 
     public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(MappingOptions options = null, Expression<Func<TSource, TParam, object>> customMappingExpression = null)
     {
-      var processor = new StrategyProcessor(mapper, mappingCache, customMappingCache);
+      var processor = new StrategyProcessor(this, mapper, mappingCache, customMappingCache);
 
       return processor.CreateMapProposal<TSource, TDestination, TParam>(options, customMappingExpression);
     }
 
     public ProposedMap CreateMapProposal(TypePair pair, MappingOptions options = null, LambdaExpression customMappingExpression = null, params Type[] parameters)
     {
-      var processor = new StrategyProcessor(mapper, mappingCache, customMappingCache);
+      var processor = new StrategyProcessor(this, mapper, mappingCache, customMappingCache);
 
       return processor.CreateMapProposal(pair, options, customMappingExpression, parameters);
     }
@@ -59,11 +62,14 @@ namespace ThisMember.Core
 
       private readonly Dictionary<TypePair, CustomMapping> customMappingCache;
 
-      public StrategyProcessor(IMemberMapper mapper, Dictionary<TypePair, ProposedTypeMapping> mappingCache, Dictionary<TypePair, CustomMapping> customMappingCache)
+      private readonly DefaultMappingStrategy strategy;
+
+      public StrategyProcessor(DefaultMappingStrategy strategy,  IMemberMapper mapper, Dictionary<TypePair, ProposedTypeMapping> mappingCache, Dictionary<TypePair, CustomMapping> customMappingCache)
       {
         this.mapper = mapper;
         this.mappingCache = mappingCache;
         this.customMappingCache = customMappingCache;
+        this.strategy = strategy;
       }
 
       private Stack<TypePair> typeStack = new Stack<TypePair>();
@@ -108,7 +114,7 @@ namespace ThisMember.Core
           sourceType = pair.SourceType;
         }
 
-        var memberProvider = new DefaultMemberProvider(sourceType, destinationType, mapper);
+        var memberProvider = this.strategy.MemberProviderFactory.GetMemberProvider(sourceType, destinationType, mapper);
 
         foreach (var mapping in GetTypeMembers(memberProvider, options, currentDepth))
         {
@@ -151,7 +157,7 @@ namespace ThisMember.Core
           {
             if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
             {
-              hierarchicalMapping = memberProvider.FindHierarchy(destinationMember);
+              hierarchicalMapping = memberProvider.ProposeHierarchicalMapping(destinationMember);
             }
 
             if (hierarchicalMapping == null && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember)
@@ -233,7 +239,7 @@ namespace ThisMember.Core
         public LambdaExpression ConversionFunction { get; set; }
       }
 
-      private static IEnumerable<SourceDestinationMapping> GetTypeMembers(DefaultMemberProvider memberProvider, MappingOptions options, int currentDepth)
+      private static IEnumerable<SourceDestinationMapping> GetTypeMembers(IMemberProvider memberProvider, MappingOptions options, int currentDepth)
       {
         var destinationMembers = memberProvider.GetDestinationMembers();
 

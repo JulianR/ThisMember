@@ -19,5 +19,7 @@ namespace ThisMember.Core.Interfaces
     ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(MappingOptions options = null, Expression<Func<TSource, TParam, object>> customMapping = null);
 
     void ClearMapCache();
+
+    IMemberProviderFactory MemberProviderFactory { get; set; }
   }
 }
