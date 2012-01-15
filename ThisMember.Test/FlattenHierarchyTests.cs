@@ -121,5 +121,37 @@ namespace ThisMember.Test
 
       Assert.IsNull(result.OneTwoValue);
     }
+
+    class IncompatibleLayer0
+    {
+      public IncompatibleLayer1 One { get; set; }
+    }
+
+    class IncompatibleLayer1
+    {
+      public Guid Two { get; set; }
+    }
+
+    class IncompatibleLayerDestination
+    {
+      public string OneTwo { get; set; }
+    }
+
+    [TestMethod]
+    public void FlattenHierarchyIsntUsedForIncompatibleTypes()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map(new IncompatibleLayer0
+      {
+        One = new IncompatibleLayer1
+        {
+          Two = Guid.NewGuid()
+        }
+      }, new IncompatibleLayerDestination());
+
+      Assert.IsNull(result.OneTwo);
+    }
+  
   }
 }

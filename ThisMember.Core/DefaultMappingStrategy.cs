@@ -164,7 +164,19 @@ namespace ThisMember.Core
 
           var canUseSimpleTypeMapping = CanUseDirectAssignment(pair, destinationMember, sourceMember, nullableType, hierarchicalMapping);
 
-          if (canUseSimpleTypeMapping || customExpression != null)
+          if (canUseSimpleTypeMapping)
+          {
+            typeMapping.ProposedMappings.Add
+            (
+              new ProposedMemberMapping
+              {
+                SourceMember = sourceMember,
+                DestinationMember = destinationMember,
+                HierarchicalMapping = hierarchicalMapping
+              }
+            );
+          }
+          else if(customExpression != null)
           {
             typeMapping.ProposedMappings.Add
             (
@@ -385,6 +397,7 @@ namespace ThisMember.Core
 
       private bool CanUseDirectAssignment(TypePair pair, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type nullableType, ProposedHierarchicalMapping hierarchicalMapping)
       {
+        Type sourceMemberType = null;
 
         if (sourceMember == null)
         {
@@ -393,19 +406,23 @@ namespace ThisMember.Core
             return false;
           }
         }
+        else
+        {
+          sourceMemberType = sourceMember.PropertyOrFieldType;
+        }
 
         if (hierarchicalMapping != null)
         {
-          return true;
+          sourceMemberType = hierarchicalMapping.ReturnType;
         }
 
-        if (!destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMember.PropertyOrFieldType))
+        if (!destinationMember.PropertyOrFieldType.IsAssignableFrom(sourceMemberType))
         {
-          if (sourceMember.PropertyOrFieldType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsAssignableFrom(nullableType))
+          if (sourceMemberType.IsNullableValueType() && destinationMember.PropertyOrFieldType.IsAssignableFrom(nullableType))
           {
             return true;
           }
-          else if (ConversionTypeHelper.AreConvertible(sourceMember.PropertyOrFieldType, destinationMember.PropertyOrFieldType))
+          else if (ConversionTypeHelper.AreConvertible(sourceMemberType, destinationMember.PropertyOrFieldType))
           {
             return true;
           }
@@ -417,7 +434,7 @@ namespace ThisMember.Core
 
         if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
         {
-          if (sourceMember.PropertyOrFieldType.IsValueType || sourceMember.PropertyOrFieldType == typeof(string))
+          if (sourceMemberType.IsValueType || sourceMemberType == typeof(string))
           {
             return true;
           }

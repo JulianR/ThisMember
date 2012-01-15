@@ -15,6 +15,14 @@ namespace ThisMember.Core
       this.hierarchy = hierarchy;
     }
 
+    public Type ReturnType
+    {
+      get
+      {
+        return hierarchy.Last().PropertyOrFieldType;
+      }
+    }
+
     public IEnumerable<PropertyOrFieldInfo> Members
     {
       get
