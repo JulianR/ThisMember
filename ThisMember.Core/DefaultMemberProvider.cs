@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 
 namespace ThisMember.Core
 {
-  internal class DefaultMemberProvider
+  internal class DefaultMemberProvider : IMemberProvider
   {
     private IMemberMapper mapper;
     private Dictionary<string, PropertyOrFieldInfo> sourceProperties;
@@ -45,7 +45,7 @@ namespace ThisMember.Core
       return true;
     }
 
-    public ProposedHierarchicalMapping FindHierarchy(PropertyOrFieldInfo destinationMember)
+    public ProposedHierarchicalMapping ProposeHierarchicalMapping(PropertyOrFieldInfo destinationMember)
     {
       
       var split = CamelCaseHelper.SplitOnCamelCase(destinationMember.Name);

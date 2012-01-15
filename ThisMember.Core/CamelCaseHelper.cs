@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ThisMember.Core
 {
-  public static class CamelCaseHelper
+  internal static class CamelCaseHelper
   {
     public static IList<string> SplitOnCamelCase(string word)
     {

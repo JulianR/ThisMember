@@ -7,7 +7,7 @@ using ThisMember.Core.Options;
 
 namespace ThisMember.Core
 {
-  public class DefaultMemberMapperConfiguration : IMemberMapperConfiguration
+  internal class DefaultMemberMapperConfiguration : IMemberMapperConfiguration
   {
 
     public MapperOptions GetOptions(IMemberMapper mapper)

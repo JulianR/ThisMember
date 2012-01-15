@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace ThisMember.Core
 {
-  public class DefaultProjectionGenerator : IProjectionGenerator
+  internal class DefaultProjectionGenerator : IProjectionGenerator
   {
     private ParameterExpression sourceParam;
     private readonly IMemberMapper mapper;

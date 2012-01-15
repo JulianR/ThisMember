@@ -6,7 +6,7 @@ using ThisMember.Core.Interfaces;
 
 namespace ThisMember.Core
 {
-  public class DefaultProjectionGeneratorFactory : IProjectionGeneratorFactory
+  internal class DefaultProjectionGeneratorFactory : IProjectionGeneratorFactory
   {
     public IProjectionGenerator GetGenerator(IMemberMapper mapper)
     {
