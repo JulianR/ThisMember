@@ -74,7 +74,7 @@
     <Compile Include="MapCollection.cs" />
     <Compile Include="NullableTypeHelper.cs" />
     <Compile Include="Options\MapperOptions.cs" />
-    <Compile Include="MappingOption.cs" />
+    <Compile Include="MemberOption.cs" />
     <Compile Include="DefaultMappingStrategy.cs" />
     <Compile Include="MapProposalProcessor.cs" />
     <Compile Include="MapRepositoryBase.cs" />

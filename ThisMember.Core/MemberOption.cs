@@ -19,9 +19,9 @@ namespace ThisMember.Core
 
     public MemberOptionState State { get; private set; }
 
-    public PropertyOrFieldInfo Source { get; private set; }
+    public PropertyOrFieldInfo Source { get; set; }
 
-    public PropertyOrFieldInfo Destination { get; private set; }
+    public PropertyOrFieldInfo Destination { get; set; }
 
     public LambdaExpression ConversionFunction { get; private set; }
 
