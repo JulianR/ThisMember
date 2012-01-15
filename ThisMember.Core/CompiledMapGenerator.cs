@@ -150,12 +150,12 @@ namespace ThisMember.Core
         // If it's a collection type
         if (typeMapping.IsEnumerable || CollectionTypeHelper.IsEnumerable(complexTypeMapping))
         {
-          BuildCollectionComplexTypeMappingExpressions(source, destination, complexTypeMapping, expressions, typeMapping.IsEnumerable);
+          BuildCollectionMappingExpressions(source, destination, complexTypeMapping, expressions, typeMapping.IsEnumerable);
         }
         else
         {
           // If it's not a collection but just a nested type
-          BuildNonCollectionComplexTypeMappingExpressions(source, destination, complexTypeMapping, expressions);
+          BuildComplexTypeMappingExpressions(source, destination, complexTypeMapping, expressions);
         }
       }
     }
@@ -350,7 +350,7 @@ namespace ThisMember.Core
     /// <summary>
     /// Generates the loop that maps any IEnumerable type
     /// </summary>
-    private void BuildCollectionComplexTypeMappingExpressions
+    private void BuildCollectionMappingExpressions
     (
       ParameterExpression source,
       ParameterExpression destination,
@@ -825,7 +825,7 @@ namespace ThisMember.Core
 
     }
 
-    private void BuildNonCollectionComplexTypeMappingExpressions(
+    private void BuildComplexTypeMappingExpressions(
       ParameterExpression source,
       ParameterExpression destination,
       ProposedTypeMapping complexTypeMapping,
