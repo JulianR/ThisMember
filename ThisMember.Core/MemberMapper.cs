@@ -619,6 +619,5 @@ namespace ThisMember.Core
 
       return result;
     }
-
   }
 }

@@ -16,18 +16,18 @@ namespace ThisMember.Test
       public string Test { get; set; }
     }
 
-    //[TestMethod]
+    [TestMethod]
     public void ExpandoObjectAsSourceWorks()
     {
-      dynamic expando = new ExpandoObject();
+      //dynamic expando = new ExpandoObject();
 
-      expando.Name = "Test";
+      //expando.Name = "Test";
 
-      var mapper = new MemberMapper();
+      //var mapper = new MemberMapper();
 
-      var result = mapper.Map<dynamic, StaticType>(expando, new StaticType());
+      //var result = mapper.MapFromDynamic(expando, new StaticType());
 
-      Assert.AreEqual("Test", result.Test);
+      //Assert.AreEqual("Test", result.Test);
 
     }
   }
