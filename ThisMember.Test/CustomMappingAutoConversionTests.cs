@@ -31,7 +31,7 @@ namespace ThisMember.Test
       public DestinationNested Bar { get; set; }
     }
 
-    //[TestMethod] TODO
+    //[TestMethod] 
     public void AutoConvertWorks()
     {
       var mapper = new MemberMapper();
