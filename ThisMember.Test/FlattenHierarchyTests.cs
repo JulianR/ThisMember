@@ -18,11 +18,37 @@ namespace ThisMember.Test
     class Company
     {
       public int ID { get; set; }
+      public string Name
+      {
+        set
+        {
+
+        }
+      }
     }
 
     class CompanyDto
     {
       public int CompanyID { get; set; }
+      public string CompanyName { get; set; }
+    }
+
+    class MethodContainer
+    {
+      public MethodSource Method { get; set; }
+    }
+
+    class MethodSource
+    {
+      public int ID()
+      {
+        return 1;
+      }
+    }
+
+    class MethodDto
+    {
+      public int MethodID { get; set; }
     }
 
     [TestMethod]
@@ -53,6 +79,27 @@ namespace ThisMember.Test
       var result = mapper.Map(new CompanyContainer { Company = new Company { ID = 10 } }, new CompanyDto());
 
       Assert.AreEqual(10, result.CompanyID);
+    }
+
+    [TestMethod]
+    public void FlattenHierarchyOnlyUsesAvailableGetters()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map(new CompanyContainer { Company = new Company { ID = 10, Name = "Test" } }, new CompanyDto());
+
+      Assert.AreEqual(10, result.CompanyID);
+      Assert.AreEqual(null, result.CompanyName);
+    }
+
+    [TestMethod]
+    public void FlattenHierarchyIgnoresMethods()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map(new MethodContainer { Method = new MethodSource() }, new MethodDto());
+
+      Assert.AreEqual(0, result.MethodID);
     }
 
     class Layer0

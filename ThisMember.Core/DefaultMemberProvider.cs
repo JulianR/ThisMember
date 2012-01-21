@@ -35,6 +35,13 @@ namespace ThisMember.Core
         return false;
       }
 
+      if (member.MemberType == MemberTypes.Property)
+      {
+        var property = (PropertyInfo)member;
+
+        if (!property.CanRead) return false;
+      }
+
       memberStack.Add(member);
 
       if (index < members.Count - 1)
