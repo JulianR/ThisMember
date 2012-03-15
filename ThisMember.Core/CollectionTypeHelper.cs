@@ -23,6 +23,11 @@ namespace ThisMember.Core
             && typeof(IEnumerable).IsAssignableFrom(mapping.DestinationMember.PropertyOrFieldType);
     }
 
+    public static bool IsEnumerable(Type t)
+    {
+      return typeof(IEnumerable).IsAssignableFrom(t) && t != typeof(string);
+    }
+
     public static Type GetTypeInsideEnumerable(Type type)
     {
       var getEnumeratorMethod = type.GetMethod("GetEnumerator", Type.EmptyTypes);
@@ -41,7 +46,14 @@ namespace ThisMember.Core
 
       if (getEnumeratorMethod.ReturnType.IsGenericType)
       {
-        return getEnumeratorMethod.ReturnType.GetGenericArguments().First();
+        var args = getEnumeratorMethod.ReturnType.GetGenericArguments();
+        
+        if (typeof(IDictionary).IsAssignableFrom(type) && args.Length == 2)
+        {
+          return typeof(KeyValuePair<,>).MakeGenericType(args[0], args[1]);
+        }
+
+        return args.First();
       }
       else if (type.IsArray)
       {

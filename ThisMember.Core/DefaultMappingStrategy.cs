@@ -13,8 +13,10 @@ namespace ThisMember.Core
 {
   internal class DefaultMappingStrategy : IMappingStrategy
   {
+    // Cache for type mappings we have found so far
     private readonly Dictionary<TypePair, ProposedTypeMapping> mappingCache = new Dictionary<TypePair, ProposedTypeMapping>();
 
+    // Cache for custom mappings 
     private readonly Dictionary<TypePair, CustomMapping> customMappingCache = new Dictionary<TypePair, CustomMapping>();
 
     private readonly IMemberMapper mapper;
@@ -54,6 +56,10 @@ namespace ThisMember.Core
       this.customMappingCache.Clear();
     }
 
+    /// <summary>
+    ///  Private class that is instantiated with every call to the strategy's CreateMap method.
+    ///  This so we won't have to worry about statefulness of the strategy and thread-safety. 
+    /// </summary>
     private class StrategyProcessor
     {
       private readonly IMemberMapper mapper;
@@ -72,8 +78,13 @@ namespace ThisMember.Core
         this.strategy = strategy;
       }
 
+      // Keep a stack to deal with recursive members on types
       private Stack<TypePair> typeStack = new Stack<TypePair>();
 
+      /// <summary>
+      /// Returns a type mapping of the TypePair you pass in. 
+      /// </summary>
+      /// <returns></returns>
       private ProposedTypeMapping GetTypeMapping(int currentDepth, TypePair pair, MappingOptions options = null, CustomMapping customMapping = null)
       {
         if (!typeStack.Contains(pair))
@@ -82,9 +93,11 @@ namespace ThisMember.Core
         }
         else if (mapper.Options.Safety.IfRecursiveRelationshipIsDetected == RecursivePropertyOptions.ThrowIfRecursionIsDetected)
         {
+          // Oh noes, recursion!
           throw new RecursiveRelationshipException(pair);
         }
-        else
+        // if it's a recursive relationship, by default we return null which is handled after the method returns
+        else 
         {
           return null;
         }
@@ -96,7 +109,9 @@ namespace ThisMember.Core
 
         Type destinationType, sourceType;
 
-        if (typeof(IEnumerable).IsAssignableFrom(pair.DestinationType))
+        // If it's an enumerable type (List<>, IEnumerable<>, etc) then we're currently interested
+        // in the type 'inside' the enumerable.
+        if (CollectionTypeHelper.IsEnumerable(pair.DestinationType))
         {
           destinationType = CollectionTypeHelper.GetTypeInsideEnumerable(pair.DestinationType);
         }
@@ -105,7 +120,8 @@ namespace ThisMember.Core
           destinationType = pair.DestinationType;
         }
 
-        if (typeof(IEnumerable).IsAssignableFrom(pair.SourceType))
+        // Same here.
+        if (CollectionTypeHelper.IsEnumerable(pair.SourceType))
         {
           sourceType = CollectionTypeHelper.GetTypeInsideEnumerable(pair.SourceType);
         }
@@ -114,12 +130,15 @@ namespace ThisMember.Core
           sourceType = pair.SourceType;
         }
 
+        // The memberprovider is responsible for linking a destination member with a source member
         var memberProvider = this.strategy.MemberProviderFactory.GetMemberProvider(sourceType, destinationType, mapper);
 
+        // Loop through all members it could find
         foreach (var mapping in GetTypeMembers(memberProvider, options, currentDepth))
         {
           var destinationMember = mapping.Destination;
 
+          // Does the memberprovider see any reason to ignore this member?
           if (memberProvider.IsMemberIgnored(sourceType, destinationMember))
           {
             continue;
@@ -127,6 +146,7 @@ namespace ThisMember.Core
 
           Expression customExpression = null;
 
+          // Try to extract an expression that was supplied for this destination member
           if (customMapping != null)
           {
             customExpression = customMapping.GetExpressionForMember(destinationMember);
@@ -134,8 +154,11 @@ namespace ThisMember.Core
 
           var sourceMember = mapping.Source;
 
+          // Did the user supply a function to transform the source member's value?
           if (mapping.ConversionFunction != null)
           {
+            // If no custom mapping yet, then we need to create one
+            // as it's where we'll be storing the conversion function
             if (customMapping == null)
             {
               customMapping = new CustomMapping
@@ -147,31 +170,42 @@ namespace ThisMember.Core
               typeMapping.CustomMapping = customMapping;
             }
 
+            // Let the custom mapping be the owner of the conversion function
             customMapping.AddConversionFunction(sourceMember, destinationMember, mapping.ConversionFunction);
 
           }
 
           ProposedHierarchicalMapping hierarchicalMapping = null;
 
+          // No source member or can't write to the destination?
           if (HasNoSourceMember(customExpression, sourceMember) || !destinationMember.CanWrite)
           {
             if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
             {
+              // Propose a mapping that flattens a hierarchy if possible.
+              // For example, map type.CompanyName to otherType.Company.Name
               hierarchicalMapping = memberProvider.ProposeHierarchicalMapping(destinationMember);
             }
 
+            // No way to map this thing? Add it to incompatible members if the option has been turned on.
+            // Will cause an (intended) exception later on, allowing you to verify your mappings
+            // for correctness and completeness.
             if (hierarchicalMapping == null && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember)
             {
               typeMapping.IncompatibleMappings.Add(destinationMember);
             }
           }
 
+          // Nullable value types screw up everything!
           var nullableType = NullableTypeHelper.TryGetNullableType(sourceMember);
 
+          // Can we do a simple right to left assignment between the members?
+          // So, are they basically the same type or do we need to do further mapping?
           var canUseSimpleTypeMapping = CanUseDirectAssignment(pair, destinationMember, sourceMember, nullableType, hierarchicalMapping);
 
           if (canUseSimpleTypeMapping)
           {
+            // If simple mapping is possible create a mapping between the members
             typeMapping.ProposedMappings.Add
             (
               new ProposedMemberMapping
@@ -182,6 +216,8 @@ namespace ThisMember.Core
               }
             );
           }
+          // No simple assignment, but a custom expression is supplied
+          // and that's just as good as having a direct assignment mapping
           else if(customExpression != null)
           {
             typeMapping.ProposedMappings.Add
@@ -194,18 +230,24 @@ namespace ThisMember.Core
               }
             );
           }
+          // We have a source member but can't directly assign the source to the destination.
+          // Further mapping is needed.
           else if (sourceMember != null)
           {
-
+            // Is the member of an IEnumerable type? 
             if (AreMembersIEnumerable(destinationMember, sourceMember))
             {
+              // Create a deeper mapping for IEnumerable members
               GenerateEnumerableMapping(currentDepth, options, customMapping, typeMapping, destinationMember, sourceMember);
             }
             else
             {
+              // Create a deeper mapping for a 'regular' type.
               GenerateComplexTypeMapping(currentDepth, options, customMapping, typeMapping, destinationMember, sourceMember);
             }
           }
+          // All we have is a destination member and a custom expression
+          // that gives the destination member a value. Good enough! 
           else if (customExpression != null)
           {
             typeMapping.ProposedMappings.Add
@@ -219,6 +261,12 @@ namespace ThisMember.Core
           }
         }
 
+        // Don't cache the typemapping when this flag has been set.
+        // That happens when the maximum depth was reached during the mapping
+        // for this particular type and we didn't explore the full depth
+        // of the type. We don't wanna reuse this typemapping at a later time
+        // because the mapping might be for something completely different
+        // at a depth at which the full depth CAN be explored.
         if (!typeMapping.DoNotCache)
         {
           lock (mappingCache)
@@ -249,23 +297,29 @@ namespace ThisMember.Core
           var sourceMember = memberProvider.GetMatchingSourceMember(destinationMember);
           LambdaExpression conversion = null;
 
+          // User supplied a custom method that can influence the mapping
           if (options != null)
           {
+            // A class that allows you to customize a few things about a mapping
             var option = new MemberOption(sourceMember, destinationMember);
 
+            // Execute the user supplied function
             options(sourceMember, destinationMember, option, currentDepth);
+
 
             conversion = option.ConversionFunction;
 
             switch (option.State)
             {
+              // User indicated in the `options` method that he wants to ignore the member
               case MemberOptionState.Ignored:
                 continue;
             }
 
+            // Source member is set
             if (option.Source != null)
             {
-
+              // If the user supplied an invalid source member
               if (option.Source.DeclaringType != sourceMember.DeclaringType)
               {
                 throw new InvalidOperationException("Cannot use member declared on another type.");
@@ -274,9 +328,10 @@ namespace ThisMember.Core
               sourceMember = option.Source;
             }
 
+            // Destination member is set
             if (option.Destination != null)
             {
-
+              // If the user supplied an invalid destination member
               if (option.Destination.DeclaringType != destination.DeclaringType)
               {
                 throw new InvalidOperationException("Cannot use member declared on another type.");
@@ -287,6 +342,7 @@ namespace ThisMember.Core
 
           }
 
+          // Simple container class
           var mapping = new SourceDestinationMapping
           {
             Source = sourceMember,
@@ -301,16 +357,21 @@ namespace ThisMember.Core
 
       private static bool AreMembersIEnumerable(PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
       {
-        return typeof(IEnumerable).IsAssignableFrom(sourceMember.PropertyOrFieldType)
-                    && typeof(IEnumerable).IsAssignableFrom(destinationMember.PropertyOrFieldType);
+        return CollectionTypeHelper.IsEnumerable(sourceMember.PropertyOrFieldType)
+          && CollectionTypeHelper.IsEnumerable(destinationMember.PropertyOrFieldType);
       }
 
+      /// <summary>
+      /// Go one deeper into the type hierarchy to map between a source and destination member.
+      /// </summary>
       private void GenerateComplexTypeMapping(int currentDepth, MappingOptions options, CustomMapping customMapping, ProposedTypeMapping typeMapping, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
       {
         var complexPair = new TypePair(sourceMember.PropertyOrFieldType, destinationMember.PropertyOrFieldType);
 
+        // Go one deeper
         var complexTypeMapping = GetComplexTypeMapping(currentDepth + 1, complexPair, options, customMapping);
 
+        // If a mapping has been found
         if (complexTypeMapping != null)
         {
 
@@ -329,6 +390,7 @@ namespace ThisMember.Core
         }
         else
         {
+          // If no mapping has been found, don't cache the 'owning' typemapping as it will cause issues later
           typeMapping.DoNotCache = true;
         }
       }
@@ -448,6 +510,15 @@ namespace ThisMember.Core
           {
             return false;
           }
+        }
+
+        // Can't assign enumerable memebers to eachother, we leave that decision to the code
+        // generator which can determine if we need to preserve the contents of the enumerable.
+        if (CollectionTypeHelper.IsEnumerable(destinationMember.PropertyOrFieldType)
+          && CollectionTypeHelper.IsEnumerable(sourceMemberType)
+          && mapper.Options.Conventions.PreserveDestinationListContents) // but only if the option is turned on at all
+        {
+          return false;
         }
 
         return true;

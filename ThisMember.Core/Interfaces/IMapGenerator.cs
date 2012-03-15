@@ -8,7 +8,7 @@ namespace ThisMember.Core.Interfaces
 {
   public interface IMapGenerator
   {
-    Delegate GenerateMappingFunction(ProposedMap map);
+    Delegate GenerateMappingFunction();
     DebugInformation DebugInformation { get; }
   }
 }

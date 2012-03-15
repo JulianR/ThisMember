@@ -19,7 +19,7 @@ namespace ThisMember.Core
 
     public LambdaExpression Condition { get; set; }
 
-    public bool DoNotCache { get; set; }
+    internal bool DoNotCache { get; set; }
 
     public ProposedTypeMapping()
     {

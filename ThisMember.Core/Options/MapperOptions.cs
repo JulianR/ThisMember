@@ -122,7 +122,7 @@ namespace ThisMember.Core.Options
     /// <summary>
     /// Attempts to map hierarchies such as order.Customer.Name to destination.CustomerName.
     /// </summary>
-    /// <remarks>NOT SUPPORTED YET.</remarks>
+    /// <remarks>Defaults to true.</remarks>
     public bool AutomaticallyFlattenHierarchies { get; set; }
 
     /// <summary>

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ThisMember.Core;
+using System.Collections.Concurrent;
 
 namespace ThisMember.Test
 {
@@ -351,5 +352,43 @@ namespace ThisMember.Test
       var result = mapper.Map<NullableDecimalType, IntType>(new NullableDecimalType { Foo = 10m });
       Assert.AreEqual(10, result.Foo);
     }
+
+    class DictionarySource
+    {
+      public IDictionary<int, string> Foo { get; set; }
+    }
+
+    class DictionaryDestination
+    {
+      public Dictionary<int, string> Foo { get; set; }
+    }
+
+    class ConcurrentDictionaryDestination
+    {
+      public ConcurrentDictionary<int, string> Foo { get; set; }
+    }
+
+    class DateTimeSource
+    {
+      public DateTime Foo { get; set; }
+    }
+
+    class GuidDestination
+    {
+      public Guid Foo { get; set; }
+    }
+
+    [TestMethod]
+    public void MemberIsAddedToIncompatibleMappingsIfConversionCantBeMade()
+    {
+      var mapper = new MemberMapper();
+      mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember = true;
+
+      mapper.AddCustomConstructor<Guid>(() => Guid.NewGuid());
+
+      var result = mapper.Map<DateTimeSource, GuidDestination>(new DateTimeSource());
+
+    }
+
   }
 }

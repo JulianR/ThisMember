@@ -41,9 +41,9 @@ namespace ThisMember.Core
       map.SourceType = this.SourceType;
       map.DestinationType = this.DestinationType;
 
-      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper);
+      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this);
 
-      map.MappingFunction = generator.GenerateMappingFunction(this);
+      map.MappingFunction = generator.GenerateMappingFunction();
       map.DebugInformation = generator.DebugInformation;
 
       mapper.RegisterMap(map);
@@ -166,9 +166,9 @@ namespace ThisMember.Core
       map.SourceType = this.SourceType;
       map.DestinationType = this.DestinationType;
 
-      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper);
+      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this);
 
-      map.MappingFunction = (Func<TSource,TDestination,TDestination>)generator.GenerateMappingFunction(this);
+      map.MappingFunction = (Func<TSource,TDestination,TDestination>)generator.GenerateMappingFunction();
       map.DebugInformation = generator.DebugInformation;
 
       mapper.RegisterMap(map);
@@ -346,9 +346,9 @@ namespace ThisMember.Core
       map.SourceType = this.SourceType;
       map.DestinationType = this.DestinationType;
 
-      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper);
+      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this);
 
-      map.MappingFunction = (Func<TSource, TDestination, TParam, TDestination>)generator.GenerateMappingFunction(this);
+      map.MappingFunction = (Func<TSource, TDestination, TParam, TDestination>)generator.GenerateMappingFunction();
       map.DebugInformation = generator.DebugInformation;
 
       mapper.RegisterMap(map);

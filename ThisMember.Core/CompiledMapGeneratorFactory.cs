@@ -8,9 +8,9 @@ namespace ThisMember.Core
 {
   internal class CompiledMapGeneratorFactory : IMapGeneratorFactory
   {
-    public IMapGenerator GetGenerator(IMemberMapper mapper)
+    public IMapGenerator GetGenerator(IMemberMapper mapper, ProposedMap proposedMap)
     {
-      return new CompiledMapGenerator(mapper);
+      return new CompiledMapGenerator(mapper, proposedMap);
     }
   }
 }

@@ -1071,5 +1071,45 @@ namespace ThisMember.Test
 
     }
 
+    class SharedNested
+    {
+      public string Value { get; set; }
+    }
+
+    class SourceSharedIList
+    {
+      public IList<SharedNested> Foo { get; set; }
+    }
+
+    class DestinationSharedIList
+    {
+      public IList<SharedNested> Foo { get; set; }
+    }
+
+    [TestMethod]
+    public void IListsAreReferenceEquals()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new SourceSharedIList { Foo = new List<SharedNested>() { new SharedNested() } };
+
+      var result = mapper.Map(source, new DestinationSharedIList());
+
+      Assert.IsTrue(object.ReferenceEquals(source.Foo, result.Foo));
+    }
+
+    [TestMethod]
+    public void IListsAreNotReferenceEqualsWhenDestinationIsNotEmpty()
+    {
+      var mapper = new MemberMapper();
+
+      var source = new SourceSharedIList { Foo = new List<SharedNested> { new SharedNested { Value = "bla" } } };
+
+      var result = mapper.Map(source, new DestinationSharedIList { Foo = new List<SharedNested> { new SharedNested { Value = "test" } } });
+
+      Assert.IsFalse(object.ReferenceEquals(source.Foo, result.Foo));
+      Assert.AreEqual("test", result.Foo.First().Value);
+      Assert.AreEqual("bla", result.Foo.Last().Value);
+    }
   }
 }

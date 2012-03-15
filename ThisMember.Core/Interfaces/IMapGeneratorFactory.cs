@@ -7,6 +7,6 @@ namespace ThisMember.Core.Interfaces
 {
   public interface IMapGeneratorFactory
   {
-    IMapGenerator GetGenerator(IMemberMapper mapper);
+    IMapGenerator GetGenerator(IMemberMapper mapper, ProposedMap proposedMap);
   }
 }

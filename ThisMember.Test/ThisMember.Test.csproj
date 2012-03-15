@@ -58,6 +58,7 @@
     <Compile Include="CustomMappingTests.cs" />
     <Compile Include="DebugInformationTests.cs" />
     <Compile Include="DefaultMappingStrategyTests.cs" />
+    <Compile Include="DictionaryTests.cs" />
     <Compile Include="DynamicTypeTests.cs" />
     <Compile Include="EnumerableTests.cs" />
     <Compile Include="EnumTests.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProposedMapMutationTests.cs" />
     <Compile Include="RecursiveMapTests.cs" />
+    <Compile Include="ReferenceEqualityTests.cs" />
     <Compile Include="SourceNullTests.cs" />
   </ItemGroup>
   <ItemGroup>

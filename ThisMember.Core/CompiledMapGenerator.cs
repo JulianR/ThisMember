@@ -29,14 +29,16 @@ namespace ThisMember.Core
     private ParameterExpression destinationParameter;
     private readonly MapExpressionProcessor mapProcessor;
     private IList<ParameterExpression> newParameters;
-    private ProposedMap proposedMap;
+    private readonly ProposedMap proposedMap;
     private IList<IndexedParameterExpression> Parameters { get; set; }
 
     public DebugInformation DebugInformation { get; private set; }
 
-    public CompiledMapGenerator(IMemberMapper mapper)
+    public CompiledMapGenerator(IMemberMapper mapper, ProposedMap map)
     {
       this.mapper = mapper;
+
+      this.proposedMap = map;
 
       this.mapProcessor = new MapExpressionProcessor(mapper);
 
@@ -48,6 +50,16 @@ namespace ThisMember.Core
     private string GetParameterName(PropertyOrFieldInfo member)
     {
       return member.Name;
+    }
+
+    private static readonly MethodInfo anyMethod;
+
+    static CompiledMapGenerator()
+    {
+      anyMethod = (from m in typeof(Enumerable).GetMember("Any", BindingFlags.Static | BindingFlags.InvokeMethod | BindingFlags.Public)
+                   let method = m as MethodInfo
+                   where method != null && method.GetParameters().Length == 1
+                   select method).Single();
     }
 
     private Dictionary<Type, Stack<ParameterExpression>> paramCache = new Dictionary<Type, Stack<ParameterExpression>>();
@@ -98,7 +110,7 @@ namespace ThisMember.Core
         return new String(validIntNames[(intCounter++) % validIntNames.Length], 1);
       }
 
-      if (typeof(IEnumerable).IsAssignableFrom(t))
+      if (CollectionTypeHelper.IsEnumerable(t))
       {
         return "collection#" + currentID++;
       }
@@ -150,7 +162,7 @@ namespace ThisMember.Core
         // If it's a collection type
         if (typeMapping.IsEnumerable || CollectionTypeHelper.IsEnumerable(complexTypeMapping))
         {
-          BuildCollectionMappingExpressions(source, destination, complexTypeMapping, expressions, typeMapping.IsEnumerable);
+          BuildEnumerableMappingExpressions(source, destination, complexTypeMapping, expressions);
         }
         else
         {
@@ -183,7 +195,7 @@ namespace ThisMember.Core
       {
         source = Expression.Condition(Expression.NotEqual(source, Expression.Constant(null)), source, destination);
       }
-      
+
       if (!source.Type.IsAssignableFrom(destination.Type))
       {
         // cast
@@ -347,99 +359,190 @@ namespace ThisMember.Core
       }
     }
 
+    private bool IsClone
+    {
+      get
+      {
+        return this.mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
+          && this.proposedMap.SourceType == this.proposedMap.DestinationType;
+      }
+    }
+
+    private class EnumerableMappingFacts
+    {
+      public Type DestinationEnumerableType { get; set; }
+
+      public Type SourceEnumerableType { get; set; }
+
+      public Type DestinationElementType { get; set; }
+
+      public Type SourceElementType { get; set; }
+
+      public bool CanAssignSourceElementsToDestination { get; set; }
+
+      public bool SourceIsDictionaryType { get; set; }
+
+      public bool DestinationIsDictionaryType { get; set; }
+
+      public bool SourceIsArray { get; set; }
+
+      public bool SourceIsCollection { get; set; }
+
+      public bool SourceIsIEnumerable { get; set; }
+
+      public bool DestinationIsArray { get; set; }
+
+      public bool PreserveDestinationContents { get; set; }
+
+      public bool SourceIsList { get; set; }
+
+      public bool CanAssignSourceToDestination { get; set; }
+
+      public bool DestinationCouldBeArray { get; set; }
+    }
+
+    private EnumerableMappingFacts FindEnumerableMappingFacts(
+      ParameterExpression source,
+      ParameterExpression destination,
+      ProposedTypeMapping complexTypeMapping)
+    {
+      var facts = new EnumerableMappingFacts();
+
+
+      if (complexTypeMapping.SourceMember != null)
+      {
+        facts.SourceEnumerableType = complexTypeMapping.SourceMember.PropertyOrFieldType;
+      }
+      else
+      {
+        facts.SourceEnumerableType = source.Type;
+      }
+
+      if (complexTypeMapping.DestinationMember != null)
+      {
+        facts.DestinationEnumerableType = complexTypeMapping.DestinationMember.PropertyOrFieldType;
+      }
+      else
+      {
+        facts.DestinationEnumerableType = destination.Type;
+      }
+
+      facts.DestinationElementType = CollectionTypeHelper.GetTypeInsideEnumerable(facts.DestinationEnumerableType);
+
+      facts.SourceElementType = CollectionTypeHelper.GetTypeInsideEnumerable(facts.SourceEnumerableType);
+
+      facts.CanAssignSourceElementsToDestination = CanAssignSourceElementToDestination(complexTypeMapping, facts.DestinationElementType, facts.SourceElementType);
+
+      // If we're working with a Dictionary as the source
+      if (facts.SourceElementType.IsGenericType
+        && typeof(KeyValuePair<,>).IsAssignableFrom(facts.SourceElementType.GetGenericTypeDefinition()))
+      {
+        facts.SourceIsDictionaryType = true;
+      }
+
+      // If we're working with a Dictionary as the destination
+      if (facts.DestinationElementType.IsGenericType
+        && typeof(KeyValuePair<,>).IsAssignableFrom(facts.DestinationElementType.GetGenericTypeDefinition()))
+      {
+        facts.DestinationIsDictionaryType = true;
+      }
+
+      facts.SourceIsArray = facts.SourceEnumerableType.IsArray;
+
+      var genericCollection = typeof(ICollection<>).MakeGenericType(facts.SourceElementType);
+
+      if (genericCollection.IsAssignableFrom(facts.SourceEnumerableType))
+      {
+        facts.SourceIsCollection = true;
+      }
+      else
+      {
+        facts.SourceIsIEnumerable = true;
+      }
+
+      facts.DestinationIsArray = facts.DestinationEnumerableType.IsArray;
+
+      if (mapper.Options.Conventions.PreserveDestinationListContents
+          && IsCollectionType(facts.DestinationEnumerableType)
+          && !facts.DestinationIsArray)
+      {
+        facts.PreserveDestinationContents = true;
+      }
+
+      if (IsListType(facts.SourceEnumerableType))
+      {
+        facts.SourceIsList = true;
+      }
+
+      if (facts.DestinationEnumerableType.IsAssignableFrom(facts.SourceEnumerableType))
+      {
+        facts.CanAssignSourceToDestination = true;
+      }
+
+      if (facts.DestinationEnumerableType.IsInterface)
+      {
+        facts.DestinationCouldBeArray = !facts.DestinationIsDictionaryType;
+      }
+      else if (facts.DestinationIsArray)
+      {
+        facts.DestinationCouldBeArray = true;
+      }
+
+      return facts;
+    }
+
+    private static readonly MethodInfo referenceEqualsMethod = typeof(object).GetMethod("ReferenceEquals");
+
+    private static readonly MethodInfo countMethod = (from m in typeof(Enumerable).GetMethods()
+                                                      where m.Name == "Count" && m.IsGenericMethod
+                                                      && m.GetParameters().Length == 1
+                                                      select m).FirstOrDefault();
+
     /// <summary>
     /// Generates the loop that maps any IEnumerable type
     /// </summary>
-    private void BuildCollectionMappingExpressions
+    private void BuildEnumerableMappingExpressions
     (
       ParameterExpression source,
       ParameterExpression destination,
       ProposedTypeMapping complexTypeMapping,
-      List<Expression> expressions,
-      bool isEnumerable
+      List<Expression> expressions
     )
     {
+
+      var facts = FindEnumerableMappingFacts(source, destination, complexTypeMapping);
+
       if (complexTypeMapping.Ignored)
       {
         return;
       }
 
-      Type sourceMemberPropertyType, destinationMemberPropertyType;
-
-      if (complexTypeMapping.SourceMember != null)
-      {
-        sourceMemberPropertyType = complexTypeMapping.SourceMember.PropertyOrFieldType;
-      }
-      else
-      {
-        sourceMemberPropertyType = source.Type;
-      }
-
-      if (complexTypeMapping.DestinationMember != null)
-      {
-        destinationMemberPropertyType = complexTypeMapping.DestinationMember.PropertyOrFieldType;
-      }
-      else
-      {
-        destinationMemberPropertyType = destination.Type;
-      }
-
       var ifNotNullBlock = new List<Expression>();
-
-      var destinationCollectionElementType = CollectionTypeHelper.GetTypeInsideEnumerable(destinationMemberPropertyType);
-
-      var sourceCollectionElementType = CollectionTypeHelper.GetTypeInsideEnumerable(sourceMemberPropertyType);
-
-      var canAssignSourceElementToDest = CanAssignSourceElementToDestination(complexTypeMapping, destinationCollectionElementType, sourceCollectionElementType);
 
       Type destinationCollectionType;
       ParameterExpression destinationCollection;
 
       // If SourceMember is null, it means that the root type that is being mapped is enumerable itself.
-      Expression accessSourceCollection = complexTypeMapping.SourceMember != null ? (Expression)Expression.MakeMemberAccess(source, complexTypeMapping.SourceMember) : source;
+      var accessSourceCollection = complexTypeMapping.SourceMember != null ?
+        (Expression)Expression.MakeMemberAccess(source, complexTypeMapping.SourceMember) : source;
 
-      Expression accessSourceCollectionSize;
-
-      // If it's an array, we want to access .Length to know its size, if it's ICollection<T>, we want .Count 
-      // and for anything else we have to use .Count(). 
-      if (sourceMemberPropertyType.IsArray)
-      {
-        // source.Length
-        accessSourceCollectionSize = Expression.Property(accessSourceCollection, "Length");
-      }
-      else
-      {
-
-        var genericCollection = typeof(ICollection<>).MakeGenericType(sourceCollectionElementType);
-
-        if (genericCollection.IsAssignableFrom(sourceMemberPropertyType))
-        {
-          var countProperty = genericCollection.GetProperty("Count");
-
-          // source.Count
-          accessSourceCollectionSize = Expression.Property(accessSourceCollection, countProperty);
-        }
-        else
-        {
-
-          var countMethod = (from m in typeof(Enumerable).GetMethods()
-                             where m.Name == "Count" && m.IsGenericMethod
-                             && m.GetParameters().Length == 1
-                             select m).FirstOrDefault();
-
-          var genericEnumerable = typeof(IEnumerable<>).MakeGenericType(sourceCollectionElementType);
-
-          // source.Count()
-          accessSourceCollectionSize = Expression.Call(null, countMethod.MakeGenericMethod(sourceCollectionElementType), accessSourceCollection);
-        }
-      }
+      var accessSourceEnumerableSize = GetEnumerableSizeAccessor(facts, accessSourceCollection);
 
       // destination.Collection = newCollection OR return destination, if destination is enumerable itself
-      Expression accessDestinationCollection = complexTypeMapping.DestinationMember != null ? (Expression)Expression.MakeMemberAccess(destination, complexTypeMapping.DestinationMember) : destination;
+      Expression accessDestinationCollection = complexTypeMapping.DestinationMember != null
+        ? (Expression)Expression.MakeMemberAccess(destination, complexTypeMapping.DestinationMember)
+        : destination;
 
-      if (destinationMemberPropertyType.IsArray)
+      if (facts.CanAssignSourceToDestination && !facts.PreserveDestinationContents && !this.IsClone)
       {
-        destinationCollectionType = destinationMemberPropertyType;
+        var assignSourceToDest = Expression.Assign(accessDestinationCollection, accessSourceCollection);
+        expressions.Add(assignSourceToDest);
+        return; // Early exit, nothing else to do but this simple assignment
+      }
+
+      if (facts.DestinationIsArray)
+      {
+        destinationCollectionType = facts.DestinationEnumerableType;
 
         //destinationCollection = Expression.Parameter(destinationCollectionType, GetCollectionName());
 
@@ -447,7 +550,7 @@ namespace ThisMember.Core
 
         //newParameters.Add(destinationCollection);
 
-        var createDestinationCollection = Expression.New(destinationCollectionType.GetConstructors().Single(), accessSourceCollectionSize);
+        var createDestinationCollection = Expression.New(destinationCollectionType.GetConstructors().Single(), accessSourceEnumerableSize);
 
         // destination = new DestinationType[source.Length/Count/Count()]
         var assignNewCollectionToDestination = Expression.Assign(destinationCollection, createDestinationCollection);
@@ -456,7 +559,15 @@ namespace ThisMember.Core
       }
       else
       {
-        destinationCollectionType = typeof(List<>).MakeGenericType(destinationCollectionElementType);
+        // if it's not a Dictionary type, use List as the container to create
+        if (!facts.DestinationIsDictionaryType)
+        {
+          destinationCollectionType = typeof(List<>).MakeGenericType(facts.DestinationElementType);
+        }
+        else
+        {
+          destinationCollectionType = facts.DestinationEnumerableType;
+        }
 
         Expression assignListTypeToParameter;
 
@@ -464,17 +575,14 @@ namespace ThisMember.Core
 
         // If it's an IList but not an array we want to check if the destination property isn't null
         // and if it isn't, we want to reuse it.
-        if (mapper.Options.Conventions.PreserveDestinationListContents
-          && IsCollectionType(accessDestinationCollection.Type)
-          && !accessDestinationCollection.Type.IsArray)
+        if (facts.PreserveDestinationContents)
         {
-
           Expression reuseCondition;
 
-          if (mapper.Options.Safety.EnsureCollectionIsNotArrayType)
+          if (facts.DestinationCouldBeArray && mapper.Options.Safety.EnsureCollectionIsNotArrayType)
           {
             reuseCondition = Expression.And(Expression.NotEqual(accessDestinationCollection, Expression.Constant(null)),
-              Expression.IsFalse(Expression.TypeIs(accessDestinationCollection, destinationCollectionElementType.MakeArrayType())));
+              Expression.IsFalse(Expression.TypeIs(accessDestinationCollection, facts.DestinationElementType.MakeArrayType())));
           }
           else
           {
@@ -499,22 +607,47 @@ namespace ThisMember.Core
         ifNotNullBlock.Add(assignNewCollectionToDestination);
       }
 
-      //var sourceCollectionItem = Expression.Parameter(sourceCollectionElementType, GetCollectionElementName());
-      var sourceCollectionItem = ObtainParameter(sourceCollectionElementType, "item");
+      ParameterExpression sourceCollectionItem, destinationCollectionItem;
+
+      if (facts.CanAssignSourceElementsToDestination
+        && facts.SourceIsDictionaryType
+        && facts.DestinationIsDictionaryType)
+      {
+        sourceCollectionItem = ObtainParameter(facts.SourceElementType, "item");
+        destinationCollectionItem = ObtainParameter(facts.DestinationElementType, "item");
+      }
+      else
+      {
+        if (facts.CanAssignSourceElementsToDestination && facts.SourceIsDictionaryType)
+        {
+          sourceCollectionItem = ObtainParameter(facts.SourceElementType.GetGenericArguments().Last(), "item");
+        }
+        else
+        {
+          sourceCollectionItem = ObtainParameter(facts.SourceElementType, "item");
+        }
+
+        if (facts.CanAssignSourceElementsToDestination && facts.DestinationIsDictionaryType)
+        {
+          destinationCollectionItem = ObtainParameter(facts.DestinationElementType.GetGenericArguments().Last(), "item");
+        }
+        else
+        {
+          destinationCollectionItem = ObtainParameter(facts.DestinationElementType, "item");
+
+        }
+      }
 
       var expressionsInsideLoop = new List<Expression>();
 
-      //var destinationCollectionItem = Expression.Parameter(destinationCollectionElementType, GetCollectionElementName());
-
-      var destinationCollectionItem = ObtainParameter(destinationCollectionElementType, "item");
 
       BinaryExpression assignNewItemToDestinationItem;
 
       // The elements in the collection are not of types that are assignable to eachother
       // so we have to create a new item and do additional mapping (most likely).
-      if (!canAssignSourceElementToDest)
+      if (!facts.CanAssignSourceElementsToDestination)
       {
-        var createNewDestinationCollectionItem = GetConstructorForType(destinationCollectionElementType, this.sourceParameter, this.destinationParameter);
+        var createNewDestinationCollectionItem = GetConstructorForType(facts.DestinationElementType, this.sourceParameter, this.destinationParameter);
         // var destinationItem = new DestinationItem();
         assignNewItemToDestinationItem = Expression.Assign(destinationCollectionItem, createNewDestinationCollectionItem);
       }
@@ -524,19 +657,16 @@ namespace ThisMember.Core
         assignNewItemToDestinationItem = Expression.Assign(destinationCollectionItem, sourceCollectionItem);
       }
 
-      //newParameters.Add(sourceCollectionItem);
-      //newParameters.Add(destinationCollectionItem);
-
       var @break = Expression.Label();
 
-      ParameterExpression iteratorVar = ObtainParameter(typeof(int)); //Expression.Parameter(typeof(int), GetIteratorVarName());
+      var iteratorVar = ObtainParameter(typeof(int)); //Expression.Parameter(typeof(int), GetIteratorVarName());
 
       // i++
       var increment = Expression.PostIncrementAssign(iteratorVar);
 
       Expression assignItemToDestination;
 
-      if (destinationCollectionType.IsArray)
+      if (facts.DestinationIsArray)
       {
         // destination[i]
         var accessDestinationCollectionByIndex = Expression.MakeIndex(destinationCollection, null, new[] { iteratorVar });
@@ -547,8 +677,8 @@ namespace ThisMember.Core
       }
       else
       {
-        var addMethod = typeof(ICollection<>).MakeGenericType(destinationCollectionElementType).GetMethod("Add", new[] { destinationCollectionElementType });
-        // var addMethod = destinationCollectionType.GetMethod("Add", new[] { destinationCollectionElementType });
+        var addMethod = typeof(ICollection<>).MakeGenericType(facts.DestinationElementType).GetMethod("Add", new[] { facts.DestinationElementType });
+
         var callAddOnDestinationCollection = Expression.Call(destinationCollection, addMethod, destinationCollectionItem);
 
         // destination.Add(destinationItem);
@@ -556,20 +686,31 @@ namespace ThisMember.Core
 
       }
 
+      var loopBlock = new List<Expression>();
+
       // If it's an IList, we want to iterate through it using a good old for-loop for maximum efficiency.
-      if (IsListType(sourceMemberPropertyType))
+      if (facts.SourceIsList)
       {
+        // var i = 0
         var assignZeroToIteratorVar = Expression.Assign(iteratorVar, Expression.Constant(0));
 
         ifNotNullBlock.Add(assignZeroToIteratorVar);
 
         // i < source.Length/Count
-        var terminationCondition = Expression.LessThan(iteratorVar, accessSourceCollectionSize);
+        var terminationCondition = Expression.LessThan(iteratorVar, accessSourceEnumerableSize);
 
-        var indexer = sourceMemberPropertyType.GetProperties().FirstOrDefault(p => p.GetIndexParameters().Length == 1);
+        // Find the first indexer property on the list type
+        var indexer = facts.SourceEnumerableType.GetProperties().FirstOrDefault(p => p.GetIndexParameters().Length == 1);
 
-        var accessSourceCollectionByIndex = Expression.MakeIndex(accessSourceCollection, indexer, new[] { iteratorVar });
+        // source[i]
+        Expression accessSourceCollectionByIndex = Expression.MakeIndex(accessSourceCollection, indexer, new[] { iteratorVar });
 
+        if (facts.SourceIsDictionaryType)
+        {
+          accessSourceCollectionByIndex = Expression.Property(accessSourceCollectionByIndex, "Value");
+        }
+
+        // var item = source[i]
         var assignCurrent = Expression.Assign(sourceCollectionItem, accessSourceCollectionByIndex);
 
         expressionsInsideLoop.Add(assignCurrent);
@@ -591,11 +732,12 @@ namespace ThisMember.Core
                             blockInsideLoop
                         , Expression.Break(@break)), @break);
 
-        ifNotNullBlock.Add(@for);
+        //ifNotNullBlock.Add(@for);
+        loopBlock.Add(@for);
       }
       else // If it's any normal IEnumerable, use this faux foreach loop
       {
-        var getEnumeratorOnSourceMethod = typeof(IEnumerable<>).MakeGenericType(sourceCollectionElementType).GetMethod("GetEnumerator", Type.EmptyTypes);
+        var getEnumeratorOnSourceMethod = typeof(IEnumerable<>).MakeGenericType(facts.SourceElementType).GetMethod("GetEnumerator", Type.EmptyTypes);
 
         var sourceEnumeratorType = getEnumeratorOnSourceMethod.ReturnType;
 
@@ -605,9 +747,16 @@ namespace ThisMember.Core
 
         var assignToEnum = Expression.Assign(sourceEnumerator, Expression.Call(accessSourceCollection, getEnumeratorOnSourceMethod));
 
-        ifNotNullBlock.Add(assignToEnum);
+        loopBlock.Add(assignToEnum);
 
-        var assignCurrent = Expression.Assign(sourceCollectionItem, Expression.Property(sourceEnumerator, "Current"));
+        var accessCurrentOnEnumerator = Expression.Property(sourceEnumerator, "Current");
+
+        if (facts.SourceIsDictionaryType && !facts.DestinationIsDictionaryType)
+        {
+          accessCurrentOnEnumerator = Expression.Property(accessCurrentOnEnumerator, "Value");
+        }
+
+        var assignCurrent = Expression.Assign(sourceCollectionItem, accessCurrentOnEnumerator);
 
         expressionsInsideLoop.Add(assignCurrent);
         expressionsInsideLoop.Add(assignNewItemToDestinationItem);
@@ -616,7 +765,7 @@ namespace ThisMember.Core
 
         expressionsInsideLoop.Add(assignItemToDestination);
 
-        if (destinationMemberPropertyType.IsArray)
+        if (facts.DestinationIsArray)
         {
           expressionsInsideLoop.Add(increment);
         }
@@ -631,7 +780,8 @@ namespace ThisMember.Core
                             blockInsideLoop
                         , Expression.Break(@break)), @break);
 
-        ifNotNullBlock.Add(@foreach);
+        //ifNotNullBlock.Add(@foreach);
+        loopBlock.Add(@foreach);
 
         ReleaseParameter(sourceEnumerator);
 
@@ -639,8 +789,8 @@ namespace ThisMember.Core
 
       var assignDestinationCollection = Expression.Assign(accessDestinationCollection, destinationCollection);
 
-      ifNotNullBlock.Add(assignDestinationCollection);
-
+      //ifNotNullBlock.Add(assignDestinationCollection);
+      loopBlock.Add(assignDestinationCollection);
 
       Expression sourceNotNullCondition = Expression.NotEqual(accessSourceCollection, Expression.Constant(null));
 
@@ -650,6 +800,32 @@ namespace ThisMember.Core
 
         sourceNotNullCondition = Expression.AndAlso(sourceNotNullCondition, complexTypeMapping.Condition.Body);
       }
+
+      Expression ifEmptyCondition = null;
+
+      Expression ifEmpty = null;
+
+      if (facts.CanAssignSourceToDestination && facts.PreserveDestinationContents)
+      {
+        //var anyMethod = typeof(Enumerable).GetMethod("Any", new[] { typeof(IEnumerable<>) });
+
+        var callAny = Expression.Call(null, anyMethod.MakeGenericMethod(facts.DestinationElementType), destinationCollection);
+
+        var callReferenceEquals = Expression.Call(null, referenceEqualsMethod, accessSourceCollection, accessDestinationCollection);
+
+        ifEmptyCondition = Expression.And(callAny, Expression.Not(callReferenceEquals));
+
+        ifEmpty = Expression.Assign(accessDestinationCollection, accessSourceCollection);
+      }
+      else
+      {
+        ifEmptyCondition = Expression.Constant(true);
+        ifEmpty = Expression.Empty();
+      }
+
+      var ifEmptyCheck = Expression.IfThenElse(ifEmptyCondition, Expression.Block(loopBlock), ifEmpty);
+
+      ifNotNullBlock.Add(ifEmptyCheck);
 
       var ifNotNullCheck = Expression.IfThen(sourceNotNullCondition, Expression.Block(ifNotNullBlock));
 
@@ -664,24 +840,57 @@ namespace ThisMember.Core
       ReleaseParameter(destinationCollectionItem);
     }
 
+    private static Expression GetEnumerableSizeAccessor(EnumerableMappingFacts facts, Expression accessSourceCollection)
+    {
+      Expression accessSourceCollectionSize;
+
+      // If it's an array, we want to access .Length to know its size, if it's ICollection<T>, we want .Count 
+      // and for anything else we have to use .Count(). 
+      if (facts.SourceIsArray)
+      {
+        // source.Length
+        accessSourceCollectionSize = Expression.Property(accessSourceCollection, "Length");
+      }
+      else
+      {
+        if (facts.SourceIsCollection)
+        {
+          var genericCollection = typeof(ICollection<>).MakeGenericType(facts.SourceElementType);
+
+          var countProperty = genericCollection.GetProperty("Count");
+
+          // source.Count
+          accessSourceCollectionSize = Expression.Property(accessSourceCollection, countProperty);
+        }
+        else
+        {
+          var genericEnumerable = typeof(IEnumerable<>).MakeGenericType(facts.SourceElementType);
+
+          // source.Count()
+          accessSourceCollectionSize = Expression.Call(null, countMethod.MakeGenericMethod(facts.SourceElementType), accessSourceCollection);
+        }
+      }
+      return accessSourceCollectionSize;
+    }
+
     private bool CanAssignSourceElementToDestination(ProposedTypeMapping complexTypeMapping, Type destinationCollectionElementType, Type sourceCollectionElementType)
     {
       var canAssignSourceElementToDest = destinationCollectionElementType.IsAssignableFrom(sourceCollectionElementType);
 
       if (canAssignSourceElementToDest)
       {
-        if (!sourceCollectionElementType.IsPrimitive && sourceCollectionElementType != typeof(string))
+        if (this.IsClone && !sourceCollectionElementType.IsPrimitive && sourceCollectionElementType != typeof(string))
         {
-          canAssignSourceElementToDest = false;
-        }
-        else if (complexTypeMapping.SourceMember != null && !sourceCollectionElementType.IsPrimitive && sourceCollectionElementType != typeof(string))
-        {
-          if (complexTypeMapping.SourceMember.DeclaringType == complexTypeMapping.DestinationMember.DeclaringType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
-          {
-            canAssignSourceElementToDest = false;
-          }
+          return false;
         }
       }
+      else if (sourceCollectionElementType.IsGenericType
+        && typeof(KeyValuePair<,>).IsAssignableFrom(sourceCollectionElementType.GetGenericTypeDefinition()))
+      {
+        return CanAssignSourceElementToDestination(complexTypeMapping, destinationCollectionElementType, sourceCollectionElementType.GetGenericArguments().Last());
+      }
+
+
       return canAssignSourceElementToDest;
     }
 
@@ -782,7 +991,6 @@ namespace ThisMember.Core
 
       if (constructor == null)
       {
-
         var parameterlessCtor = t.GetConstructor(Type.EmptyTypes);
 
         if (parameterlessCtor == null)
@@ -848,7 +1056,7 @@ namespace ThisMember.Core
 
       var ifNotNullBlock = new List<Expression>();
 
-      ifNotNullBlock.Add(Expression.Assign(complexSource, Expression.Property(source, complexTypeMapping.SourceMember.Name)));
+      ifNotNullBlock.Add(Expression.Assign(complexSource, Expression.MakeMemberAccess(source, complexTypeMapping.SourceMember)));
 
       var newType = complexTypeMapping.DestinationMember.PropertyOrFieldType;
 
@@ -906,7 +1114,7 @@ namespace ThisMember.Core
       // if(true) which will get eliminated by the JIT compiler.
       if (!complexTypeMapping.SourceMember.PropertyOrFieldType.IsValueType || mapper.Options.Conventions.IgnoreMembersWithNullValueOnSource)
       {
-        condition = Expression.NotEqual(Expression.Property(source, complexTypeMapping.SourceMember.Name), Expression.Default(complexTypeMapping.SourceMember.PropertyOrFieldType));
+        condition = Expression.NotEqual(Expression.MakeMemberAccess(source, complexTypeMapping.SourceMember), Expression.Default(complexTypeMapping.SourceMember.PropertyOrFieldType));
       }
       else
       {
@@ -1000,7 +1208,7 @@ namespace ThisMember.Core
     }
 
 
-    public Delegate GenerateMappingFunction(ProposedMap proposedMap)
+    public Delegate GenerateMappingFunction()
     {
 
       var destination = Expression.Parameter(proposedMap.DestinationType, "destination");
@@ -1011,10 +1219,8 @@ namespace ThisMember.Core
       lambdaParameters.Add(source);
       lambdaParameters.Add(destination);
 
-
       this.sourceParameter = source;
       this.destinationParameter = destination;
-      this.proposedMap = proposedMap;
 
       this.Parameters = new List<IndexedParameterExpression>();
 
@@ -1038,8 +1244,8 @@ namespace ThisMember.Core
       Expression condition;
 
       // Check if the types we want to map are enumerable themselves
-      if (typeof(IEnumerable).IsAssignableFrom(proposedMap.SourceType)
-        && typeof(IEnumerable).IsAssignableFrom(proposedMap.DestinationType))
+      if (CollectionTypeHelper.IsEnumerable(proposedMap.SourceType)
+        && CollectionTypeHelper.IsEnumerable(proposedMap.DestinationType))
       {
         // If so, wrap another type mapping around it with the source and destination
         // members as null.
