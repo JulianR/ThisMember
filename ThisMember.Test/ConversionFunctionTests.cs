@@ -233,5 +233,48 @@ namespace ThisMember.Test
 
     }
 
+    interface IDataModel
+    {
+    }
+
+    class DtoBase
+    {
+    }
+
+    class Customer : IDataModel
+    {
+      public DateTime CreationTime { get; set; }
+    }
+
+    class CustomerDto : DtoBase
+    {
+      public DateTime CreationTime { get; set; }
+    }
+
+    [TestMethod]
+    public void ConversionIsCarriedOverToSubtypes()
+    {
+      var mapper = new MemberMapper();
+
+      MappingOptions func = new MappingOptions((src, dest, options, depth) =>
+      {
+        if (typeof(IDataModel).IsAssignableFrom(src.DeclaringType)  && typeof(DtoBase).IsAssignableFrom(dest.DeclaringType))
+        {
+          options.Convert<DateTime, DateTime>(d => d.ToUniversalTime());
+        }
+      });
+
+      mapper.CreateMap<Customer, CustomerDto>(options: func);
+
+      var result = mapper.Map<Customer, CustomerDto>(new Customer
+      {
+        CreationTime = DateTime.Now
+      });
+
+      Assert.AreEqual(DateTimeKind.Utc, result.CreationTime.Kind);
+
+
+    }
+
   }
 }
