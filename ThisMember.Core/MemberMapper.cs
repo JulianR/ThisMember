@@ -13,7 +13,7 @@ namespace ThisMember.Core
   {
     public MapperOptions Options { get; set; }
 
-    public event Action<IMemberMapper, TypePair> BeforeMapping;
+    public event Action<IMemberMapper, TypePair, object> BeforeMapping;
     public event Action<IMemberMapper, TypePair, object> AfterMapping;
 
     public IMapGeneratorFactory MapGeneratorFactory { get; set; }
@@ -182,7 +182,7 @@ namespace ThisMember.Core
 
       if (BeforeMapping != null)
       {
-        BeforeMapping(this, pair);
+        BeforeMapping(this, pair, source);
       }
 
       var result = (TDestination)map.MappingFunction.DynamicInvoke(source, destination);
@@ -248,7 +248,7 @@ namespace ThisMember.Core
         map = MappingStrategy.CreateMapProposal(pair).FinalizeMap();
       }
 
-      if (BeforeMapping != null) BeforeMapping(this, pair);
+      if (BeforeMapping != null) BeforeMapping(this, pair, source);
 
       var func = map.MappingFunction as Func<TSource, TDestination, TDestination>;
 
@@ -580,7 +580,7 @@ namespace ThisMember.Core
       {
         map = MappingStrategy.CreateMapProposal(pair).FinalizeMap();
       }
-      if (BeforeMapping != null) BeforeMapping(this, pair);
+      if (BeforeMapping != null) BeforeMapping(this, pair, source);
 
       var result = map.MappingFunction.DynamicInvoke(source, destination);
 
@@ -604,7 +604,7 @@ namespace ThisMember.Core
       {
         map = MappingStrategy.CreateMapProposal(pair, parameters: typeof(TParam)).FinalizeMap();
       }
-      if (BeforeMapping != null) BeforeMapping(this, pair);
+      if (BeforeMapping != null) BeforeMapping(this, pair, source);
 
       var func = map.MappingFunction as Func<TSource, TDestination, TParam, TDestination>;
 

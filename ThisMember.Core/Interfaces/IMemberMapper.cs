@@ -179,7 +179,7 @@ namespace ThisMember.Core.Interfaces
 
     IProjectionGeneratorFactory ProjectionGeneratorFactory { get; set; }
 
-    event Action<IMemberMapper, TypePair> BeforeMapping;
+    event Action<IMemberMapper, TypePair, object> BeforeMapping;
 
     event Action<IMemberMapper, TypePair, object> AfterMapping;
 
