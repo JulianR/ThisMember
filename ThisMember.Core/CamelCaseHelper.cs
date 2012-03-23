@@ -13,12 +13,8 @@ namespace ThisMember.Core
 
       int start = 0;
 
-      for (var i = 0; i < word.Length; i++)
+      for (var i = 1; i < word.Length; i++)
       {
-        if (i == 0)
-        {
-          continue;
-        }
 
         if (char.IsUpper(word[i]) && char.IsLower(word[i-1])) 
         {
