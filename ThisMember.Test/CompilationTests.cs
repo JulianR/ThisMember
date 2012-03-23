@@ -182,7 +182,7 @@ namespace ThisMember.Test
   [TestClass]
   public class MoreCompilationTests
   {
-    
+
     public class NestedClass
     {
       public int Bar()
@@ -231,6 +231,59 @@ namespace ThisMember.Test
       var processor = new MapExpressionProcessor(new MemberMapper());
 
       processor.Process(expr);
+
+      Assert.IsTrue(processor.NonPublicMembersAccessed);
+    }
+  }
+
+  [TestClass]
+  public class EvenMoreCompilationTests
+  {
+    interface ISource
+    {
+      bool Valid { get; set; }
+    }
+
+    public class Source : ISource
+    {
+      public bool Valid { get; set; }
+    }
+
+    public class Dest
+    {
+      public bool Valid { get; set; }
+    }
+
+
+    [TestMethod]
+    public void NonPublicInterfaceAccessIsDetected()
+    {
+      Expression<Func<ISource, Dest, bool>> expr = (a, b) => a.Valid & b.Valid;
+
+      var processor = new MapExpressionProcessor(new MemberMapper());
+
+      processor.Process(expr);
+
+      Assert.IsTrue(processor.NonPublicMembersAccessed);
+    }
+
+    [TestMethod]
+    public void NonPublicInterfaceAccessIsDetected_1()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Debug.DebugInformationEnabled = true;
+
+      mapper.CreateMap<ISource, Dest>(src => new Dest
+      {
+        Valid = !src.Valid
+      });
+
+      var map = mapper.CreateMap<Source, Dest>();
+
+      var processor = new MapExpressionProcessor(mapper);
+
+      processor.Process(map.DebugInformation.MappingExpression);
 
       Assert.IsTrue(processor.NonPublicMembersAccessed);
     }

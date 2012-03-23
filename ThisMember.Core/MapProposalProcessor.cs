@@ -292,6 +292,17 @@ namespace ThisMember.Core
         return base.VisitLambda<T>(node);
       }
 
+      protected override Expression VisitMember(MemberExpression node)
+      {
+        if (!IsPublicClass(node.Member.DeclaringType))
+        {
+          NonPublicMembersAccessed = true;
+          return node;
+        }
+
+        return base.VisitMember(node);
+      }
+
       private static bool IsPublicClass(Type t)
       {
         // For the purposes this method is used for, also consider generic types to be 'non-public'
