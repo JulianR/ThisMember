@@ -718,7 +718,13 @@ namespace ThisMember.Core
                                 where m.Key.DestinationType.IsAssignableFrom(pair.DestinationType)
                                 && m.Key.DestinationType != pair.DestinationType
                                 orderby DistanceFromType(pair.DestinationType, m.Key.DestinationType, 0) ascending
-                                select m.Value).ToList();
+                                select m.Value);
+
+        matchingMappings = matchingMappings.Union(from m in customMappingCache
+                                                  where m.Key.SourceType.IsAssignableFrom(pair.SourceType)
+                                                  && m.Key.SourceType != pair.SourceType
+                                                  orderby DistanceFromType(pair.SourceType, m.Key.SourceType, 0) ascending
+                                                  select m.Value).ToList();
 
         customMapping = customMapping ?? matchingMappings.FirstOrDefault();
 
