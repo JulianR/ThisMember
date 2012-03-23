@@ -51,6 +51,7 @@
     <Compile Include="CloningTests.cs" />
     <Compile Include="CompilationTests.cs" />
     <Compile Include="ComplexMappingTests.cs" />
+    <Compile Include="ConditionalTypeMappingTests.cs" />
     <Compile Include="ConstructorTests.cs" />
     <Compile Include="ConversionFunctionTests.cs" />
     <Compile Include="ConversionTests.cs" />

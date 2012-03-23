@@ -66,5 +66,7 @@ namespace ThisMember.Core
     {
       return this.DestinationMember.GetHashCode() ^ this.SourceMember.GetHashCode();
     }
+
+    internal bool NewInstanceCreated { get; set; }
   }
 }

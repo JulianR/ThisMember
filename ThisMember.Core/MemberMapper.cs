@@ -6,6 +6,7 @@ using ThisMember.Core.Interfaces;
 using System.Linq.Expressions;
 using ThisMember.Core.Exceptions;
 using ThisMember.Core.Options;
+using ThisMember.Core.Misc;
 
 namespace ThisMember.Core
 {
@@ -38,6 +39,8 @@ namespace ThisMember.Core
       this.ProjectionGeneratorFactory = config.GetProjectionGenerator(this);
 
       this.Options = config.GetOptions(this);
+
+      this.Data = new MapperDataAccessor(this);
     }
 
     public MemberMapper(MapperOptions options = null, IMappingStrategy strategy = null, IMapGeneratorFactory generator = null, IProjectionGeneratorFactory projection = null)
@@ -49,6 +52,8 @@ namespace ThisMember.Core
       this.ProjectionGeneratorFactory = projection ?? new DefaultProjectionGeneratorFactory();
 
       this.Options = options ?? new MapperOptions();
+
+      this.Data = new MapperDataAccessor(this);
     }
 
     private MemberMap<TSource, TDestination> ToGenericMemberMap<TSource, TDestination>(MemberMap map)
@@ -510,25 +515,22 @@ namespace ThisMember.Core
       this.MappingStrategy.ClearMapCache();
     }
 
-    private Dictionary<Type, LambdaExpression> constructorCache = new Dictionary<Type, LambdaExpression>();
 
     public IMemberMapper AddCustomConstructor<T>(Expression<Func<T>> ctor)
     {
-      constructorCache[typeof(T)] = ctor;
-      return this;
+      return AddCustomConstructor(typeof(T), ctor);
     }
 
     public IMemberMapper AddCustomConstructor(Type type, LambdaExpression ctor)
     {
-      constructorCache[type] = ctor;
+      this.Data.AddCustomConstructor(type, ctor);
+
       return this;
     }
 
-    public LambdaExpression GetConstructor(Type t)
+    private LambdaExpression GetConstructor(Type t)
     {
-      LambdaExpression e;
-      constructorCache.TryGetValue(t, out e);
-      return e;
+      return this.Data.GetConstructor(t);
     }
 
     public string Profile { get; set; }
@@ -618,6 +620,17 @@ namespace ThisMember.Core
       if (AfterMapping != null) AfterMapping(this, pair, result);
 
       return result;
+    }
+
+    public Fluent.SourceTypeModifier<TSource> ForSourceType<TSource>()
+    {
+      return new Fluent.SourceTypeModifier<TSource>(this);
+    }
+
+    public Misc.MapperDataAccessor Data
+    {
+      get;
+      private set;
     }
   }
 }

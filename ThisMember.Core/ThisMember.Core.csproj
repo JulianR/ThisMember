@@ -58,9 +58,11 @@
     <Compile Include="Exceptions\CodeGenerationException.cs" />
     <Compile Include="Exceptions\IncompatibleMappingException.cs" />
     <Compile Include="Exceptions\MapNotFoundException.cs" />
+    <Compile Include="Exceptions\MappingTerminatedException.cs" />
     <Compile Include="Exceptions\MemberNotFoundException.cs" />
     <Compile Include="Exceptions\RecursiveRelationshipException.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
+    <Compile Include="Fluent\SourceTypeModifier.cs" />
     <Compile Include="IgnoreMemberAttribute.cs" />
     <Compile Include="Interfaces\IMemberProvider.cs" />
     <Compile Include="IndexedParameterExpression.cs" />
@@ -75,6 +77,7 @@
     <Compile Include="Interfaces\IProjectionGenerator.cs" />
     <Compile Include="Interfaces\IProjectionGeneratorFactory.cs" />
     <Compile Include="MapCollection.cs" />
+    <Compile Include="Misc\MapperDataAccessor.cs" />
     <Compile Include="NullableTypeHelper.cs" />
     <Compile Include="Options\MapperOptions.cs" />
     <Compile Include="MemberOption.cs" />

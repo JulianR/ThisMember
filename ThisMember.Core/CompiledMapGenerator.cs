@@ -13,6 +13,7 @@ using System.Security;
 using System.Security.Permissions;
 using System.Security.Policy;
 using ThisMember.Core.Options;
+using ThisMember.Core.Misc;
 
 namespace ThisMember.Core
 {
@@ -153,7 +154,7 @@ namespace ThisMember.Core
       // Simple property assignments
       foreach (var member in typeMapping.ProposedMappings)
       {
-        BuildMemberAssignmentExpressions(source, destination, member, expressions, customMapping);
+        BuildMemberAssignmentExpressions(source, destination, member, expressions, typeMapping, customMapping);
       }
 
       // Nested type mappings
@@ -174,10 +175,10 @@ namespace ThisMember.Core
 
 
     /// <summary>
-    /// Assigns an expression that can be pretty much anythig to a destination mapping.
+    /// Assigns an expression that can be pretty much anything to a destination mapping.
     /// </summary>
     /// <returns></returns>
-    private BinaryExpression AssignSimpleProperty(MemberExpression destination, Expression source)
+    private BinaryExpression AssignSimpleProperty(MemberExpression destination, Expression source, ProposedTypeMapping typeMapping)
     {
       // If the destination is nullable but the source expression returns a non-nullable value type.
       if (destination.Type.IsNullableValueType() && !source.Type.IsNullableValueType())
@@ -191,7 +192,8 @@ namespace ThisMember.Core
       }
       // dest.Member = source.Member != null ? source.Member : dest.Member 
       else if (source.Type.IsClass && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
-        && source.Type.IsAssignableFrom(destination.Type))
+        && source.Type.IsAssignableFrom(destination.Type)
+        && !typeMapping.NewInstanceCreated)
       {
         source = Expression.Condition(Expression.NotEqual(source, Expression.Constant(null)), source, destination);
       }
@@ -244,6 +246,7 @@ namespace ThisMember.Core
       ParameterExpression destination,
       ProposedMemberMapping member,
       List<Expression> expressions,
+      ProposedTypeMapping typeMapping,
       CustomMapping customMapping = null
     )
     {
@@ -280,7 +283,7 @@ namespace ThisMember.Core
       else
       {
         Expression sourceExpression = Expression.MakeMemberAccess(source, member.SourceMember);
-        assignSourceToDest = AssignSimpleProperty(destMember, sourceExpression);
+        assignSourceToDest = AssignSimpleProperty(destMember, sourceExpression, typeMapping);
       }
 
       Expression assignConversionToDest = null;
@@ -509,9 +512,10 @@ namespace ThisMember.Core
       List<Expression> expressions
     )
     {
-
+      // Find out the properties of this mapping which we will use to generate code
       var facts = FindEnumerableMappingFacts(source, destination, complexTypeMapping);
 
+      // Early return because we're ignoring this mapping
       if (complexTypeMapping.Ignored)
       {
         return;
@@ -540,6 +544,7 @@ namespace ThisMember.Core
         return; // Early exit, nothing else to do but this simple assignment
       }
 
+      // If it's an array, create a new array destination type
       if (facts.DestinationIsArray)
       {
         destinationCollectionType = facts.DestinationEnumerableType;
@@ -613,13 +618,17 @@ namespace ThisMember.Core
         && facts.SourceIsDictionaryType
         && facts.DestinationIsDictionaryType)
       {
+        // If both types are a dictionary type and they are assignable to each other,
+        // then we want to use the KeyValuePair itself, not just the value.
         sourceCollectionItem = ObtainParameter(facts.SourceElementType, "item");
         destinationCollectionItem = ObtainParameter(facts.DestinationElementType, "item");
       }
       else
       {
+        
         if (facts.CanAssignSourceElementsToDestination && facts.SourceIsDictionaryType)
         {
+          // Get the value type of the KeyValuePair
           sourceCollectionItem = ObtainParameter(facts.SourceElementType.GetGenericArguments().Last(), "item");
         }
         else
@@ -629,6 +638,7 @@ namespace ThisMember.Core
 
         if (facts.CanAssignSourceElementsToDestination && facts.DestinationIsDictionaryType)
         {
+          // Get the value type of the KeyValuePair
           destinationCollectionItem = ObtainParameter(facts.DestinationElementType.GetGenericArguments().Last(), "item");
         }
         else
@@ -650,11 +660,19 @@ namespace ThisMember.Core
         var createNewDestinationCollectionItem = GetConstructorForType(facts.DestinationElementType, this.sourceParameter, this.destinationParameter);
         // var destinationItem = new DestinationItem();
         assignNewItemToDestinationItem = Expression.Assign(destinationCollectionItem, createNewDestinationCollectionItem);
+        
+        // Used as a flag by the member assignments of this type mapping if we do need to care
+        // about preserving existing values on the destination, which we dont if the destination is a new instance
+        complexTypeMapping.NewInstanceCreated = true;
       }
       else
       {
         // var destinationItem = sourceItem;
         assignNewItemToDestinationItem = Expression.Assign(destinationCollectionItem, sourceCollectionItem);
+
+        // Used as a flag by the member assignments of this type mapping if we do need to care
+        // about preserving existing values on the destination, which we do if the destination is not a new instance
+        complexTypeMapping.NewInstanceCreated = false;
       }
 
       var @break = Expression.Label();
@@ -761,6 +779,8 @@ namespace ThisMember.Core
         expressionsInsideLoop.Add(assignCurrent);
         expressionsInsideLoop.Add(assignNewItemToDestinationItem);
 
+        ProcessSourceTypeData(sourceCollectionItem, expressionsInsideLoop);
+
         BuildTypeMappingExpressions(sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, complexTypeMapping.CustomMapping);
 
         expressionsInsideLoop.Add(assignItemToDestination);
@@ -838,6 +858,21 @@ namespace ThisMember.Core
       ReleaseParameter(sourceCollectionItem);
 
       ReleaseParameter(destinationCollectionItem);
+    }
+
+    private void ProcessSourceTypeData(ParameterExpression sourceCollectionItem, List<Expression> expressionsInsideLoop)
+    {
+      var sourceTypeData = GetSourceTypeData(sourceCollectionItem.Type);
+
+      if (sourceTypeData != null)
+      {
+        var sourceTypeExpr = ProcessSourceTypeData(sourceTypeData, sourceCollectionItem);
+
+        if (sourceTypeExpr != null)
+        {
+          expressionsInsideLoop.Add(sourceTypeExpr);
+        }
+      }
     }
 
     private static Expression GetEnumerableSizeAccessor(EnumerableMappingFacts facts, Expression accessSourceCollection)
@@ -986,7 +1021,7 @@ namespace ThisMember.Core
 
       if (constructor == null)
       {
-        constructor = mapper.GetConstructor(t);
+        constructor = mapper.Data.GetConstructor(t);
       }
 
       if (constructor == null)
@@ -1057,6 +1092,8 @@ namespace ThisMember.Core
       var ifNotNullBlock = new List<Expression>();
 
       ifNotNullBlock.Add(Expression.Assign(complexSource, Expression.MakeMemberAccess(source, complexTypeMapping.SourceMember)));
+      
+      ProcessSourceTypeData(complexSource, ifNotNullBlock);
 
       var newType = complexTypeMapping.DestinationMember.PropertyOrFieldType;
 
@@ -1207,6 +1244,32 @@ namespace ThisMember.Core
       }
     }
 
+    private SourceTypeData GetSourceTypeData(Type t)
+    {
+      var data = mapper.Data.TryGetSourceTypeData(t);
+
+      return data;
+    }
+
+    private Expression ProcessSourceTypeData(SourceTypeData data, Expression typeParam)
+    {
+      if (data.ThrowIfCondition != null)
+      {
+        var param = data.ThrowIfCondition.Parameters.Single();
+
+        mapProcessor.ParametersToReplace.Add(new ExpressionTuple(param, typeParam));
+
+        var message = Expression.Constant(data.Message);
+
+        var throwException = Expression.Throw(Expression.New(typeof(MappingTerminatedException).GetConstructor(new[] { typeof(string) }), message));
+
+        var ifNotConditionThrow = Expression.IfThen(data.ThrowIfCondition.Body, throwException);
+
+        return ifNotConditionThrow;
+      }
+
+      return null;
+    }
 
     public Delegate GenerateMappingFunction()
     {
@@ -1238,9 +1301,6 @@ namespace ThisMember.Core
         argCount++;
       }
 
-      var assignments = new List<Expression>();
-
-
       Expression condition;
 
       // Check if the types we want to map are enumerable themselves
@@ -1271,6 +1331,10 @@ namespace ThisMember.Core
         }
 
       }
+
+      var assignments = new List<Expression>();
+
+      ProcessSourceTypeData(sourceParameter, assignments);
 
       BuildTypeMappingExpressions(source, destination, proposedMap.ProposedTypeMapping, assignments, proposedMap.ProposedTypeMapping.CustomMapping);
 

@@ -5,6 +5,8 @@ using System.Text;
 using System.Reflection;
 using System.Linq.Expressions;
 using ThisMember.Core.Options;
+using ThisMember.Core.Fluent;
+using ThisMember.Core.Misc;
 
 namespace ThisMember.Core.Interfaces
 {
@@ -160,8 +162,6 @@ namespace ThisMember.Core.Interfaces
     /// </summary>
     IMemberMapper AddCustomConstructor(Type type, LambdaExpression ctor);
 
-    LambdaExpression GetConstructor(Type t);
-
     /// <summary>
     /// Creates a deep clone of the given source object, mapping the entire object graph.
     /// </summary>
@@ -183,5 +183,8 @@ namespace ThisMember.Core.Interfaces
 
     event Action<IMemberMapper, TypePair, object> AfterMapping;
 
+    SourceTypeModifier<TSource> ForSourceType<TSource>();
+
+    MapperDataAccessor Data { get; }
   }
 }

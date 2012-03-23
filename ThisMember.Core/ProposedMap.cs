@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Collections;
 using System.Reflection.Emit;
 using ThisMember.Core.Exceptions;
+using ThisMember.Core.Fluent;
 
 namespace ThisMember.Core
 {
