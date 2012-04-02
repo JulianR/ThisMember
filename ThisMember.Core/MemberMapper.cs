@@ -214,14 +214,14 @@ namespace ThisMember.Core
       return Map(source, destination, param);
     }
 
-    public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
+    public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null)
     {
       var proposedMap = this.MappingStrategy.CreateMapProposal<TSource, TDestination>(options, customMapping);
 
       return proposedMap;
     }
 
-    public ProposedMap CreateMapProposal(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null)
+    public ProposedMap CreateMapProposal(Type source, Type destination, LambdaExpression customMapping = null, MemberOptions options = null)
     {
       var pair = new TypePair(source, destination);
 
@@ -230,7 +230,7 @@ namespace ThisMember.Core
       return proposedMap;
     }
 
-    public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MappingOptions options = null)
+    public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MemberOptions options = null)
     {
       var proposedMap = this.MappingStrategy.CreateMapProposal<TSource, TDestination, TParam>(options, customMapping);
 
@@ -284,27 +284,27 @@ namespace ThisMember.Core
 
     public IMappingStrategy MappingStrategy { get; set; }
 
-    public MemberMap CreateMap(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null)
+    public MemberMap CreateMap(Type source, Type destination, LambdaExpression customMapping = null, MemberOptions options = null)
     {
       return CreateMapProposal(source, destination, customMapping, options).FinalizeMap();
     }
 
-    public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
+    public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null)
     {
       return ToGenericMemberMap<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeMap());
     }
 
-    public MemberMap<TSource, TDestination, TParam> CreateMap<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping, MappingOptions options = null)
+    public MemberMap<TSource, TDestination, TParam> CreateMap<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MemberOptions options = null)
     {
       return ToGenericMemberMap<TSource, TDestination, TParam>(CreateMapProposal<TSource, TDestination, TParam>(customMapping, options).FinalizeMap());
     }
 
-    public Projection CreateProjection(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null)
+    public Projection CreateProjection(Type source, Type destination, LambdaExpression customMapping = null, MemberOptions options = null)
     {
       return CreateMapProposal(source, destination, customMapping, options).FinalizeProjection();
     }
 
-    public Projection<TSource, TDestination> CreateProjection<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
+    public Projection<TSource, TDestination> CreateProjection<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null)
     {
       return ToGenericProjection<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeProjection());
     }
@@ -631,6 +631,13 @@ namespace ThisMember.Core
     {
       get;
       private set;
+    }
+
+    public MemberOptions DefaultMemberOptions { get; set; }
+
+    public Fluent.DestinationTypeModifier<TDestination> ForDestinationType<TDestination>()
+    {
+      return new Fluent.DestinationTypeModifier<TDestination>(this);
     }
   }
 }

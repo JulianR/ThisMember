@@ -56,7 +56,7 @@ namespace ThisMember.Core.Interfaces
     /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
-    ProposedMap CreateMapProposal(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null);
+    ProposedMap CreateMapProposal(Type source, Type destination, LambdaExpression customMapping = null, MemberOptions options = null);
 
     /// <summary>
     /// Creates a map proposal that may be modified later.
@@ -64,7 +64,7 @@ namespace ThisMember.Core.Interfaces
     /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
-    ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null);
+    ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null);
 
     /// <summary>
     /// Creates a map proposal that may be modified later.
@@ -72,7 +72,7 @@ namespace ThisMember.Core.Interfaces
     /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
-    ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping, MappingOptions options = null);
+    ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping, MemberOptions options = null);
 
     /// <summary>
     /// Creates and finalizes a map that may no longer be modified.
@@ -82,7 +82,7 @@ namespace ThisMember.Core.Interfaces
     /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
-    MemberMap CreateMap(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null);
+    MemberMap CreateMap(Type source, Type destination, LambdaExpression customMapping = null, MemberOptions options = null);
 
     /// <summary>
     /// Creates and finalizes a map that may no longer be modified.
@@ -90,7 +90,7 @@ namespace ThisMember.Core.Interfaces
     /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
-    MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null);
+    MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null);
 
     /// <summary>
     /// Creates and finalizes a map that may no longer be modified.
@@ -98,7 +98,7 @@ namespace ThisMember.Core.Interfaces
     /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
-    MemberMap<TSource, TDestination, TParam> CreateMap<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping, MappingOptions options = null);
+    MemberMap<TSource, TDestination, TParam> CreateMap<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MemberOptions options = null);
 
     /// <summary>
     /// Creates and finalizes a projection from one type to another that may no longer be modified.
@@ -108,7 +108,7 @@ namespace ThisMember.Core.Interfaces
     /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
-    Projection CreateProjection(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null);
+    Projection CreateProjection(Type source, Type destination, LambdaExpression customMapping = null, MemberOptions options = null);
 
     /// <summary>
     /// Creates and finalizes a projection from one type to another that may no longer be modified.
@@ -116,7 +116,7 @@ namespace ThisMember.Core.Interfaces
     /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
     /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
     /// <returns></returns>
-    Projection<TSource, TDestination> CreateProjection<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null);
+    Projection<TSource, TDestination> CreateProjection<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null);
 
     bool HasMap<TSource, TDestination>();
 
@@ -185,6 +185,10 @@ namespace ThisMember.Core.Interfaces
 
     SourceTypeModifier<TSource> ForSourceType<TSource>();
 
+    DestinationTypeModifier<TDestination> ForDestinationType<TDestination>();
+
     MapperDataAccessor Data { get; }
+
+    MemberOptions DefaultMemberOptions { get; set; }
   }
 }

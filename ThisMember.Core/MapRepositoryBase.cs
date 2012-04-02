@@ -15,7 +15,7 @@ namespace ThisMember.Core
 
     private class MapFuncWrapper
     {
-      public Func<IMemberMapper, MappingOptions, ProposedMap> CreateMapFunction { get; set; }
+      public Func<IMemberMapper, MemberOptions, ProposedMap> CreateMapFunction { get; set; }
       public bool InUse { get; set; }
     }
 
@@ -34,7 +34,7 @@ namespace ThisMember.Core
     /// the map, just tells the IMemberMapper how to do so. 
     /// </summary>
     /// <param name="action">The function that describes how the map should be created.</param>
-    protected void DefineMap<TSource, TDestination>(Func<IMemberMapper, MappingOptions, ProposedMap<TSource, TDestination>> action)
+    protected void DefineMap<TSource, TDestination>(Func<IMemberMapper, MemberOptions, ProposedMap<TSource, TDestination>> action)
     {
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
@@ -55,7 +55,7 @@ namespace ThisMember.Core
     /// Checks if the mapper repository contains a map and if so, returns it as an out parameter.
     /// </summary>
     /// <returns></returns>
-    public bool TryGetMap(IMemberMapper mapper, MappingOptions options, TypePair pair, out ProposedMap map)
+    public bool TryGetMap(IMemberMapper mapper, MemberOptions options, TypePair pair, out ProposedMap map)
     {
       MapFuncWrapper action;
       if (cache.TryGetValue(pair, out action))
@@ -92,7 +92,7 @@ namespace ThisMember.Core
     /// Checks if the mapper repository contains a map and if so, returns it as an out parameter.
     /// </summary>
     /// <returns></returns>
-    public bool TryGetMap<TSource, TDestination>(IMemberMapper mapper, MappingOptions options, out ProposedMap<TSource, TDestination> map)
+    public bool TryGetMap<TSource, TDestination>(IMemberMapper mapper, MemberOptions options, out ProposedMap<TSource, TDestination> map)
     {
       MapFuncWrapper action;
       if (cache.TryGetValue(new TypePair(typeof(TSource), typeof(TDestination)), out action))

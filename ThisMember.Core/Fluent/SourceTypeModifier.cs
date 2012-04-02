@@ -5,6 +5,7 @@ using System.Text;
 using System.Linq.Expressions;
 using ThisMember.Core.Interfaces;
 using ThisMember.Core.Misc;
+using ThisMember.Core.Options;
 
 namespace ThisMember.Core.Fluent
 {
@@ -15,6 +16,20 @@ namespace ThisMember.Core.Fluent
     public SourceTypeModifier(IMemberMapper mapper)
     {
       this.mapper = mapper;
+    }
+
+    public VariableDefinition<T> DefineVariable<T>(string name)
+    {
+      var variable = new VariableDefinition<T>(name);
+
+      mapper.Data.AddVariableDefinition(typeof(TSource), name, variable);
+
+      return variable;
+    }
+
+    public void UseMapperOptions(MapperOptions options)
+    {
+      mapper.Data.AddMapperOptions(typeof(TSource), options, true);
     }
 
     public void ThrowIf(LambdaExpression condition, string message)

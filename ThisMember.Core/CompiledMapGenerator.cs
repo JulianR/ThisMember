@@ -31,19 +31,18 @@ namespace ThisMember.Core
     private readonly MapExpressionProcessor mapProcessor;
     private IList<ParameterExpression> newParameters;
     private readonly ProposedMap proposedMap;
+    private readonly MapperOptions options;
     private IList<IndexedParameterExpression> Parameters { get; set; }
 
     public DebugInformation DebugInformation { get; private set; }
 
-    public CompiledMapGenerator(IMemberMapper mapper, ProposedMap map)
+    public CompiledMapGenerator(IMemberMapper mapper, ProposedMap map, MapperOptions options)
     {
       this.mapper = mapper;
-
       this.proposedMap = map;
-
       this.mapProcessor = new MapExpressionProcessor(mapper);
-
       this.newParameters = new List<ParameterExpression>();
+      this.options = options;
     }
 
     private int currentID = 0;
@@ -178,7 +177,14 @@ namespace ThisMember.Core
     /// Assigns an expression that can be pretty much anything to a destination mapping.
     /// </summary>
     /// <returns></returns>
-    private BinaryExpression AssignSimpleProperty(MemberExpression destination, Expression source, ProposedTypeMapping typeMapping)
+    private BinaryExpression AssignSimpleProperty
+    (
+      ProposedMemberMapping member,
+      MemberExpression destination,
+      Expression source,
+      ProposedTypeMapping typeMapping,
+      bool usesConversionFunction
+    )
     {
       // If the destination is nullable but the source expression returns a non-nullable value type.
       if (destination.Type.IsNullableValueType() && !source.Type.IsNullableValueType())
@@ -191,12 +197,14 @@ namespace ThisMember.Core
         source = HandleSourceNullableValueType(destination, source);
       }
       // dest.Member = source.Member != null ? source.Member : dest.Member 
-      else if (source.Type.IsClass && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
+      else if (source.Type.IsClass && options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
         && source.Type.IsAssignableFrom(destination.Type)
-        && !typeMapping.NewInstanceCreated)
+        && !typeMapping.NewInstanceCreated
+        && !usesConversionFunction)
       {
         source = Expression.Condition(Expression.NotEqual(source, Expression.Constant(null)), source, destination);
       }
+
 
       if (!source.Type.IsAssignableFrom(destination.Type))
       {
@@ -213,7 +221,7 @@ namespace ThisMember.Core
 
       // If the source is null then ignore it if option is turned on, preserving the 
       // original value.
-      Expression elseClause = mapper.Options.Conventions.IgnoreMembersWithNullValueOnSource ?
+      Expression elseClause = options.Conventions.IgnoreMembersWithNullValueOnSource ?
       (Expression)destination : Expression.Default(nullableType);
 
       // Depending on the above option this can either be
@@ -270,6 +278,26 @@ namespace ThisMember.Core
 
       Expression customExpression = null;
 
+      Expression assignConversionToDest = null;
+
+      LambdaExpression conversionFunction = null;
+
+      bool conversionReturnTypeSameAsParameterType = false;
+
+      ParameterExpression conversionParameter = null;
+
+      if (customMapping != null)
+      {
+        conversionFunction = customMapping.GetConversionFunction(member.SourceMember, member.DestinationMember);
+
+        if (conversionFunction != null)
+        {
+          conversionParameter = conversionFunction.Parameters.Single();
+
+          conversionReturnTypeSameAsParameterType = conversionParameter.Type == conversionFunction.ReturnType;
+        }
+      }
+
       if (customMapping != null && (customExpression = customMapping.GetExpressionForMember(member.DestinationMember)) != null)
       {
         assignSourceToDest = Expression.Assign(destMember, customExpression);
@@ -283,25 +311,27 @@ namespace ThisMember.Core
       else
       {
         Expression sourceExpression = Expression.MakeMemberAccess(source, member.SourceMember);
-        assignSourceToDest = AssignSimpleProperty(destMember, sourceExpression, typeMapping);
+
+        bool usesConversionFunction = false;
+
+        if (conversionFunction != null && !conversionReturnTypeSameAsParameterType)
+        {
+          ValidateConversionFunction(conversionFunction, conversionParameter, sourceExpression, destMember);
+
+          this.mapProcessor.ParametersToReplace.Add(new ExpressionTuple(conversionParameter, sourceExpression));
+
+          sourceExpression = conversionFunction.Body;
+          usesConversionFunction = true;
+        }
+
+        assignSourceToDest = AssignSimpleProperty(member, destMember, sourceExpression, typeMapping, usesConversionFunction);
       }
 
-      Expression assignConversionToDest = null;
-
-      if (customMapping != null)
+      if (conversionFunction != null && conversionReturnTypeSameAsParameterType)
       {
-        var conversionFunction = customMapping.GetConversionFunction(member.SourceMember, member.DestinationMember);
+        this.mapProcessor.ParametersToReplace.Add(new ExpressionTuple(conversionParameter, destMember));
 
-        if (conversionFunction != null)
-        {
-          var parameter = conversionFunction.Parameters.Single();
-
-          ValidateConversionFunction(member, customExpression, parameter);
-
-          this.mapProcessor.ParametersToReplace.Add(new ExpressionTuple(parameter, destMember));
-
-          assignConversionToDest = Expression.Assign(destMember, conversionFunction.Body);
-        }
+        assignConversionToDest = Expression.Assign(destMember, conversionFunction.Body);
       }
 
       // If a condition to the mapping was specified
@@ -325,6 +355,21 @@ namespace ThisMember.Core
       }
     }
 
+    private void ValidateConversionFunction(LambdaExpression conversionFunction, ParameterExpression conversionParameter, Expression sourceExpression, Expression destinationExpression)
+    {
+      if (!conversionParameter.Type.IsAssignableFrom(sourceExpression.Type))
+      {
+        throw new InvalidOperationException(
+          string.Format("Cannot use conversion function accepting parameter {0} and returning {1} with parameter of type {2}",
+          conversionParameter.Type, conversionFunction.ReturnType, sourceExpression.Type));
+      }
+      else if (!destinationExpression.Type.IsAssignableFrom(conversionFunction.ReturnType))
+      {
+        throw new InvalidOperationException(
+          string.Format("Cannot use a conversion function returning {0} and assign it to type {1}", conversionFunction.ReturnType, destinationExpression.Type));
+      }
+    }
+
     private static Expression BuildHierarchicalExpression(ParameterExpression sourceParam, ProposedHierarchicalMapping mapping, Expression expression)
     {
 
@@ -344,29 +389,11 @@ namespace ThisMember.Core
       return expression;
     }
 
-    private static void ValidateConversionFunction(ProposedMemberMapping member, Expression customExpression, ParameterExpression parameter)
-    {
-      if (customExpression != null)
-      {
-        if (!parameter.Type.IsAssignableFrom(customExpression.Type))
-        {
-          throw new InvalidOperationException(string.Format("Invalid parameter type {0} for conversion", parameter.Type));
-        }
-      }
-      else
-      {
-        if (!parameter.Type.IsAssignableFrom(member.SourceMember.PropertyOrFieldType))
-        {
-          throw new InvalidOperationException(string.Format("Invalid parameter type {0} for conversion", parameter.Type));
-        }
-      }
-    }
-
     private bool IsClone
     {
       get
       {
-        return this.mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
+        return this.options.Conventions.MakeCloneIfDestinationIsTheSameAsSource
           && this.proposedMap.SourceType == this.proposedMap.DestinationType;
       }
     }
@@ -465,7 +492,7 @@ namespace ThisMember.Core
 
       facts.DestinationIsArray = facts.DestinationEnumerableType.IsArray;
 
-      if (mapper.Options.Conventions.PreserveDestinationListContents
+      if (options.Conventions.PreserveDestinationListContents
           && IsCollectionType(facts.DestinationEnumerableType)
           && !facts.DestinationIsArray)
       {
@@ -584,7 +611,7 @@ namespace ThisMember.Core
         {
           Expression reuseCondition;
 
-          if (facts.DestinationCouldBeArray && mapper.Options.Safety.EnsureCollectionIsNotArrayType)
+          if (facts.DestinationCouldBeArray && options.Safety.EnsureCollectionIsNotArrayType)
           {
             reuseCondition = Expression.And(Expression.NotEqual(accessDestinationCollection, Expression.Constant(null)),
               Expression.IsFalse(Expression.TypeIs(accessDestinationCollection, facts.DestinationElementType.MakeArrayType())));
@@ -625,7 +652,7 @@ namespace ThisMember.Core
       }
       else
       {
-        
+
         if (facts.CanAssignSourceElementsToDestination && facts.SourceIsDictionaryType)
         {
           // Get the value type of the KeyValuePair
@@ -660,7 +687,7 @@ namespace ThisMember.Core
         var createNewDestinationCollectionItem = GetConstructorForType(facts.DestinationElementType, this.sourceParameter, this.destinationParameter);
         // var destinationItem = new DestinationItem();
         assignNewItemToDestinationItem = Expression.Assign(destinationCollectionItem, createNewDestinationCollectionItem);
-        
+
         // Used as a flag by the member assignments of this type mapping if we do need to care
         // about preserving existing values on the destination, which we dont if the destination is a new instance
         complexTypeMapping.NewInstanceCreated = true;
@@ -966,7 +993,7 @@ namespace ThisMember.Core
 
     private static bool TypeReceivesSpecialTreatment(Type type)
     {
-      return type == typeof(string) || type == typeof(DateTime);
+      return type == typeof(string);
     }
 
     private Expression HandleSpecialType(Type sourceType, Type destinationType, ParameterExpression complexSource)
@@ -975,35 +1002,13 @@ namespace ThisMember.Core
       {
         return HandleStringDestination(sourceType, complexSource);
       }
-      else if (destinationType == typeof(DateTime) && sourceType == typeof(string))
-      {
-        return HandleDateTimeDestination(complexSource);
-      }
 
       return null;
     }
 
-    private Expression HandleDateTimeDestination(ParameterExpression complexSource)
-    {
-      if (mapper.Options.Conventions.DateTime.ParseStringsToDateTime)
-      {
-        var culture = mapper.Options.Conventions.DateTime.ParseCulture ?? CultureInfo.CurrentCulture;
-
-        var cultureExpression = Expression.New(typeof(CultureInfo).GetConstructor(new[] { typeof(string) }), Expression.Constant(culture.Name));
-
-        var parseMethod = typeof(DateTime).GetMethod("Parse", new[] { typeof(string), typeof(IFormatProvider) });
-
-        return Expression.Call(null, parseMethod, complexSource, cultureExpression);
-      }
-      else
-      {
-        throw new CodeGenerationException("Cannot map System.String to System.DateTime");
-      }
-    }
-
     private Expression HandleStringDestination(Type sourceType, ParameterExpression complexSource)
     {
-      if (mapper.Options.Conventions.CallToStringWhenDestinationIsString)
+      if (options.Conventions.CallToStringWhenDestinationIsString)
       {
         var callToStringOnSource = Expression.Call(complexSource, typeof(object).GetMethod("ToString", Type.EmptyTypes));
 
@@ -1092,7 +1097,7 @@ namespace ThisMember.Core
       var ifNotNullBlock = new List<Expression>();
 
       ifNotNullBlock.Add(Expression.Assign(complexSource, Expression.MakeMemberAccess(source, complexTypeMapping.SourceMember)));
-      
+
       ProcessSourceTypeData(complexSource, ifNotNullBlock);
 
       var newType = complexTypeMapping.DestinationMember.PropertyOrFieldType;
@@ -1122,7 +1127,7 @@ namespace ThisMember.Core
 
         var destinationMemberCtor = GetConstructorForType(newType, this.sourceParameter, this.destinationParameter);
 
-        if (mapper.Options.Conventions.ReuseNonNullComplexMembersOnDestination)
+        if (options.Conventions.ReuseNonNullComplexMembersOnDestination)
         {
           var checkIfDestMemberIsNotNull = Expression.NotEqual(accessDestinationMember, Expression.Default(complexTypeMapping.DestinationMember.PropertyOrFieldType));
 
@@ -1149,7 +1154,7 @@ namespace ThisMember.Core
 
       // If it's a value type, then a null check is not necessary, simply make it a 
       // if(true) which will get eliminated by the JIT compiler.
-      if (!complexTypeMapping.SourceMember.PropertyOrFieldType.IsValueType || mapper.Options.Conventions.IgnoreMembersWithNullValueOnSource)
+      if (!complexTypeMapping.SourceMember.PropertyOrFieldType.IsValueType || options.Conventions.IgnoreMembersWithNullValueOnSource)
       {
         condition = Expression.NotEqual(Expression.MakeMemberAccess(source, complexTypeMapping.SourceMember), Expression.Default(complexTypeMapping.SourceMember.PropertyOrFieldType));
       }
@@ -1197,7 +1202,7 @@ namespace ThisMember.Core
     private Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
     {
 
-      if (this.mapper.Options.Debug.DebugInformationEnabled)
+      if (this.options.Debug.DebugInformationEnabled)
       {
         this.DebugInformation = new DebugInformation
         {
@@ -1205,7 +1210,7 @@ namespace ThisMember.Core
         };
       }
 
-      if (this.mapper.Options.Compilation.CompileToDynamicAssembly && !mapProcessor.NonPublicMembersAccessed)
+      if (this.options.Compilation.CompileToDynamicAssembly && !mapProcessor.NonPublicMembersAccessed)
       {
         var typeBuilder = DefineMappingType(string.Format("From_{0}_to_{1}_{2}", sourceType.Name, destinationType.Name, Guid.NewGuid().ToString("N")));
 
@@ -1325,7 +1330,7 @@ namespace ThisMember.Core
       {
         condition = Expression.NotEqual(source, Expression.Default(proposedMap.SourceType));
 
-        if (!mapper.Options.Safety.ThrowIfDestinationIsNull)
+        if (!options.Safety.ThrowIfDestinationIsNull)
         {
           condition = Expression.AndAlso(condition, Expression.NotEqual(destination, Expression.Default(proposedMap.DestinationType)));
         }
@@ -1347,11 +1352,11 @@ namespace ThisMember.Core
 
       Expression ifSourceIsNull = Expression.Default(proposedMap.DestinationType);
 
-      if (mapper.Options.Safety.IfSourceIsNull == SourceObjectNullOptions.AllowNullReferenceExceptionWhenSourceIsNull)
+      if (options.Safety.IfSourceIsNull == SourceObjectNullOptions.AllowNullReferenceExceptionWhenSourceIsNull)
       {
         condition = Expression.Constant(true);
       }
-      else if (mapper.Options.Safety.IfSourceIsNull == SourceObjectNullOptions.ReturnNullWhenSourceIsNull)
+      else if (options.Safety.IfSourceIsNull == SourceObjectNullOptions.ReturnNullWhenSourceIsNull)
       {
         ifSourceIsNull = Expression.Assign(destination, Expression.Default(proposedMap.DestinationType));
       }

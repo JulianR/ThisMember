@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ThisMember.Core;
 using System.Collections.Concurrent;
+using System.Globalization;
 
 namespace ThisMember.Test
 {
@@ -390,5 +391,60 @@ namespace ThisMember.Test
 
     }
 
+
+    public class StringSource
+    {
+      public string Date { get; set; }
+    }
+
+    public class DateTimeDestination
+    {
+      public DateTime Date { get; set; }
+    }
+
+    public class NullableDateTimeDestination
+    {
+      public DateTime? Date { get; set; }
+    }
+
+    [TestMethod]
+    public void StringIsParsedToDateTime()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.DefaultMemberOptions = (ctx, options) =>
+      {
+        if (ctx.Source.PropertyOrFieldType == typeof(string) && ctx.Destination.PropertyOrFieldType == typeof(DateTime))
+        {
+          options.Convert<string, DateTime>(s => DateTime.ParseExact(s,"MM-dd-yyyy", CultureInfo.InvariantCulture));
+        }
+      };
+
+      var result = mapper.Map<StringSource, DateTimeDestination>(new StringSource { Date = "12-31-2001" });
+
+      Assert.AreEqual(new DateTime(2001, 12, 31), result.Date);
+
+    }
+
+    [TestMethod]
+    public void StringIsParsedToNullableDateTime()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.DefaultMemberOptions = (ctx, options) =>
+      {
+        if (ctx.Source.PropertyOrFieldType == typeof(string) 
+          && (ctx.Destination.PropertyOrFieldType == typeof(DateTime)
+          || ctx.Destination.PropertyOrFieldType == typeof(DateTime?)))
+        {
+          options.Convert<string, DateTime>(s => DateTime.ParseExact(s, "MM-dd-yyyy", CultureInfo.InvariantCulture));
+        }
+      };
+
+      var result = mapper.Map<StringSource, NullableDateTimeDestination>(new StringSource { Date = "12-31-2001" });
+
+      Assert.AreEqual(new DateTime(2001, 12, 31), result.Date);
+
+    }
   }
 }

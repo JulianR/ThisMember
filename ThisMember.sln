@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThisMember.Test", "ThisMemb
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThisMember.Samples", "ThisMember.Samples\ThisMember.Samples.csproj", "{600F1097-2E74-4490-AE9D-C7D7778B96F3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThisMember.Data", "ThisMember.Data\ThisMember.Data.csproj", "{4124D886-6D6B-4318-9BA8-8385009B14AE}"
+EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = ThisMember1.vsmdi
@@ -85,6 +87,16 @@ Global
 		{600F1097-2E74-4490-AE9D-C7D7778B96F3}.Release|Mixed Platforms.Build.0 = Release|x86
 		{600F1097-2E74-4490-AE9D-C7D7778B96F3}.Release|x86.ActiveCfg = Release|x86
 		{600F1097-2E74-4490-AE9D-C7D7778B96F3}.Release|x86.Build.0 = Release|x86
+		{4124D886-6D6B-4318-9BA8-8385009B14AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4124D886-6D6B-4318-9BA8-8385009B14AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4124D886-6D6B-4318-9BA8-8385009B14AE}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{4124D886-6D6B-4318-9BA8-8385009B14AE}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{4124D886-6D6B-4318-9BA8-8385009B14AE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4124D886-6D6B-4318-9BA8-8385009B14AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4124D886-6D6B-4318-9BA8-8385009B14AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4124D886-6D6B-4318-9BA8-8385009B14AE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{4124D886-6D6B-4318-9BA8-8385009B14AE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{4124D886-6D6B-4318-9BA8-8385009B14AE}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

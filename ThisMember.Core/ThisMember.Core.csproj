@@ -62,7 +62,9 @@
     <Compile Include="Exceptions\MemberNotFoundException.cs" />
     <Compile Include="Exceptions\RecursiveRelationshipException.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
+    <Compile Include="Fluent\DestinationTypeModifier.cs" />
     <Compile Include="Fluent\SourceTypeModifier.cs" />
+    <Compile Include="Fluent\VariableDefinition.cs" />
     <Compile Include="IgnoreMemberAttribute.cs" />
     <Compile Include="Interfaces\IMemberProvider.cs" />
     <Compile Include="IndexedParameterExpression.cs" />
@@ -85,6 +87,7 @@
     <Compile Include="MapProposalProcessor.cs" />
     <Compile Include="MapRepositoryBase.cs" />
     <Compile Include="DefaultMemberMapperConfiguration.cs" />
+    <Compile Include="Options\MappingContext.cs" />
     <Compile Include="Projectables\IProjectable.cs" />
     <Compile Include="Projectables\QueryableExtensions.cs" />
     <Compile Include="Projectables\QueryableProjectable.cs" />

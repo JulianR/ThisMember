@@ -9,6 +9,7 @@ using System.Collections;
 using System.Reflection.Emit;
 using ThisMember.Core.Exceptions;
 using ThisMember.Core.Fluent;
+using ThisMember.Core.Options;
 
 namespace ThisMember.Core
 {
@@ -25,10 +26,13 @@ namespace ThisMember.Core
 
     protected readonly IMemberMapper mapper;
 
-    public ProposedMap(IMemberMapper mapper)
+    protected readonly MapperOptions options;
+
+    public ProposedMap(IMemberMapper mapper, MapperOptions options)
     {
       this.mapper = mapper;
       this.ParameterTypes = new List<Type>();
+      this.options = options;
     }
 
     protected Dictionary<Type, LambdaExpression> constructorCache = new Dictionary<Type, LambdaExpression>();
@@ -42,7 +46,7 @@ namespace ThisMember.Core
       map.SourceType = this.SourceType;
       map.DestinationType = this.DestinationType;
 
-      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this);
+      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this, this.options);
 
       map.MappingFunction = generator.GenerateMappingFunction();
       map.DebugInformation = generator.DebugInformation;
@@ -153,8 +157,8 @@ namespace ThisMember.Core
   public class ProposedMap<TSource, TDestination> : ProposedMap
   {
 
-    public ProposedMap(IMemberMapper mapper)
-      : base(mapper)
+    public ProposedMap(IMemberMapper mapper, MapperOptions options)
+      : base(mapper, options)
     {
     }
 
@@ -167,7 +171,7 @@ namespace ThisMember.Core
       map.SourceType = this.SourceType;
       map.DestinationType = this.DestinationType;
 
-      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this);
+      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this, this.options);
 
       map.MappingFunction = (Func<TSource,TDestination,TDestination>)generator.GenerateMappingFunction();
       map.DebugInformation = generator.DebugInformation;
@@ -333,8 +337,8 @@ namespace ThisMember.Core
   public class ProposedMap<TSource, TDestination, TParam> : ProposedMap<TSource, TDestination>
   {
 
-    public ProposedMap(IMemberMapper mapper)
-      : base(mapper)
+    public ProposedMap(IMemberMapper mapper, MapperOptions options)
+      : base(mapper, options)
     {
     }
 
@@ -347,7 +351,7 @@ namespace ThisMember.Core
       map.SourceType = this.SourceType;
       map.DestinationType = this.DestinationType;
 
-      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this);
+      var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this, this.options);
 
       map.MappingFunction = (Func<TSource, TDestination, TParam, TDestination>)generator.GenerateMappingFunction();
       map.DebugInformation = generator.DebugInformation;

@@ -40,7 +40,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMap<Source, Destination>(options: (src, dest, options, depth) =>
+      mapper.CreateMap<Source, Destination>(options: (ctx, options) =>
       {
         //new Expression<Func<int, int>>();
         Expression<Func<int, string>> func = s => s + "X";
@@ -55,7 +55,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMap<Source, Destination>(options: (src, dest, options, depth) =>
+      mapper.CreateMap<Source, Destination>(options: (ctx, options) =>
       {
         Expression<Func<string, int>> func = (s => s.Length);
         options.Convert(func);
@@ -69,7 +69,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMap<Source, Destination>(options: (src, dest, options, depth) =>
+      mapper.CreateMap<Source, Destination>(options: (ctx, options) =>
       {
         Expression<Func<string, string, string, int>> func = ((s, y, z) => s.Length);
         options.Convert(func);
@@ -82,7 +82,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMap<Source, Destination>(options: (src, dest, options, depth) =>
+      mapper.CreateMap<Source, Destination>(options: (ctx, options) =>
       {
         options.Convert<int, int>(s => s * 2);
       });
@@ -98,7 +98,7 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMapProposal<Source, Destination>(options: (src, dest, options, depth) =>
+      mapper.CreateMapProposal<Source, Destination>(options: (ctx, options) =>
       {
         options.Convert<int, int>(s => s * 2);
       })
@@ -126,7 +126,7 @@ namespace ThisMember.Test
       {
         Foo = src.Foo * 3
       },
-      options: (src, dest, options, depth) =>
+      options: (ctx, options) =>
       {
         options.Convert<int, int>(s => s * 2);
       })
@@ -156,7 +156,7 @@ namespace ThisMember.Test
         Foo = src.Foo * 3
       },
 
-      options: (src, dest, options, depth) =>
+      options: (ctx, options) =>
       {
         options.Convert<int, int>(s => s * 2);
       });
@@ -172,9 +172,9 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      MappingOptions func = new MappingOptions((src, dest, options, depth) =>
+      MemberOptions func = new MemberOptions((ctx, options) =>
       {
-        if (src.DeclaringType == typeof(SourceDate))
+        if (ctx.Source.DeclaringType == typeof(SourceDate))
         {
           options.Convert<DateTime, DateTime>(d => d.ToUniversalTime());
         }
@@ -202,9 +202,9 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      MappingOptions func = new MappingOptions((src, dest, options, depth) =>
+      MemberOptions func = new MemberOptions((ctx, options) =>
       {
-        if (src.DeclaringType == typeof(SourceDate))
+        if (ctx.Source.DeclaringType == typeof(SourceDate))
         {
           options.Convert<DateTime, DateTime>(d => d.ToUniversalTime());
         }
@@ -256,9 +256,9 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      MappingOptions func = new MappingOptions((src, dest, options, depth) =>
+      MemberOptions func = new MemberOptions((ctx, options) =>
       {
-        if (typeof(IDataModel).IsAssignableFrom(src.DeclaringType)  && typeof(DtoBase).IsAssignableFrom(dest.DeclaringType))
+        if (typeof(IDataModel).IsAssignableFrom(ctx.Source.DeclaringType)  && typeof(DtoBase).IsAssignableFrom(ctx.Destination.DeclaringType))
         {
           options.Convert<DateTime, DateTime>(d => d.ToUniversalTime());
         }
@@ -274,6 +274,54 @@ namespace ThisMember.Test
       Assert.AreEqual(DateTimeKind.Utc, result.CreationTime.Kind);
 
 
+    }
+
+    public class IntType
+    {
+      public int Foo { get; set; }
+    }
+
+    public class StringType
+    {
+      public string Foo { get; set; }
+    }
+
+    [TestMethod]
+    public void ConversionFunctionBetweenTypesWorks()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<IntType, StringType>(options: (ctx, options) =>
+      {
+        options.Convert<int, string>(i => i.ToString() + "test");
+      });
+
+      var result = mapper.Map<IntType, StringType>(new IntType { Foo = 10 });
+
+      Assert.AreEqual("10test", result.Foo);
+    }
+
+    public class IntTypeInherited : IntType
+    {
+    }
+
+    public class StringTypeInherited : StringType
+    {
+    }
+
+    [TestMethod]
+    public void ConversionFunctionWorksForSubtypes()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.CreateMap<IntType, StringType>(options: (ctx, options) =>
+      {
+        options.Convert<int, string>(i => i.ToString() + "test");
+      });
+
+      var result = mapper.Map<IntTypeInherited, StringTypeInherited>(new IntTypeInherited { Foo = 10 });
+
+      Assert.AreEqual("10test", result.Foo);
     }
 
   }

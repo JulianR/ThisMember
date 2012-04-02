@@ -202,9 +202,9 @@ namespace ThisMember.Test
       var mapper = new MemberMapper();
 
       var proposed = mapper.CreateMapProposal(typeof(ComplexSourceType), typeof(ComplexDestinationType),
-      options: (s, p, option, depth) =>
+      options: (ctx, option) =>
       {
-        if (s.Name == "Name")
+        if (ctx.Source.Name == "Name")
         {
           option.IgnoreMember();
         }
@@ -236,9 +236,9 @@ namespace ThisMember.Test
       var mapper = new MemberMapper();
 
       var proposed = mapper.CreateMapProposal(typeof(NestedSourceType), typeof(NestedDestinationType),
-      options: (s, p, option, depth) =>
+      options: (ctx, option) =>
       {
-        if (s.Name == "Name")
+        if (ctx.Source.Name == "Name")
         {
           option.IgnoreMember();
         }
@@ -337,12 +337,12 @@ namespace ThisMember.Test
       var mapper = new MemberMapper();
 
       mapper.CreateMap<CustomConventionSource, CustomConventionDestination>(
-        options: (source, dest, options, depth) =>
+        options: (ctx, options) =>
         {
-          if (source != null && source.Name.EndsWith("ID"))
+          if (ctx.Source != null && ctx.Source.Name.EndsWith("ID"))
           {
-            var sourceType = source.DeclaringType;
-            var destType = dest.DeclaringType;
+            var sourceType = ctx.Source.DeclaringType;
+            var destType = ctx.Destination.DeclaringType;
 
             options.MapProperty(sourceType.GetProperty("Type"), destType.GetProperty("Foo"));
           }
@@ -360,14 +360,39 @@ namespace ThisMember.Test
     {
       var mapper = new MemberMapper();
 
-      mapper.CreateMap<CustomConventionSource, CustomConventionDestination>(
-        options: (source, dest, options, depth) =>
+      mapper.CreateMap<CustomConventionSource, CustomConventionDestination>(options: (ctx, option) =>
+      {
+        if (ctx.Source != null)
         {
-          if (source != null)
-          {
-            options.MapProperty(typeof(string).GetProperties().First(), dest);
-          }
-        });
+          option.MapProperty(typeof(string).GetProperties().First(), ctx.Destination);
+        }
+      });
+    }
+
+    public class DefaultMappingOptionsSource
+    {
+      public int Foo { get; set; }
+    }
+
+    public class DefaultMappingOptionsDestination
+    {
+      public string Foo { get; set; }
+    }
+
+    [TestMethod]
+    public void DefaultMappingOptionIsRespected()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.DefaultMemberOptions = (ctx, options) =>
+      {
+        options.Convert<int, string>(i => i.ToString() + "test");
+      };
+
+      var result = mapper.Map(new DefaultMappingOptionsSource { Foo = 10 }, new DefaultMappingOptionsDestination());
+
+      Assert.AreEqual("10test", result.Foo);
+
     }
   }
 }

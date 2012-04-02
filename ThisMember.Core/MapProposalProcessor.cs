@@ -227,6 +227,11 @@ namespace ThisMember.Core
         return ConvertToConditionals(node.Type, node, null);
 
       }
+
+      protected override Expression VisitMethodCall(MethodCallExpression node)
+      {
+        return base.VisitMethodCall(node);
+      }
     }
 
     private class VisibilityVisitor : ExpressionVisitor
