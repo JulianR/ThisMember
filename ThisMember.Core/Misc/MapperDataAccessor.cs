@@ -13,11 +13,159 @@ namespace ThisMember.Core.Misc
     private MemberMapper memberMapper;
 
     private Dictionary<Type, LambdaExpression> constructorCache;
-    private Dictionary<Type, SourceTypeData> sourceTypeCache;
+    private Dictionary<TypeDataCacheKey, TypeModifierData> typeModifierCache;
     private Dictionary<VariableCacheKey, VariableDefinition> variableCache;
     private Dictionary<OptionsCacheKey, MapperOptions> mapperOptionsCache;
 
     private byte[] lockObj = new byte[0];
+
+    public MapperDataAccessor(MemberMapper memberMapper)
+    {
+      this.memberMapper = memberMapper;
+    }
+
+    internal LambdaExpression GetConstructor(Type t)
+    {
+      LambdaExpression e;
+      ConstructorCache.TryGetValue(t, out e);
+      return e;
+    }
+
+    internal void AddMapperOptions(Type t, MapperOptions options, MappingSides side)
+    {
+      var key = new OptionsCacheKey
+      {
+        Type = t,
+        Side = side
+      };
+
+      lock (MapperOptionsCache)
+      {
+        MapperOptionsCache[key] = options;
+      }
+    }
+
+    internal MapperOptions TryGetMapperOptions(Type t, MappingSides side)
+    {
+      if (mapperOptionsCache == null)
+      {
+        return null;
+      }
+
+      var key = new OptionsCacheKey
+      {
+        Type = t,
+        Side = side
+      };
+
+      MapperOptions options;
+
+      MapperOptionsCache.TryGetValue(key, out options);
+
+      return options;
+    }
+
+    internal void AddTypeModifierData(TypeModifierData data, MappingSides side)
+    {
+      lock (TypeModifierCache)
+      {
+        TypeModifierData current;
+
+        var key = new TypeDataCacheKey
+        {
+          Type = data.Type,
+          Side = side
+        };
+
+        if (TypeModifierCache.TryGetValue(key, out current))
+        {
+          current.Message = data.Message ?? current.Message;
+          current.ThrowIfCondition = data.ThrowIfCondition ?? current.ThrowIfCondition;
+        }
+        else
+        {
+          TypeModifierCache[key] = data;
+        }
+      }
+    }
+
+    internal TypeModifierData TryGetTypeModifierData(Type t, MappingSides side)
+    {
+      TypeModifierData data;
+
+      var key = new TypeDataCacheKey
+      {
+        Type = t,
+        Side = side
+      };
+
+      if (!TypeModifierCache.TryGetValue(key, out data))
+      {
+        var item = TypeModifierCache.FirstOrDefault(s => s.Key.Type.IsAssignableFrom(t));
+
+        data = item.Value;
+      }
+
+      return data;
+    }
+
+    internal void AddCustomConstructor(Type type, LambdaExpression ctor)
+    {
+      lock (ConstructorCache)
+      {
+        ConstructorCache[type] = ctor;
+      }
+    }
+
+    internal void AddVariableDefinition<T>(Type type, string name, Fluent.VariableDefinition<T> variable, MappingSides side)
+    {
+      var key = new VariableCacheKey
+      {
+        Name = name,
+        Type = type,
+        Side = side
+      };
+
+      lock (VariableCache)
+      {
+        var existing = VariableCache.Keys.FirstOrDefault(k => k.Name == name);
+
+        if (existing != null)
+        {
+          throw new InvalidOperationException(string.Format("Variable {0} already defined on type {1}", name, existing.Type));
+        }
+
+        VariableCache[key] = variable;
+      }
+    }
+
+    internal IEnumerable<VariableDefinition> GetAllVariablesForType(Type t, MappingSides side)
+    {
+      if (variableCache == null)
+      {
+        return Enumerable.Empty<VariableDefinition>();
+      }
+
+      return VariableCache.Where(v => v.Key.Type == t && v.Key.Side == side).Select(v => v.Value);
+    }
+
+    internal VariableDefinition TryGetVariableDefinition(Type type, string name, MappingSides side)
+    {
+      var key = new VariableCacheKey
+      {
+        Name = name,
+        Type = type,
+        Side = side
+      };
+
+      VariableDefinition variable;
+
+      VariableCache.TryGetValue(key, out variable);
+
+      return variable;
+    }
+
+    #region Caches
 
     private Dictionary<Type, LambdaExpression> ConstructorCache
     {
@@ -37,21 +185,21 @@ namespace ThisMember.Core.Misc
       }
     }
 
-    private Dictionary<Type, SourceTypeData> SourceTypeCache
+    private Dictionary<TypeDataCacheKey, TypeModifierData> TypeModifierCache
     {
       get
       {
-        if (sourceTypeCache == null)
+        if (typeModifierCache == null)
         {
           lock (lockObj)
           {
-            if (sourceTypeCache == null)
+            if (typeModifierCache == null)
             {
-              sourceTypeCache = new Dictionary<Type, SourceTypeData>();
+              typeModifierCache = new Dictionary<TypeDataCacheKey, TypeModifierData>();
             }
           }
         }
-        return sourceTypeCache;
+        return typeModifierCache;
       }
     }
 
@@ -90,33 +238,23 @@ namespace ThisMember.Core.Misc
         return mapperOptionsCache;
       }
     }
+    #endregion Caches
 
-    public MapperDataAccessor(MemberMapper memberMapper)
-    {
-      this.memberMapper = memberMapper;
-    }
-
-    internal LambdaExpression GetConstructor(Type t)
-    {
-      LambdaExpression e;
-      ConstructorCache.TryGetValue(t, out e);
-      return e;
-    }
-
+    #region Keys
     private class OptionsCacheKey
     {
       public Type Type;
-      public bool IsSource;
+      public MappingSides Side;
 
       public override bool Equals(object obj)
       {
         var other = obj as OptionsCacheKey;
-        return other != null && this.Type.IsAssignableFrom(other.Type) && other.IsSource == this.IsSource;
+        return other != null && this.Type.IsAssignableFrom(other.Type) && other.Side == this.Side;
       }
 
       public override int GetHashCode()
       {
-        return (Type.GetHashCode() << 5) ^ IsSource.GetHashCode();
+        return (Type.GetHashCode() << 5) ^ Side.GetHashCode();
       }
     }
 
@@ -124,136 +262,50 @@ namespace ThisMember.Core.Misc
     {
       public Type Type;
       public string Name;
+      public MappingSides Side;
 
       public override bool Equals(object obj)
       {
         var other = obj as VariableCacheKey;
-        return other != null && other.Type == this.Type && other.Name == this.Name;
+        return other != null && other.Type == this.Type && other.Name == this.Name
+          && other.Side == this.Side;
       }
 
       public override int GetHashCode()
       {
-        return (Type.GetHashCode() << 5) ^ Name.GetHashCode();
+        return (Type.GetHashCode() << 5) ^ Name.GetHashCode() ^ Side.GetHashCode();
       }
     }
 
-    internal void AddMapperOptions(Type t, MapperOptions options, bool isSource)
+    private class TypeDataCacheKey
     {
-      var key = new OptionsCacheKey
-      {
-        Type = t,
-        IsSource = isSource
-      };
+      public Type Type;
+      public MappingSides Side;
 
-      lock (MapperOptionsCache)
+      public override bool Equals(object obj)
       {
-        MapperOptionsCache[key] = options;
+        var other = obj as TypeDataCacheKey;
+        return other != null && this.Type.IsAssignableFrom(other.Type) && other.Side == this.Side;
+      }
+
+      public override int GetHashCode()
+      {
+        return (Type.GetHashCode() << 5) ^ Side.GetHashCode();
       }
     }
 
-    internal MapperOptions TryGetMapperOptions(Type t, bool isSource)
-    {
-      if (mapperOptionsCache == null)
-      {
-        return null;
-      }
-
-      var key = new OptionsCacheKey
-      {
-        Type = t,
-        IsSource = isSource
-      };
-
-      MapperOptions options;
-
-      MapperOptionsCache.TryGetValue(key, out options);
-
-      return options;
-    }
-
-    internal void AddSourceTypeData(SourceTypeData data)
-    {
-      lock (SourceTypeCache)
-      {
-        SourceTypeData current;
-        if (SourceTypeCache.TryGetValue(data.Type, out current))
-        {
-          current.Message = data.Message ?? current.Message;
-          current.ThrowIfCondition = data.ThrowIfCondition ?? current.ThrowIfCondition;
-        }
-        else
-        {
-          SourceTypeCache[data.Type] = data;
-        }
-      }
-    }
-
-    internal SourceTypeData TryGetSourceTypeData(Type t)
-    {
-      SourceTypeData data;
-
-      if (!SourceTypeCache.TryGetValue(t, out data))
-      {
-        var item = SourceTypeCache.FirstOrDefault(s => s.Key.IsAssignableFrom(t));
-
-        data = item.Value;
-      }
-
-      return data;
-    }
-
-    internal void AddCustomConstructor(Type type, LambdaExpression ctor)
-    {
-      lock (ConstructorCache)
-      {
-        ConstructorCache[type] = ctor;
-      }
-    }
-
-    internal void AddVariableDefinition<T>(Type type, string name, Fluent.VariableDefinition<T> variable)
-    {
-      var key = new VariableCacheKey
-      {
-        Name = name,
-        Type = type
-      };
-
-      lock (VariableCache)
-      {
-        VariableCache[key] = variable;
-      }
-    }
-
-    internal IEnumerable<VariableDefinition> GetAllVariablesForType(Type t)
-    {
-      if (variableCache == null)
-      {
-        return Enumerable.Empty<VariableDefinition>();
-      }
-      return null;
-
-      //return (from v in variableCache
-      //        where v.Key.Type
-    }
-
-    internal VariableDefinition TryGetVariableDefinition(Type type, string name)
-    {
-      var key = new VariableCacheKey
-      {
-        Name = name,
-        Type = type
-      };
-
-      VariableDefinition variable;
-
-      VariableCache.TryGetValue(key, out variable);
-
-      return variable;
-    }
+    #endregion Keys
   }
 
-  internal class SourceTypeData
+  internal enum MappingSides
   {
+    Source,
+    Destination
+  }
+
+  internal class TypeModifierData
+  {
+    public MappingSides Side { get; set; }
     public Type Type { get; set; }
     public string Message { get; set; }
     public LambdaExpression ThrowIfCondition { get; set; }

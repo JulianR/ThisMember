@@ -34,7 +34,7 @@ namespace ThisMember.Core
 
     public IList<ProposedMemberMapping> ProposedMappings { get; set; }
 
-    public IList<PropertyOrFieldInfo> IncompatibleMappings { get; set; }
+    internal IList<PropertyOrFieldInfo> IncompatibleMappings { get; set; }
 
     public ProposedTypeMapping Clone()
     {

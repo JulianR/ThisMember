@@ -7,6 +7,7 @@ using ThisMember.Core.Interfaces;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Reflection;
+using ThisMember.Core.Fluent;
 
 namespace ThisMember.Core
 {
@@ -23,15 +24,17 @@ namespace ThisMember.Core
   }
 
 
-  internal class MapExpressionProcessor
+  internal class MapProposalProcessor
   {
     public ICollection<ExpressionTuple> ParametersToReplace { get; private set; }
+    public IDictionary<string, ParameterExpression> Variables { get; private set; }
 
     public bool NonPublicMembersAccessed { get; private set; }
 
-    public MapExpressionProcessor(IMemberMapper mapper)
+    public MapProposalProcessor(IMemberMapper mapper)
     {
       ParametersToReplace = new HashSet<ExpressionTuple>();
+      Variables = new Dictionary<string, ParameterExpression>();
       this.MemberMapper = mapper;
     }
 
@@ -43,14 +46,12 @@ namespace ThisMember.Core
     {
       RootExpression = expression;
 
-      if (MemberMapper.Options.Safety.PerformNullChecksOnCustomMappings)
-      {
-        var memberVisitor = new MemberVisitor(MemberMapper);
 
-        // Pass 1: Transform member access so they do null-checks first, if needed
-        expression = memberVisitor.Visit(expression);
-        RootExpression = expression;
-      }
+      var memberVisitor = new MemberVisitor(MemberMapper, MemberMapper.Options.Safety.PerformNullChecksOnCustomMappings, Variables);
+
+      // Pass 1: Transform member access so they do null-checks first, if needed
+      expression = memberVisitor.Visit(expression);
+      RootExpression = expression;
 
       var paramVisitor = new ParameterVisitor(this.ParametersToReplace);
 
@@ -111,11 +112,15 @@ namespace ThisMember.Core
 
     private class MemberVisitor : ExpressionVisitor
     {
-      private IMemberMapper mapper;
+      private readonly IMemberMapper mapper;
+      private readonly IDictionary<string, ParameterExpression> variables;
+      private readonly bool insertNullChecks;
 
-      public MemberVisitor(IMemberMapper mapper)
+      public MemberVisitor(IMemberMapper mapper, bool insertNullChecks, IDictionary<string, ParameterExpression> variables)
       {
         this.mapper = mapper;
+        this.insertNullChecks = insertNullChecks;
+        this.variables = variables;
       }
 
       private bool IsExceptionToNullCheck(MemberExpression memberNode)
@@ -149,7 +154,6 @@ namespace ThisMember.Core
 
       private Expression ConvertToConditionals(Type conditionalReturnType, Expression expression, Expression newExpression)
       {
-
         var memberNode = expression as MemberExpression;
 
         if (memberNode == null)
@@ -190,55 +194,91 @@ namespace ThisMember.Core
 
       private Stack<MemberInfo> membersExemptFromNullCheck = new Stack<MemberInfo>();
 
+
       protected override Expression VisitConditional(ConditionalExpression node)
       {
-        MemberInfo member = null;
-
-        var test = node.Test as BinaryExpression;
-
-        if (test != null && test.NodeType == ExpressionType.NotEqual)
+        if (insertNullChecks)
         {
-          var left = test.Left as MemberExpression;
-          var right = test.Right as ConstantExpression;
+          MemberInfo member = null;
 
-          if (left != null && right != null)
+          var test = node.Test as BinaryExpression;
+
+          if (test != null && test.NodeType == ExpressionType.NotEqual)
           {
-            member = left.Member;
-            membersExemptFromNullCheck.Push(member);
+            var left = test.Left as MemberExpression;
+            var right = test.Right as ConstantExpression;
+
+            if (left != null && right != null)
+            {
+              member = left.Member;
+              membersExemptFromNullCheck.Push(member);
+            }
+
           }
 
+          var result = base.VisitConditional(node);
+
+          if (member != null)
+          {
+            membersExemptFromNullCheck.Pop();
+          }
+
+          return result;
         }
-
-        //if(node.Test)
-
-        var result = base.VisitConditional(node);
-
-        if (member != null)
+        else
         {
-          membersExemptFromNullCheck.Pop();
+          return base.VisitConditional(node);
         }
-
-        return result;
       }
 
       protected override Expression VisitMember(MemberExpression node)
       {
-
-        return ConvertToConditionals(node.Type, node, null);
-
+        if (insertNullChecks)
+        {
+          return ConvertToConditionals(node.Type, node, null);
+        }
+        return base.VisitMember(node);
       }
 
       protected override Expression VisitMethodCall(MethodCallExpression node)
       {
-        return base.VisitMethodCall(node);
+        if (node.Method.Name == "Use" && node.Method.DeclaringType == typeof(Variable))
+        {
+          var arg = (ConstantExpression)node.Arguments.Single();
+
+          var varName = (string)arg.Value;
+
+          ParameterExpression var;
+
+          if (!variables.TryGetValue(varName, out var))
+          {
+            if (!mapper.Options.Safety.UseDefaultValueForMissingVariable)
+            {
+              throw new InvalidOperationException(string.Format("Variable {0} is not defined", varName));
+            }
+          }
+
+          if (var != null)
+          {
+            return var;
+          }
+          else
+          {
+            return Expression.Default(node.Method.GetGenericArguments().Single());
+          }
+        }
+        else
+        {
+          return base.VisitMethodCall(node);
+        }
       }
     }
 
     private class VisibilityVisitor : ExpressionVisitor
     {
-      private MapExpressionProcessor processor;
+      private MapProposalProcessor processor;
 
-      public VisibilityVisitor(MapExpressionProcessor processor)
+      public VisibilityVisitor(MapProposalProcessor processor)
       {
         this.processor = processor;
       }
@@ -341,9 +381,9 @@ namespace ThisMember.Core
 
     private class LambdaVisitor : ExpressionVisitor
     {
-      private MapExpressionProcessor processor;
+      private MapProposalProcessor processor;
 
-      public LambdaVisitor(MapExpressionProcessor processor)
+      public LambdaVisitor(MapProposalProcessor processor)
       {
         this.processor = processor;
       }

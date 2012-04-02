@@ -15,19 +15,87 @@ namespace ThisMember.Test
     public class Destination { public int Foo { get; set; } }
 
     [TestMethod]
-    public void TestMethod1()
+    public void CanDefineAndUseVariable()
     {
       var mapper = new MemberMapper();
       mapper.ForSourceType<Source>().DefineVariable<int>("i").InitializedAs(() => 10);
 
       mapper.DefaultMemberOptions = (ctx, options) =>
       {
-        options.Convert<int, int>(i => Variable.Use<int>("i"));
+        options.Convert<int>(i => Variable.Use<int>("i") * 10);
       };
 
       var result = mapper.Map(new Source { Foo = 1 }, new Destination());
 
-      Assert.AreEqual(10, result.Foo);
+      Assert.AreEqual(100, result.Foo);
+    }
+
+    public class Bar
+    {
+      public static int Foo = 10;
+    }
+
+    [TestMethod]
+    public void VariableCanBeInitializedAsComplexExpression()
+    {
+      var mapper = new MemberMapper();
+      mapper.ForSourceType<Source>().DefineVariable<int>("i").InitializedAs(() => Bar.Foo);
+
+      mapper.DefaultMemberOptions = (ctx, options) =>
+      {
+        options.Convert<int>(i => Variable.Use<int>("i") * 10);
+      };
+
+      var result = mapper.Map(new Source { Foo = 1 }, new Destination());
+
+      Assert.AreEqual(100, result.Foo);
+
+      Bar.Foo = 18;
+
+      result = mapper.Map(new Source { Foo = 1 }, new Destination());
+
+      Assert.AreEqual(180, result.Foo);
+    }
+
+    [TestMethod]
+    public void MissingVariableIsInitializedAsDefaultValue()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.DefaultMemberOptions = (ctx, options) =>
+      {
+        options.Convert<int>(i => Variable.Use<int>("i") * 10);
+      };
+
+      var result = mapper.Map(new Source { Foo = 1 }, new Destination());
+
+      Assert.AreEqual(0, result.Foo);
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(InvalidOperationException))]
+    public void MissingVariableThrowsExceptionWithOptionTurnedOn()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Safety.UseDefaultValueForMissingVariable = false;
+
+      mapper.DefaultMemberOptions = (ctx, options) =>
+      {
+        options.Convert<int>(i => Variable.Use<int>("i") * 10);
+      };
+
+      var result = mapper.Map(new Source { Foo = 1 }, new Destination());
+    }
+
+
+    [TestMethod]
+    [ExpectedException(typeof(InvalidOperationException))]
+    public void CantDefineVariableTwice()
+    {
+      var mapper = new MemberMapper();
+      mapper.ForSourceType<Source>().DefineVariable<int>("i").InitializedAs(() => 10);
+      mapper.ForSourceType<Destination>().DefineVariable<int>("i");
     }
   }
 }

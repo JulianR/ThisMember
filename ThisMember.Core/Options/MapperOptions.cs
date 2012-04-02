@@ -50,7 +50,8 @@ namespace ThisMember.Core.Options
         IfSourceIsNull = SourceObjectNullOptions.ReturnNullWhenSourceIsNull,
         IfRecursiveRelationshipIsDetected = RecursivePropertyOptions.IgnoreRecursiveProperties,
         ThrowIfDestinationIsNull = true,
-        EnsureCollectionIsNotArrayType = true
+        EnsureCollectionIsNotArrayType = true,
+        UseDefaultValueForMissingVariable = true
       };
 
       Compilation = new CompilationOptions
@@ -250,6 +251,14 @@ namespace ThisMember.Core.Options
     /// Defaults to true.
     /// </summary>
     public bool EnsureCollectionIsNotArrayType { get; set; }
+
+    /// <summary>
+    /// Uses the default value of a type when a variable is not defined for the mapping. 
+    /// So Variable.Use("i") becomes 0 if "i" was an int. Otherwise, an InvalidOperationException is thrown.
+    /// Defaults to true.
+    /// </summary>
+    public bool UseDefaultValueForMissingVariable { get; set; }
+
   }
 
   public class ProjectionOptions

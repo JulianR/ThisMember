@@ -8,6 +8,7 @@ using System.Collections;
 using System.Linq.Expressions;
 using ThisMember.Core.Exceptions;
 using ThisMember.Core.Options;
+using ThisMember.Core.Misc;
 
 namespace ThisMember.Core
 {
@@ -58,14 +59,14 @@ namespace ThisMember.Core
 
     private MapperOptions GetMapperOptions(IMemberMapper mapper, Type sourceType, Type destinationType)
     {
-      var destOptions = mapper.Data.TryGetMapperOptions(destinationType, false);
+      var destOptions = mapper.Data.TryGetMapperOptions(destinationType, MappingSides.Destination);
 
       if (destOptions != null)
       {
         return destOptions;
       }
 
-      var sourceOptions = mapper.Data.TryGetMapperOptions(sourceType, true);
+      var sourceOptions = mapper.Data.TryGetMapperOptions(sourceType, MappingSides.Source);
 
       return sourceOptions ?? mapper.Options;
     }

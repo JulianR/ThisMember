@@ -28,7 +28,7 @@ namespace ThisMember.Core
     private readonly IMemberMapper mapper;
     private ParameterExpression sourceParameter;
     private ParameterExpression destinationParameter;
-    private readonly MapExpressionProcessor mapProcessor;
+    private readonly MapProposalProcessor mapProcessor;
     private IList<ParameterExpression> newParameters;
     private readonly ProposedMap proposedMap;
     private readonly MapperOptions options;
@@ -40,7 +40,7 @@ namespace ThisMember.Core
     {
       this.mapper = mapper;
       this.proposedMap = map;
-      this.mapProcessor = new MapExpressionProcessor(mapper);
+      this.mapProcessor = new MapProposalProcessor(mapper);
       this.newParameters = new List<ParameterExpression>();
       this.options = options;
     }
@@ -806,7 +806,7 @@ namespace ThisMember.Core
         expressionsInsideLoop.Add(assignCurrent);
         expressionsInsideLoop.Add(assignNewItemToDestinationItem);
 
-        ProcessSourceTypeData(sourceCollectionItem, expressionsInsideLoop);
+        ProcessTypeModifierData(sourceCollectionItem, expressionsInsideLoop, MappingSides.Source);
 
         BuildTypeMappingExpressions(sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, complexTypeMapping.CustomMapping);
 
@@ -887,18 +887,39 @@ namespace ThisMember.Core
       ReleaseParameter(destinationCollectionItem);
     }
 
-    private void ProcessSourceTypeData(ParameterExpression sourceCollectionItem, List<Expression> expressionsInsideLoop)
+    private void ProcessTypeModifierData(ParameterExpression param, List<Expression> expressions, MappingSides side)
     {
-      var sourceTypeData = GetSourceTypeData(sourceCollectionItem.Type);
+      var typeData = mapper.Data.TryGetTypeModifierData(param.Type, side);
 
-      if (sourceTypeData != null)
+      if (typeData != null)
       {
-        var sourceTypeExpr = ProcessSourceTypeData(sourceTypeData, sourceCollectionItem);
+        var typeExpr = ProcessTypeModifierData(typeData, param);
 
-        if (sourceTypeExpr != null)
+        if (typeExpr != null)
         {
-          expressionsInsideLoop.Add(sourceTypeExpr);
+          expressions.Add(typeExpr);
         }
+      }
+
+      var vars = mapper.Data.GetAllVariablesForType(param.Type, side);
+
+      foreach (var variable in vars)
+      {
+        var varExpr = Expression.Variable(variable.Type, "_" + variable.Name);
+        newParameters.Add(varExpr);
+        this.mapProcessor.Variables.Add(variable.Name, varExpr);
+        Expression initVar;
+
+        if (variable.Initialization != null)
+        {
+          initVar = Expression.Assign(varExpr, variable.Initialization.Body);
+        }
+        else
+        {
+          initVar = Expression.Assign(varExpr, Expression.Default(variable.Type));
+        }
+
+        expressions.Add(initVar);
       }
     }
 
@@ -1098,7 +1119,7 @@ namespace ThisMember.Core
 
       ifNotNullBlock.Add(Expression.Assign(complexSource, Expression.MakeMemberAccess(source, complexTypeMapping.SourceMember)));
 
-      ProcessSourceTypeData(complexSource, ifNotNullBlock);
+      ProcessTypeModifierData(complexSource, ifNotNullBlock, MappingSides.Source);
 
       var newType = complexTypeMapping.DestinationMember.PropertyOrFieldType;
 
@@ -1249,14 +1270,7 @@ namespace ThisMember.Core
       }
     }
 
-    private SourceTypeData GetSourceTypeData(Type t)
-    {
-      var data = mapper.Data.TryGetSourceTypeData(t);
-
-      return data;
-    }
-
-    private Expression ProcessSourceTypeData(SourceTypeData data, Expression typeParam)
+    private Expression ProcessTypeModifierData(TypeModifierData data, Expression typeParam)
     {
       if (data.ThrowIfCondition != null)
       {
@@ -1339,7 +1353,8 @@ namespace ThisMember.Core
 
       var assignments = new List<Expression>();
 
-      ProcessSourceTypeData(sourceParameter, assignments);
+      ProcessTypeModifierData(sourceParameter, assignments, MappingSides.Source);
+      ProcessTypeModifierData(sourceParameter, assignments, MappingSides.Destination);
 
       BuildTypeMappingExpressions(source, destination, proposedMap.ProposedTypeMapping, assignments, proposedMap.ProposedTypeMapping.CustomMapping);
 

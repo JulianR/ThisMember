@@ -38,6 +38,11 @@ namespace ThisMember.Core
       this.Destination = destination;
     }
 
+    public void Convert<TSource>(Expression<Func<TSource, TSource>> conversion)
+    {
+      Convert(((LambdaExpression)conversion));
+    }
+
     public void Convert<TSource, TDestination>(Expression<Func<TSource, TDestination>> conversion)
     {
       Convert(((LambdaExpression)conversion));

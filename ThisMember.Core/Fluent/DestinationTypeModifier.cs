@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using ThisMember.Core.Options;
 using ThisMember.Core.Interfaces;
+using ThisMember.Core.Misc;
 
 namespace ThisMember.Core.Fluent
 {
@@ -18,7 +19,7 @@ namespace ThisMember.Core.Fluent
 
     public void UseMapperOptions(MapperOptions options)
     {
-      mapper.Data.AddMapperOptions(typeof(TDestination), options, false);
+      mapper.Data.AddMapperOptions(typeof(TDestination), options, MappingSides.Destination);
     }
   }
 }

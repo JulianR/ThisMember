@@ -9,34 +9,27 @@ using ThisMember.Core.Options;
 
 namespace ThisMember.Core.Fluent
 {
-  public class SourceTypeModifier<TSource>
+  public class SourceTypeModifier
   {
-    private IMemberMapper mapper;
+    protected IMemberMapper mapper;
+    protected Type type;
 
-    public SourceTypeModifier(IMemberMapper mapper)
+    public SourceTypeModifier(Type t, IMemberMapper mapper)
     {
+      this.type = t;
       this.mapper = mapper;
-    }
-
-    public VariableDefinition<T> DefineVariable<T>(string name)
-    {
-      var variable = new VariableDefinition<T>(name);
-
-      mapper.Data.AddVariableDefinition(typeof(TSource), name, variable);
-
-      return variable;
     }
 
     public void UseMapperOptions(MapperOptions options)
     {
-      mapper.Data.AddMapperOptions(typeof(TSource), options, true);
+      mapper.Data.AddMapperOptions(type, options, MappingSides.Source);
     }
 
     public void ThrowIf(LambdaExpression condition, string message)
     {
       if (condition == null) throw new ArgumentNullException("condition");
 
-      if (condition.Parameters.Count != 1 || condition.Parameters.Single().Type != typeof(TSource))
+      if (condition.Parameters.Count != 1 || condition.Parameters.Single().Type != type)
       {
         throw new InvalidOperationException("Invalid expression parameters");
       }
@@ -46,14 +39,32 @@ namespace ThisMember.Core.Fluent
         throw new InvalidOperationException("Invalid return type, must be bool");
       }
 
-      var data = new SourceTypeData
+      var data = new TypeModifierData
       {
-        Type = typeof(TSource),
+        Type = type,
         Message = message,
         ThrowIfCondition = condition
       };
 
-      mapper.Data.AddSourceTypeData(data);
+      mapper.Data.AddTypeModifierData(data, MappingSides.Source);
+    }
+  }
+
+  public class SourceTypeModifier<TSource> : SourceTypeModifier
+  {
+
+    public SourceTypeModifier(IMemberMapper mapper)
+      : base(typeof(TSource), mapper)
+    {
+    }
+
+    public VariableDefinition<T> DefineVariable<T>(string name)
+    {
+      var variable = new VariableDefinition<T>(name);
+
+      mapper.Data.AddVariableDefinition(typeof(TSource), name, variable, MappingSides.Source);
+
+      return variable;
     }
 
     public void ThrowIf(Expression<Func<TSource, bool>> condition, string message)
