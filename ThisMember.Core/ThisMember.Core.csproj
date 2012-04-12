@@ -61,6 +61,7 @@
     <Compile Include="Exceptions\MappingTerminatedException.cs" />
     <Compile Include="Exceptions\MemberNotFoundException.cs" />
     <Compile Include="Exceptions\RecursiveRelationshipException.cs" />
+    <Compile Include="Extensions\DictionaryExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="Fluent\DestinationTypeModifier.cs" />
     <Compile Include="Fluent\SourceTypeModifier.cs" />
