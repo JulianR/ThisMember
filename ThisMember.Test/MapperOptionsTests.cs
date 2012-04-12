@@ -80,5 +80,57 @@ namespace ThisMember.Test
 
       Assert.IsNotNull(map.DebugInformation.MappingExpression);
     }
+
+    public class SourceInherited: Source { }
+    public class DestinationInherited : Destination { }
+
+
+    [TestMethod]
+    public void SourceMapperOptionsInContextAreRespected_WithInheritence()
+    {
+      var mapper = new MemberMapper();
+
+      var options = new MapperOptions();
+      options.Debug.DebugInformationEnabled = true;
+
+      mapper.ForSourceType<Source>().UseMapperOptions(options);
+
+      var map = mapper.CreateMap<SourceInherited, DestinationInherited>();
+
+      Assert.IsNotNull(map.DebugInformation.MappingExpression);
+
+      mapper.ClearMapCache();
+
+      options.Debug.DebugInformationEnabled = false;
+
+      map = mapper.CreateMap<SourceInherited, DestinationInherited>();
+
+      Assert.IsNull(map.DebugInformation);
+    }
+
+    [TestMethod]
+    public void DestinationMapperOptionsInContextAreRespected_WithInheritence()
+    {
+      var mapper = new MemberMapper();
+
+      var options = new MapperOptions();
+      options.Debug.DebugInformationEnabled = true;
+
+      mapper.ForDestinationType<Destination>().UseMapperOptions(options);
+
+      var map = mapper.CreateMap<SourceInherited, DestinationInherited>();
+
+      Assert.IsNotNull(map.DebugInformation.MappingExpression);
+
+      mapper.ClearMapCache();
+
+      options.Debug.DebugInformationEnabled = false;
+
+      map = mapper.CreateMap<SourceInherited, DestinationInherited>();
+
+      Assert.IsNull(map.DebugInformation);
+    }
+
+
   }
 }
