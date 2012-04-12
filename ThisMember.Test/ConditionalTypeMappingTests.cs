@@ -189,6 +189,22 @@ namespace ThisMember.Test
     }
 
     [TestMethod]
+    [ExpectedException(typeof(MappingTerminatedException))]
+    public void MappingThrowsWhenConditionIsNotMetForCollectionOfArrayType()
+    {
+      IMemberMapper mapper = new MemberMapper();
+
+      mapper.ForSourceType<Source>().ThrowIf(src => !src.Valid, "Source not valid!");
+
+      var source = new Source
+      {
+        Foo = "test"
+      };
+
+      mapper.Map<Source[], List<Destination>>(new[] { source });
+    }
+
+    [TestMethod]
     public void MappingDoesNotThrowWhenConditionIsMetForCollectionOfType()
     {
       IMemberMapper mapper = new MemberMapper();
