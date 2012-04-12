@@ -14,6 +14,7 @@ using System.Security.Permissions;
 using System.Security.Policy;
 using ThisMember.Core.Options;
 using ThisMember.Core.Misc;
+using ThisMember.Extensions;
 
 namespace ThisMember.Core
 {
@@ -671,7 +672,6 @@ namespace ThisMember.Core
         else
         {
           destinationCollectionItem = ObtainParameter(facts.DestinationElementType, "item");
-
         }
       }
 
@@ -761,6 +761,8 @@ namespace ThisMember.Core
         expressionsInsideLoop.Add(assignCurrent);
 
         expressionsInsideLoop.Add(assignNewItemToDestinationItem);
+
+        ProcessTypeModifierData(sourceCollectionItem, expressionsInsideLoop, MappingSides.Source);
 
         BuildTypeMappingExpressions(sourceCollectionItem, destinationCollectionItem, complexTypeMapping, expressionsInsideLoop, complexTypeMapping.CustomMapping);
 
