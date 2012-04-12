@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using ThisMember.Core.Interfaces;
 using ThisMember.Core.Options;
+using System.Threading;
 
 namespace ThisMember.Core
 {
@@ -18,6 +19,8 @@ namespace ThisMember.Core
     public IMapRepository MapRepository { get; set; }
 
     public MapperOptions Options { get; set; }
+
+    private byte[] lockObj = new byte[0];
 
     public MapCollection()
     {
@@ -43,22 +46,39 @@ namespace ThisMember.Core
 
           mapper.Options = this.Options;
 
-          mappers.Add(profile, mapper);
+          lock (mappers)
+          {
+            if (!mappers.ContainsKey(profile))
+            {
+              CreateMapper(profile, mapper);
+            }
+          }
         }
 
         return mapper;
       }
       set
       {
-        mappers[profile] = value;
-
-        if (value.MapRepository == null)
-        {
-          value.MapRepository = this.MapRepository;
-        }
+        CreateMapper(profile, value);
 
       }
     }
 
+    private void CreateMapper(string profile, IMemberMapper mapper)
+    {
+      lock (lockObj)
+      {
+        var newMappers = new Dictionary<string, IMemberMapper>(mappers);
+
+        newMappers[profile] = mapper;
+
+        if (mapper.MapRepository == null)
+        {
+          mapper.MapRepository = this.MapRepository;
+        }
+
+        Interlocked.CompareExchange(ref mappers, newMappers, mappers);
+      }
+    }
   }
 }

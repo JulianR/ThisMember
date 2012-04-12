@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using ThisMember.Core.Exceptions;
 using ThisMember.Core.Options;
 using ThisMember.Core.Misc;
+using System.Threading;
 
 namespace ThisMember.Core
 {
@@ -21,12 +22,16 @@ namespace ThisMember.Core
 
     public IProjectionGeneratorFactory ProjectionGeneratorFactory { get; set; }
 
-    private readonly Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
+    private Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
 
-    private readonly Dictionary<TypePair, Projection> projections = new Dictionary<TypePair, Projection>();
+    private byte[] mapsWriteLock = new byte[0];
+    private byte[] projectionsWriteLock = new byte[0];
+
+    private Dictionary<TypePair, Projection> projections = new Dictionary<TypePair, Projection>();
 
 
-    public MemberMapper() : this(new DefaultMemberMapperConfiguration())
+    public MemberMapper()
+      : this(new DefaultMemberMapperConfiguration())
     {
     }
 
@@ -72,7 +77,7 @@ namespace ThisMember.Core
 
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-      lock (this.maps)
+      lock (this.mapsWriteLock)
       {
         if (this.maps.ContainsKey(pair))
         {
@@ -98,7 +103,7 @@ namespace ThisMember.Core
 
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-      lock (this.maps)
+      lock (this.mapsWriteLock)
       {
         if (this.maps.ContainsKey(pair))
         {
@@ -272,7 +277,12 @@ namespace ThisMember.Core
 
     public void RegisterMap(MemberMap map)
     {
-      this.maps[new TypePair(map.SourceType, map.DestinationType)] = map;
+      lock (mapsWriteLock)
+      {
+        var newMaps = new Dictionary<TypePair, MemberMap>(this.maps);
+        newMaps[new TypePair(map.SourceType, map.DestinationType)] = map;
+        Interlocked.CompareExchange(ref this.maps, newMaps, this.maps);
+      }
     }
 
     public TSource Map<TSource>(TSource source) where TSource : new()
@@ -377,7 +387,7 @@ namespace ThisMember.Core
             return false;
           }
 
-          lock (this.maps)
+          lock (this.mapsWriteLock)
           {
             this.maps.Remove(pair);
             this.maps.Add(pair, map);
@@ -420,7 +430,7 @@ namespace ThisMember.Core
             return false;
           }
 
-          lock (this.maps)
+          lock (this.mapsWriteLock)
           {
             this.maps.Remove(pair);
             this.maps.Add(pair, map);
@@ -485,7 +495,7 @@ namespace ThisMember.Core
         {
           map = ToGenericProjection<TSource, TDestination>(nonGeneric);
 
-          lock (this.maps)
+          lock (this.projectionsWriteLock)
           {
             this.projections.Remove(pair);
             this.projections.Add(pair, map);
@@ -511,7 +521,10 @@ namespace ThisMember.Core
 
     public void ClearMapCache()
     {
-      this.maps.Clear();
+      lock (this.mapsWriteLock)
+      {
+        this.maps.Clear();
+      }
       this.MappingStrategy.ClearMapCache();
     }
 
@@ -563,7 +576,12 @@ namespace ThisMember.Core
 
     public void RegisterProjection(Projection projection)
     {
-      this.projections[new TypePair(projection.SourceType, projection.DestinationType)] = projection;
+      lock (projectionsWriteLock)
+      {
+        var newProjections = new Dictionary<TypePair, Projection>(projections);
+        newProjections[new TypePair(projection.SourceType, projection.DestinationType)] = projection;
+        Interlocked.CompareExchange(ref this.projections, newProjections, this.projections);
+      }
     }
 
 

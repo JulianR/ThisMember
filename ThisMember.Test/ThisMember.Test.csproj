@@ -84,6 +84,7 @@
     <Compile Include="RecursiveMapTests.cs" />
     <Compile Include="ReferenceEqualityTests.cs" />
     <Compile Include="SourceNullTests.cs" />
+    <Compile Include="ThreadSafetyTests.cs" />
     <Compile Include="VariableTests.cs" />
   </ItemGroup>
   <ItemGroup>

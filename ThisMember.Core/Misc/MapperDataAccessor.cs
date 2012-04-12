@@ -5,6 +5,7 @@ using System.Text;
 using System.Linq.Expressions;
 using ThisMember.Core.Fluent;
 using ThisMember.Core.Options;
+using System.Collections.Concurrent;
 
 namespace ThisMember.Core.Misc
 {
@@ -12,10 +13,10 @@ namespace ThisMember.Core.Misc
   {
     private MemberMapper memberMapper;
 
-    private Dictionary<Type, LambdaExpression> constructorCache;
-    private Dictionary<TypeDataCacheKey, TypeModifierData> typeModifierCache;
-    private Dictionary<VariableCacheKey, VariableDefinition> variableCache;
-    private Dictionary<OptionsCacheKey, MapperOptions> mapperOptionsCache;
+    private ConcurrentDictionary<Type, LambdaExpression> constructorCache;
+    private ConcurrentDictionary<TypeDataCacheKey, TypeModifierData> typeModifierCache;
+    private ConcurrentDictionary<VariableCacheKey, VariableDefinition> variableCache;
+    private ConcurrentDictionary<OptionsCacheKey, MapperOptions> mapperOptionsCache;
 
     private byte[] lockObj = new byte[0];
 
@@ -39,10 +40,8 @@ namespace ThisMember.Core.Misc
         Side = side
       };
 
-      lock (MapperOptionsCache)
-      {
-        MapperOptionsCache[key] = options;
-      }
+      MapperOptionsCache[key] = options;
+
     }
 
     internal MapperOptions TryGetMapperOptions(Type t, MappingSides side)
@@ -60,32 +59,42 @@ namespace ThisMember.Core.Misc
 
       MapperOptions options;
 
-      MapperOptionsCache.TryGetValue(key, out options);
+      if (!MapperOptionsCache.TryGetValue(key, out options))
+      {
+        options = MapperOptionsCache
+          .Where(kv => kv.Key.Type.IsAssignableFrom(key.Type) && kv.Key.Side == side)
+          .Select(kv => kv.Value).FirstOrDefault();
+
+        if (options != null)
+        {
+          if (mapperOptionsCache.ContainsKey(key))
+          {
+            mapperOptionsCache.AddOrUpdate(key, options, (k, v) => options);
+          }
+        }
+      }
 
       return options;
     }
 
     internal void AddTypeModifierData(TypeModifierData data, MappingSides side)
     {
-      lock (TypeModifierCache)
+      TypeModifierData current;
+
+      var key = new TypeDataCacheKey
       {
-        TypeModifierData current;
+        Type = data.Type,
+        Side = side
+      };
 
-        var key = new TypeDataCacheKey
-        {
-          Type = data.Type,
-          Side = side
-        };
-
-        if (TypeModifierCache.TryGetValue(key, out current))
-        {
-          current.Message = data.Message ?? current.Message;
-          current.ThrowIfCondition = data.ThrowIfCondition ?? current.ThrowIfCondition;
-        }
-        else
-        {
-          TypeModifierCache[key] = data;
-        }
+      if (TypeModifierCache.TryGetValue(key, out current))
+      {
+        current.Message = data.Message ?? current.Message;
+        current.ThrowIfCondition = data.ThrowIfCondition ?? current.ThrowIfCondition;
+      }
+      else
+      {
+        TypeModifierCache[key] = data;
       }
     }
 
@@ -111,10 +120,7 @@ namespace ThisMember.Core.Misc
 
     internal void AddCustomConstructor(Type type, LambdaExpression ctor)
     {
-      lock (ConstructorCache)
-      {
-        ConstructorCache[type] = ctor;
-      }
+      ConstructorCache[type] = ctor;
     }
 
     internal void AddVariableDefinition<T>(Type type, string name, Fluent.VariableDefinition<T> variable, MappingSides side)
@@ -126,17 +132,14 @@ namespace ThisMember.Core.Misc
         Side = side
       };
 
-      lock (VariableCache)
+      var existing = VariableCache.Keys.FirstOrDefault(k => k.Name == name);
+
+      if (existing != null)
       {
-        var existing = VariableCache.Keys.FirstOrDefault(k => k.Name == name);
-
-        if (existing != null)
-        {
-          throw new InvalidOperationException(string.Format("Variable {0} already defined on type {1}", name, existing.Type));
-        }
-
-        VariableCache[key] = variable;
+        throw new InvalidOperationException(string.Format("Variable {0} already defined on type {1}", name, existing.Type));
       }
+
+      VariableCache[key] = variable;
     }
 
     internal IEnumerable<VariableDefinition> GetAllVariablesForType(Type t, MappingSides side)
@@ -146,28 +149,12 @@ namespace ThisMember.Core.Misc
         return Enumerable.Empty<VariableDefinition>();
       }
 
-      return VariableCache.Where(v => v.Key.Type == t && v.Key.Side == side).Select(v => v.Value);
-    }
-
-    internal VariableDefinition TryGetVariableDefinition(Type type, string name, MappingSides side)
-    {
-      var key = new VariableCacheKey
-      {
-        Name = name,
-        Type = type,
-        Side = side
-      };
-
-      VariableDefinition variable;
-
-      VariableCache.TryGetValue(key, out variable);
-
-      return variable;
+      return VariableCache.Where(v => v.Key.Type.IsAssignableFrom(t) && v.Key.Side == side).Select(v => v.Value);
     }
 
     #region Caches
 
-    private Dictionary<Type, LambdaExpression> ConstructorCache
+    private ConcurrentDictionary<Type, LambdaExpression> ConstructorCache
     {
       get
       {
@@ -177,7 +164,7 @@ namespace ThisMember.Core.Misc
           {
             if (constructorCache == null)
             {
-              constructorCache = new Dictionary<Type, LambdaExpression>();
+              constructorCache = new ConcurrentDictionary<Type, LambdaExpression>();
             }
           }
         }
@@ -185,7 +172,7 @@ namespace ThisMember.Core.Misc
       }
     }
 
-    private Dictionary<TypeDataCacheKey, TypeModifierData> TypeModifierCache
+    private ConcurrentDictionary<TypeDataCacheKey, TypeModifierData> TypeModifierCache
     {
       get
       {
@@ -195,7 +182,7 @@ namespace ThisMember.Core.Misc
           {
             if (typeModifierCache == null)
             {
-              typeModifierCache = new Dictionary<TypeDataCacheKey, TypeModifierData>();
+              typeModifierCache = new ConcurrentDictionary<TypeDataCacheKey, TypeModifierData>();
             }
           }
         }
@@ -203,7 +190,7 @@ namespace ThisMember.Core.Misc
       }
     }
 
-    private Dictionary<VariableCacheKey, VariableDefinition> VariableCache
+    private ConcurrentDictionary<VariableCacheKey, VariableDefinition> VariableCache
     {
       get
       {
@@ -213,7 +200,7 @@ namespace ThisMember.Core.Misc
           {
             if (variableCache == null)
             {
-              variableCache = new Dictionary<VariableCacheKey, VariableDefinition>();
+              variableCache = new ConcurrentDictionary<VariableCacheKey, VariableDefinition>();
             }
           }
         }
@@ -221,7 +208,7 @@ namespace ThisMember.Core.Misc
       }
     }
 
-    private Dictionary<OptionsCacheKey, MapperOptions> MapperOptionsCache
+    private ConcurrentDictionary<OptionsCacheKey, MapperOptions> MapperOptionsCache
     {
       get
       {
@@ -231,7 +218,7 @@ namespace ThisMember.Core.Misc
           {
             if (mapperOptionsCache == null)
             {
-              mapperOptionsCache = new Dictionary<OptionsCacheKey, MapperOptions>();
+              mapperOptionsCache = new ConcurrentDictionary<OptionsCacheKey, MapperOptions>();
             }
           }
         }

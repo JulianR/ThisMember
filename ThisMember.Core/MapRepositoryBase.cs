@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ThisMember.Core.Interfaces;
+using System.Collections.Concurrent;
 
 namespace ThisMember.Core
 {
@@ -19,7 +20,7 @@ namespace ThisMember.Core
       public bool InUse { get; set; }
     }
 
-    private Dictionary<TypePair, MapFuncWrapper> cache = new Dictionary<TypePair, MapFuncWrapper>();
+    private ConcurrentDictionary<TypePair, MapFuncWrapper> cache = new ConcurrentDictionary<TypePair, MapFuncWrapper>();
 
     public MapRepositoryBase()
     {
@@ -38,16 +39,14 @@ namespace ThisMember.Core
     {
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-      lock (cache)
+      if (!cache.ContainsKey(pair))
       {
-        if (!cache.ContainsKey(pair))
-        {
-          cache.Add(pair, new MapFuncWrapper { CreateMapFunction = action });
-        }
-        else
-        {
-          throw new InvalidOperationException("Map repository already contains map for types " + pair);
-        }
+        var wrapper = new MapFuncWrapper { CreateMapFunction = action };
+        cache.AddOrUpdate(pair, wrapper, (k, v) => wrapper);
+      }
+      else
+      {
+        throw new InvalidOperationException("Map repository already contains map for types " + pair);
       }
     }
 
@@ -58,12 +57,11 @@ namespace ThisMember.Core
     public bool TryGetMap(IMemberMapper mapper, MemberOptions options, TypePair pair, out ProposedMap map)
     {
       MapFuncWrapper action;
+
       if (cache.TryGetValue(pair, out action))
       {
-
         lock (action)
         {
-
           if (action.InUse)
           {
             map = null;

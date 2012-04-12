@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Collections.Concurrent;
 
 namespace ThisMember.Core.Interfaces
 {
@@ -76,22 +77,19 @@ namespace ThisMember.Core.Interfaces
       }
     }
 
-    private Dictionary<ConversionFunctionKey, LambdaExpression> conversionFunctions;
+    private ConcurrentDictionary<ConversionFunctionKey, LambdaExpression> conversionFunctions;
 
     public CustomMapping()
     {
       CustomMappings = new List<CustomMapping>();
       Members = new List<MemberExpressionTuple>();
       ArgumentParameters = new List<IndexedParameterExpression>();
-      this.conversionFunctions = new Dictionary<ConversionFunctionKey, LambdaExpression>();
+      this.conversionFunctions = new ConcurrentDictionary<ConversionFunctionKey, LambdaExpression>();
     }
 
     public void AddConversionFunction(PropertyOrFieldInfo source, PropertyOrFieldInfo destination, LambdaExpression conversion)
     {
-      lock (conversionFunctions)
-      {
-        this.conversionFunctions[new ConversionFunctionKey(source, destination)] = conversion;
-      }
+      this.conversionFunctions[new ConversionFunctionKey(source, destination)] = conversion;
     }
 
     public LambdaExpression GetConversionFunction(PropertyOrFieldInfo source, PropertyOrFieldInfo destination)

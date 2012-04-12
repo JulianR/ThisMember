@@ -10,6 +10,7 @@ using System.Reflection.Emit;
 using ThisMember.Core.Exceptions;
 using ThisMember.Core.Fluent;
 using ThisMember.Core.Options;
+using System.Collections.Concurrent;
 
 namespace ThisMember.Core
 {
@@ -35,7 +36,7 @@ namespace ThisMember.Core
       this.options = options;
     }
 
-    protected Dictionary<Type, LambdaExpression> constructorCache = new Dictionary<Type, LambdaExpression>();
+    protected ConcurrentDictionary<Type, LambdaExpression> constructorCache = new ConcurrentDictionary<Type, LambdaExpression>();
 
     public virtual MemberMap FinalizeMap()
     {
@@ -173,7 +174,7 @@ namespace ThisMember.Core
 
       var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this, this.options);
 
-      map.MappingFunction = (Func<TSource,TDestination,TDestination>)generator.GenerateMappingFunction();
+      map.MappingFunction = (Func<TSource, TDestination, TDestination>)generator.GenerateMappingFunction();
       map.DebugInformation = generator.DebugInformation;
 
       mapper.RegisterMap(map);
@@ -207,7 +208,7 @@ namespace ThisMember.Core
     /// Should be a lambda returning the type.</param>
     public ProposedMap<TSource, TDestination> WithConstructorFor<T>(Expression<Func<TSource, TDestination, T>> constructor)
     {
-      constructorCache.Add(typeof(T), constructor);
+      constructorCache.AddOrUpdate(typeof(T), constructor, (k, v) => constructor);
       return this;
     }
 

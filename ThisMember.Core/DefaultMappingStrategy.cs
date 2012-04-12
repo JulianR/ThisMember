@@ -9,16 +9,18 @@ using System.Linq.Expressions;
 using ThisMember.Core.Exceptions;
 using ThisMember.Core.Options;
 using ThisMember.Core.Misc;
+using ThisMember.Extensions;
+using System.Collections.Concurrent;
 
 namespace ThisMember.Core
 {
   internal class DefaultMappingStrategy : IMappingStrategy
   {
     // Cache for type mappings we have found so far
-    private readonly Dictionary<TypePair, ProposedTypeMapping> mappingCache = new Dictionary<TypePair, ProposedTypeMapping>();
+    private readonly ConcurrentDictionary<TypePair, ProposedTypeMapping> mappingCache = new ConcurrentDictionary<TypePair, ProposedTypeMapping>();
 
     // Cache for custom mappings 
-    private readonly Dictionary<TypePair, CustomMapping> customMappingCache = new Dictionary<TypePair, CustomMapping>();
+    private readonly ConcurrentDictionary<TypePair, CustomMapping> customMappingCache = new ConcurrentDictionary<TypePair, CustomMapping>();
 
     private readonly IMemberMapper mapper;
 
@@ -35,7 +37,7 @@ namespace ThisMember.Core
       var mapperOptions = GetMapperOptions(mapper, typeof(TSource), typeof(TDestination));
 
       var processor = new StrategyProcessor(this, mapper, mappingCache, customMappingCache, mapperOptions);
-      
+
       return processor.CreateMapProposal<TSource, TDestination>(options, customMappingExpression);
     }
 
@@ -85,9 +87,9 @@ namespace ThisMember.Core
     {
       private readonly IMemberMapper mapper;
 
-      private readonly Dictionary<TypePair, ProposedTypeMapping> mappingCache;
+      private readonly ConcurrentDictionary<TypePair, ProposedTypeMapping> mappingCache;
 
-      private readonly Dictionary<TypePair, CustomMapping> customMappingCache;
+      private readonly ConcurrentDictionary<TypePair, CustomMapping> customMappingCache;
 
       private readonly DefaultMappingStrategy strategy;
 
@@ -96,10 +98,10 @@ namespace ThisMember.Core
 
       private readonly MapperOptions options;
 
-      public StrategyProcessor(DefaultMappingStrategy strategy, 
-        IMemberMapper mapper, 
-        Dictionary<TypePair, ProposedTypeMapping> mappingCache, 
-        Dictionary<TypePair, CustomMapping> customMappingCache,
+      public StrategyProcessor(DefaultMappingStrategy strategy,
+        IMemberMapper mapper,
+        ConcurrentDictionary<TypePair, ProposedTypeMapping> mappingCache,
+        ConcurrentDictionary<TypePair, CustomMapping> customMappingCache,
         MapperOptions options)
       {
         this.mapper = mapper;
@@ -201,7 +203,8 @@ namespace ThisMember.Core
               {
                 DestinationType = destinationType
               };
-              customMappingCache.Add(pair, customMapping);
+
+              customMappingCache.AddOrUpdate(pair, customMapping, (k, v) => customMapping);
 
               typeMapping.CustomMapping = customMapping;
             }
@@ -309,10 +312,7 @@ namespace ThisMember.Core
         // at a depth at which the full depth CAN be explored.
         if (!typeMapping.DoNotCache)
         {
-          lock (mappingCache)
-          {
-            mappingCache[pair] = typeMapping;
-          }
+          mappingCache[pair] = typeMapping;
         }
 
         typeStack.Pop();
@@ -719,14 +719,12 @@ namespace ThisMember.Core
 
       private CustomMapping GetCustomMappingFromExpression(TypePair pair, LambdaExpression customMappingExpression, CustomMapping customMapping)
       {
-        lock (customMappingCache)
+        if (customMappingExpression != null)
         {
-          if (customMappingExpression != null)
-          {
-            customMapping = CustomMapping.GetCustomMapping(pair.DestinationType, customMappingExpression);
-            customMappingCache[pair] = customMapping;
-          }
+          customMapping = CustomMapping.GetCustomMapping(pair.DestinationType, customMappingExpression);
+          customMappingCache[pair] = customMapping;
         }
+
         return customMapping;
       }
 
@@ -752,20 +750,22 @@ namespace ThisMember.Core
           var destination = CollectionTypeHelper.GetTypeInsideEnumerable(pair.DestinationType);
           pair = new TypePair(source, destination);
         }
+        IEnumerable<CustomMapping> matchingMappings;
 
         customMappingCache.TryGetValue(pair, out customMapping);
 
-        var matchingMappings = (from m in customMappingCache
-                                where m.Key.DestinationType.IsAssignableFrom(pair.DestinationType)
-                                && m.Key.DestinationType != pair.DestinationType
-                                orderby DistanceFromType(pair.DestinationType, m.Key.DestinationType, 0) ascending
-                                select m.Value);
+        matchingMappings = (from m in customMappingCache
+                            where m.Key.DestinationType.IsAssignableFrom(pair.DestinationType)
+                            && m.Key.DestinationType != pair.DestinationType
+                            orderby DistanceFromType(pair.DestinationType, m.Key.DestinationType, 0) ascending
+                            select m.Value);
 
         matchingMappings = matchingMappings.Union(from m in customMappingCache
                                                   where m.Key.SourceType.IsAssignableFrom(pair.SourceType)
                                                   && m.Key.SourceType != pair.SourceType
                                                   orderby DistanceFromType(pair.SourceType, m.Key.SourceType, 0) ascending
                                                   select m.Value).ToList();
+
 
         customMapping = customMapping ?? matchingMappings.FirstOrDefault();
 
