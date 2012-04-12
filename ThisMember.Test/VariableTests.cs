@@ -88,6 +88,21 @@ namespace ThisMember.Test
       var result = mapper.Map(new Source { Foo = 1 }, new Destination());
     }
 
+    [TestMethod]
+    public void MoreComplexVariableUseWorks()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.DefaultMemberOptions = (ctx, options) =>
+      {
+        options.Convert<int, int>(i => Variable.Use<string>("s").Length);
+      };
+
+      var result = mapper.Map(new Source { Foo = 1 }, new Destination());
+
+      Assert.AreEqual(0, result.Foo);
+    }
+
 
     [TestMethod]
     [ExpectedException(typeof(InvalidOperationException))]
@@ -96,6 +111,41 @@ namespace ThisMember.Test
       var mapper = new MemberMapper();
       mapper.ForSourceType<Source>().DefineVariable<int>("i").InitializedAs(() => 10);
       mapper.ForSourceType<Destination>().DefineVariable<int>("i");
+    }
+
+    public class SourceInherited : Source { }
+    public class DestinationInherited : Destination { }
+
+    [TestMethod]
+    public void CanDefineAndUseVariableOnInheritedType()
+    {
+      var mapper = new MemberMapper();
+      mapper.ForSourceType<Source>().DefineVariable<int>("i").InitializedAs(() => 10);
+
+      mapper.DefaultMemberOptions = (ctx, options) =>
+      {
+        options.Convert<int>(i => Variable.Use<int>("i") * i);
+      };
+
+      var result = mapper.Map(new SourceInherited { Foo = 1 }, new DestinationInherited());
+
+      Assert.AreEqual(10, result.Foo);
+    }
+
+    [TestMethod]
+    public void CanDefineAndUseVariableOnListType()
+    {
+      var mapper = new MemberMapper();
+      mapper.ForSourceType<Source>().DefineVariable<int>("i").InitializedAs(() => 10);
+
+      mapper.DefaultMemberOptions = (ctx, options) =>
+      {
+        options.Convert<int>(i => Variable.Use<int>("i") * 10);
+      };
+
+      var result = mapper.Map(new[] { new Source { Foo = 1 } }, new List<Destination>());
+
+      Assert.AreEqual(100, result.First().Foo);
     }
   }
 }
