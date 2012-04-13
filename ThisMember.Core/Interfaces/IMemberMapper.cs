@@ -24,9 +24,10 @@ namespace ThisMember.Core.Interfaces
 
     /// <summary>
     /// Allows you to set various options with regards to mapping and map generation.
+    /// 
+    /// Note that any option you change on how maps are generated may not have any effect on the maps that 
+    /// have already been generated. Those are changed only after you call CreateMap again or call ClearMapCache.
     /// </summary>
-    /// <remarks>Note that any option you change on how maps are generated may not have any effect on the maps that 
-    /// have already been generated. Those are changed only after you call CreateMap again or call ClearMapCache.</remarks>
     MapperOptions Options { get; set; }
 
     /// <summary>
@@ -150,6 +151,9 @@ namespace ThisMember.Core.Interfaces
 
     void RegisterProjection(Projection projection);
 
+    /// <summary>
+    /// Clears out the map cache, forcing all maps to be recreated.
+    /// </summary>
     void ClearMapCache();
 
     /// <summary>
@@ -170,19 +174,24 @@ namespace ThisMember.Core.Interfaces
     /// <returns></returns>
     TSource DeepClone<TSource>(TSource source) where TSource : new();
 
-     /// <summary>
+    /// <summary>
     /// Creates a deep clone of the given source object, mapping the entire object graph.
     /// </summary>
-    /// <typeparam name="TSource"></typeparam>
     /// <param name="source"></param>
     /// <returns></returns>
-    object DeepClone(object obj);
+    object DeepClone(object source);
 
     /// <summary>
     /// A map repository is an optional location that is checked by the mapper for map definitions.
     /// </summary>
     IMapRepository MapRepository { get; set; }
 
+    /// <summary>
+    /// Creates an expression that returns TDestination as output from a given TSource (a 'projection').
+    /// </summary>
+    /// <typeparam name="TSource"></typeparam>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <returns></returns>
     Expression<Func<TSource, TDestination>> Project<TSource, TDestination>();
 
     IProjectionGeneratorFactory ProjectionGeneratorFactory { get; set; }
