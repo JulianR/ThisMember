@@ -1224,7 +1224,6 @@ namespace ThisMember.Core
 
     private Delegate CompileExpression(Type sourceType, Type destinationType, LambdaExpression expression)
     {
-
       if (this.options.Debug.DebugInformationEnabled)
       {
         this.DebugInformation = new DebugInformation

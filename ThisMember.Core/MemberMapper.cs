@@ -473,8 +473,11 @@ namespace ThisMember.Core
     {
       lock (this.mapsWriteLock)
       {
-        this.maps.Clear();
+        var newMaps = new Dictionary<TypePair, MemberMap>();
+
+        Interlocked.CompareExchange(ref this.maps, newMaps, this.maps);
       }
+
       this.MappingStrategy.ClearMapCache();
     }
 
