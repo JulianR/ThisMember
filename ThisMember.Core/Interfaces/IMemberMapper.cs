@@ -170,6 +170,14 @@ namespace ThisMember.Core.Interfaces
     /// <returns></returns>
     TSource DeepClone<TSource>(TSource source) where TSource : new();
 
+     /// <summary>
+    /// Creates a deep clone of the given source object, mapping the entire object graph.
+    /// </summary>
+    /// <typeparam name="TSource"></typeparam>
+    /// <param name="source"></param>
+    /// <returns></returns>
+    object DeepClone(object obj);
+
     /// <summary>
     /// A map repository is an optional location that is checked by the mapper for map definitions.
     /// </summary>
