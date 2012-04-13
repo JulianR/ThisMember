@@ -20,20 +20,37 @@ namespace ThisMember.Core
   /// </summary>
   public class ProposedMap
   {
-    public Type SourceType { get; set; }
-    public Type DestinationType { get; set; }
+    private readonly Type sourceType, destinationType;
 
-    public IList<Type> ParameterTypes { get; set; }
+    public Type SourceType
+    {
+      get
+      {
+        return sourceType;
+      }
+    }
+
+    public Type DestinationType
+    {
+      get
+      {
+        return destinationType;
+      }
+    }
+
+    public IList<Type> ParameterTypes { get; private set; }
 
     protected readonly IMemberMapper mapper;
 
     protected readonly MapperOptions options;
 
-    public ProposedMap(IMemberMapper mapper, MapperOptions options)
+    public ProposedMap(Type sourceType, Type destinationType, IMemberMapper mapper, MapperOptions options)
     {
       this.mapper = mapper;
       this.ParameterTypes = new List<Type>();
       this.options = options;
+      this.sourceType = sourceType;
+      this.destinationType = destinationType;
     }
 
     protected ConcurrentDictionary<Type, LambdaExpression> constructorCache = new ConcurrentDictionary<Type, LambdaExpression>();
@@ -42,7 +59,14 @@ namespace ThisMember.Core
     {
       var type = typeof(MemberMap<,>).MakeGenericType(source, destination);
 
-      return (MemberMap)Activator.CreateInstance(type, mappingFunction);
+      return (MemberMap)Activator.CreateInstance(type,  mappingFunction);
+    }
+
+    private static Projection CreateProjectionInstance(Type source, Type destination, LambdaExpression expression)
+    {
+      var type = typeof(Projection<,>).MakeGenericType(source, destination);
+
+      return (Projection)Activator.CreateInstance(type, expression);
     }
 
     public virtual MemberMap FinalizeMap()
@@ -57,9 +81,6 @@ namespace ThisMember.Core
       
       map.DebugInformation = generator.DebugInformation;
 
-      map.SourceType = this.SourceType;
-      map.DestinationType = this.DestinationType;
-
       mapper.RegisterMap(map);
 
       return map;
@@ -73,10 +94,7 @@ namespace ThisMember.Core
 
       var expression = generator.GetProjection(this);
 
-      var projection = new Projection(expression);
-
-      projection.SourceType = this.SourceType;
-      projection.DestinationType = this.DestinationType;
+      var projection = CreateProjectionInstance(this.SourceType, this.DestinationType, expression);
 
       mapper.RegisterProjection(projection);
 
@@ -167,7 +185,7 @@ namespace ThisMember.Core
   {
 
     public ProposedMap(IMemberMapper mapper, MapperOptions options)
-      : base(mapper, options)
+      : base(typeof(TSource), typeof(TDestination), mapper, options)
     {
     }
 
@@ -175,15 +193,11 @@ namespace ThisMember.Core
     {
       EnsureNoInvalidMappings();
 
-     
       var generator = this.mapper.MapGeneratorFactory.GetGenerator(this.mapper, this, this.options);
 
       var mappingFunction = (Func<TSource, TDestination, TDestination>)generator.GenerateMappingFunction();
 
       var map = new MemberMap<TSource, TDestination>(mappingFunction);
-
-      map.SourceType = this.SourceType;
-      map.DestinationType = this.DestinationType;
 
       map.DebugInformation = generator.DebugInformation;
 
@@ -202,13 +216,9 @@ namespace ThisMember.Core
 
       var projection = new Projection<TSource, TDestination>(expression);
 
-      projection.SourceType = this.SourceType;
-      projection.DestinationType = this.DestinationType;
-
       mapper.RegisterProjection(projection);
 
       return projection;
-
     }
 
     /// <summary>
@@ -362,9 +372,6 @@ namespace ThisMember.Core
       var mappingFunction = (Func<TSource, TDestination, TParam, TDestination>)generator.GenerateMappingFunction();
 
       var map = new MemberMap<TSource, TDestination, TParam>(mappingFunction);
-
-      map.SourceType = this.SourceType;
-      map.DestinationType = this.DestinationType;
 
       map.DebugInformation = generator.DebugInformation;
 

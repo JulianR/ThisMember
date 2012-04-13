@@ -28,7 +28,7 @@ namespace ThisMember.Core.Interfaces
 
   }
 
-  public class CustomMapping
+  internal class CustomMapping
   {
     public IList<MemberExpressionTuple> Members { get; internal set; }
 

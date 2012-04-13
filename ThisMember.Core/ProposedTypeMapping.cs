@@ -13,7 +13,7 @@ namespace ThisMember.Core
     public PropertyOrFieldInfo SourceMember { get; set; }
     public PropertyOrFieldInfo DestinationMember { get; set; }
 
-    public CustomMapping CustomMapping { get; set; }
+    internal CustomMapping CustomMapping { get; set; }
 
     public bool Ignored { get; set; }
 

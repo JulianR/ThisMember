@@ -9,16 +9,32 @@ namespace ThisMember.Core
   /// <summary>
   /// Describes a projection from one type to another, as an expression.
   /// </summary>
-  public class Projection
+  public abstract class Projection
   {
-    public Type SourceType { get; set; }
+    private readonly Type sourceType, destinationType;
 
-    public Type DestinationType { get; set; }
+    public Type SourceType
+    {
+      get
+      {
+        return sourceType;
+      }
+    }
+
+    public Type DestinationType
+    {
+      get
+      {
+        return destinationType;
+      }
+    }
 
     private readonly LambdaExpression expression;
 
-    public Projection(LambdaExpression expression)
+    public Projection(Type sourceType, Type destinationType, LambdaExpression expression)
     {
+      this.sourceType = sourceType;
+      this.destinationType = destinationType;
       this.expression = expression;
     }
 
@@ -38,7 +54,8 @@ namespace ThisMember.Core
   {
     private readonly Expression<Func<TSource, TDestination>> expression;
 
-    public Projection(Expression<Func<TSource, TDestination>> expression) : base(expression)
+    public Projection(Expression<Func<TSource, TDestination>> expression)
+      : base(typeof(TSource), typeof(TDestination), expression)
     {
       this.expression = expression;
     }

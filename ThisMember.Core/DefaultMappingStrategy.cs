@@ -619,9 +619,6 @@ namespace ThisMember.Core
 
         var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-        map.SourceType = pair.SourceType;
-        map.DestinationType = pair.DestinationType;
-
         CustomMapping customMapping = null;
 
         //if (customMappingExpression != null)
@@ -656,9 +653,6 @@ namespace ThisMember.Core
 
         var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-        map.SourceType = pair.SourceType;
-        map.DestinationType = pair.DestinationType;
-
         CustomMapping customMapping = null;
 
         //if (customMappingExpression != null)
@@ -688,15 +682,12 @@ namespace ThisMember.Core
       public ProposedMap CreateMapProposal(TypePair pair, MemberOptions options = null, LambdaExpression customMappingExpression = null, params Type[] parameters)
       {
 
-        var map = new ProposedMap(this.mapper, this.options);
+        var map = new ProposedMap(pair.SourceType, pair.DestinationType, this.mapper, this.options);
 
         foreach (var param in parameters)
         {
           map.ParameterTypes.Add(param);
         }
-
-        map.SourceType = pair.SourceType;
-        map.DestinationType = pair.DestinationType;
 
         CustomMapping customMapping = null;
 

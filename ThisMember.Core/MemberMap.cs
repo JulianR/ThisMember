@@ -11,17 +11,22 @@ namespace ThisMember.Core
   /// </summary>
   public abstract class MemberMap
   {
+    private readonly Type sourceType, destinationType;
 
     public Type SourceType
     {
-      get;
-      set;
+      get
+      {
+        return sourceType;
+      }
     }
 
     public Type DestinationType
     {
-      get;
-      set;
+      get
+      {
+        return destinationType;
+      }
     }
 
     private readonly Delegate mappingFunction;
@@ -39,8 +44,10 @@ namespace ThisMember.Core
 
     public DebugInformation DebugInformation { get; set; }
 
-    protected MemberMap(Delegate mappingFunction)
+    protected MemberMap(Type source, Type destination, Delegate mappingFunction)
     {
+      this.sourceType = source;
+      this.destinationType = destination;
       this.mappingFunction = mappingFunction;
     }
 
@@ -54,7 +61,7 @@ namespace ThisMember.Core
     private readonly Func<TSource, TDestination, TDestination> mappingFunction;
 
     public MemberMap(Func<TSource, TDestination, TDestination> mappingFunction)
-      : base(mappingFunction)
+      : base(typeof(TSource), typeof(TDestination), mappingFunction)
     {
       this.mappingFunction = mappingFunction;
     }
@@ -77,7 +84,7 @@ namespace ThisMember.Core
     private readonly Func<TSource, TDestination, TParam, TDestination> mappingFunction;
 
     public MemberMap(Func<TSource, TDestination, TParam, TDestination> mappingFunction)
-      : base(mappingFunction)
+      : base(typeof(TSource), typeof(TDestination), mappingFunction)
     {
       this.mappingFunction = mappingFunction;
     }
