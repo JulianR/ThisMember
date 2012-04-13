@@ -5,6 +5,7 @@ using System.Text;
 using ThisMember.Core.Interfaces;
 using System.Linq.Expressions;
 using System.Reflection;
+using ThisMember.Extensions;
 
 namespace ThisMember.Core
 {
