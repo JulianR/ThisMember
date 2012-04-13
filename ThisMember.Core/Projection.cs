@@ -15,7 +15,20 @@ namespace ThisMember.Core
 
     public Type DestinationType { get; set; }
 
-    public LambdaExpression Expression { get; set; }
+    private readonly LambdaExpression expression;
+
+    public Projection(LambdaExpression expression)
+    {
+      this.expression = expression;
+    }
+
+    public LambdaExpression Expression
+    {
+      get
+      {
+        return expression;
+      }
+    }
   }
 
   /// <summary>
@@ -23,18 +36,18 @@ namespace ThisMember.Core
   /// </summary>
   public class Projection<TSource, TDestination> : Projection
   {
-    private Expression<Func<TSource, TDestination>> expression;
+    private readonly Expression<Func<TSource, TDestination>> expression;
+
+    public Projection(Expression<Func<TSource, TDestination>> expression) : base(expression)
+    {
+      this.expression = expression;
+    }
 
     public new Expression<Func<TSource, TDestination>> Expression
     {
       get
       {
         return this.expression;
-      }
-      set
-      {
-        this.expression = value;
-        ((Projection)this).Expression = value;
       }
     }
   }

@@ -61,108 +61,6 @@ namespace ThisMember.Core
       this.Data = new MapperDataAccessor(this);
     }
 
-    private MemberMap<TSource, TDestination> ToGenericMemberMap<TSource, TDestination>(MemberMap map)
-    {
-      var newMap = new MemberMap<TSource, TDestination>();
-
-      newMap.DestinationType = map.DestinationType;
-      newMap.SourceType = map.SourceType;
-      newMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TDestination>;
-      newMap.DebugInformation = map.DebugInformation;
-
-      if (newMap.MappingFunction == null)
-      {
-        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called without parameters. Use another overload of Map or recreate the map without a parameter.", typeof(TSource), typeof(TDestination)));
-      }
-
-      var pair = new TypePair(typeof(TSource), typeof(TDestination));
-
-      lock (this.mapsWriteLock)
-      {
-        if (this.maps.ContainsKey(pair))
-        {
-          this.maps.Remove(pair);
-          this.maps.Add(pair, newMap);
-        }
-      }
-      return newMap;
-    }
-
-    private MemberMap<TSource, TDestination, TParam> ToGenericMemberMap<TSource, TDestination, TParam>(MemberMap map)
-    {
-      var newMap = new MemberMap<TSource, TDestination, TParam>();
-
-      newMap.DestinationType = map.DestinationType;
-      newMap.SourceType = map.SourceType;
-      newMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TParam, TDestination>;
-
-      if (newMap.MappingFunction == null)
-      {
-        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called without parameters. Use another overload of Map or recreate the map without a parameter.", typeof(TSource), typeof(TDestination)));
-      }
-
-      var pair = new TypePair(typeof(TSource), typeof(TDestination));
-
-      lock (this.mapsWriteLock)
-      {
-        if (this.maps.ContainsKey(pair))
-        {
-          this.maps.Remove(pair);
-          this.maps.Add(pair, newMap);
-        }
-      }
-      return newMap;
-    }
-
-    private static bool TryToGenericMemberMap<TSource, TDestination>(MemberMap map, out MemberMap<TSource, TDestination> genericMap)
-    {
-      genericMap = new MemberMap<TSource, TDestination>();
-
-      genericMap.DestinationType = map.DestinationType;
-      genericMap.SourceType = map.SourceType;
-      genericMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TDestination>;
-
-      if (genericMap.MappingFunction == null)
-      {
-        return false;
-      }
-
-      ((MemberMap)genericMap).MappingFunction = map.MappingFunction;
-
-      return true;
-    }
-
-    private static bool TryToGenericMemberMap<TSource, TDestination, TParam>(MemberMap map, out MemberMap<TSource, TDestination, TParam> genericMap)
-    {
-      genericMap = new MemberMap<TSource, TDestination, TParam>();
-
-      genericMap.DestinationType = map.DestinationType;
-      genericMap.SourceType = map.SourceType;
-      genericMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TParam, TDestination>;
-
-      if (genericMap.MappingFunction == null)
-      {
-        return false;
-      }
-
-      ((MemberMap)genericMap).MappingFunction = map.MappingFunction;
-
-      return true;
-    }
-
-    private static Projection<TSource, TDestination> ToGenericProjection<TSource, TDestination>(Projection projection)
-    {
-      var newMap = new Projection<TSource, TDestination>();
-
-      newMap.DestinationType = projection.DestinationType;
-      newMap.SourceType = projection.SourceType;
-      newMap.Expression = (Expression<Func<TSource, TDestination>>)projection.Expression;
-
-      ((Projection)newMap).Expression = projection.Expression;
-
-      return newMap;
-    }
-
     public TDestination Map<TDestination>(object source) where TDestination : new()
     {
       if (source == null)
@@ -301,12 +199,12 @@ namespace ThisMember.Core
 
     public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null)
     {
-      return ToGenericMemberMap<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeMap());
+      return (MemberMap<TSource, TDestination>)CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeMap();
     }
 
     public MemberMap<TSource, TDestination, TParam> CreateMap<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MemberOptions options = null)
     {
-      return ToGenericMemberMap<TSource, TDestination, TParam>(CreateMapProposal<TSource, TDestination, TParam>(customMapping, options).FinalizeMap());
+      return (MemberMap<TSource, TDestination, TParam>)CreateMapProposal<TSource, TDestination, TParam>(customMapping, options).FinalizeMap();
     }
 
     public Projection CreateProjection(Type source, Type destination, LambdaExpression customMapping = null, MemberOptions options = null)
@@ -316,7 +214,7 @@ namespace ThisMember.Core
 
     public Projection<TSource, TDestination> CreateProjection<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null)
     {
-      return ToGenericProjection<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeProjection());
+      return (Projection<TSource, TDestination>)CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeProjection();
     }
 
     public bool HasMap<TSource, TDestination>()
@@ -340,7 +238,12 @@ namespace ThisMember.Core
 
       var genericMap = map as MemberMap<TSource, TDestination>;
 
-      return genericMap ?? ToGenericMemberMap<TSource, TDestination>(map);
+      if (genericMap == null)
+      {
+        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called without parameters. Use another overload of Map or recreate the map without a parameter.", typeof(TSource), typeof(TDestination)));
+      }
+
+      return genericMap;
     }
 
     public MemberMap GetMap(Type source, Type destination)
@@ -351,6 +254,7 @@ namespace ThisMember.Core
       {
         throw new MapNotFoundException(source, destination);
       }
+
       return map;
     }
 
@@ -365,7 +269,12 @@ namespace ThisMember.Core
 
       var genericMap = map as MemberMap<TSource, TDestination, TParam>;
 
-      return genericMap ?? ToGenericMemberMap<TSource, TDestination, TParam>(map);
+      if (genericMap == null)
+      {
+        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called with parameters. Use another overload of Map or recreate the map with a parameter.", typeof(TSource), typeof(TDestination)));
+      }
+
+      return genericMap;
     }
 
     public bool TryGetMap<TSource, TDestination>(out MemberMap<TSource, TDestination> map)
@@ -380,18 +289,7 @@ namespace ThisMember.Core
 
         if (map == null)
         {
-          var success = TryToGenericMemberMap<TSource, TDestination>(nonGeneric, out map);
-
-          if (!success)
-          {
-            return false;
-          }
-
-          lock (this.mapsWriteLock)
-          {
-            this.maps.Remove(pair);
-            this.maps.Add(pair, map);
-          }
+          return false;
         }
 
         return true;
@@ -423,18 +321,7 @@ namespace ThisMember.Core
 
         if (map == null)
         {
-          var success = TryToGenericMemberMap<TSource, TDestination, TParam>(nonGeneric, out map);
-
-          if (!success)
-          {
-            return false;
-          }
-
-          lock (this.mapsWriteLock)
-          {
-            this.maps.Remove(pair);
-            this.maps.Add(pair, map);
-          }
+          return false;
         }
 
         return true;
@@ -467,7 +354,7 @@ namespace ThisMember.Core
 
       var genericProjection = projection as Projection<TSource, TDestination>;
 
-      return genericProjection ?? ToGenericProjection<TSource, TDestination>(projection);
+      return genericProjection;
     }
 
     public Projection GetProjection(Type source, Type destination)
@@ -483,23 +370,17 @@ namespace ThisMember.Core
 
     public bool TryGetProjection<TSource, TDestination>(out Projection<TSource, TDestination> map)
     {
-      Projection nonGeneric;
+      Projection projection;
 
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-      if (this.projections.TryGetValue(pair, out nonGeneric))
+      if (this.projections.TryGetValue(pair, out projection))
       {
-        map = nonGeneric as Projection<TSource, TDestination>;
+        map = projection as Projection<TSource, TDestination>;
 
         if (map == null)
         {
-          map = ToGenericProjection<TSource, TDestination>(nonGeneric);
-
-          lock (this.projectionsWriteLock)
-          {
-            this.projections.Remove(pair);
-            this.projections.Add(pair, map);
-          }
+          return false;
         }
 
         return true;
@@ -548,6 +429,24 @@ namespace ThisMember.Core
 
     public string Profile { get; set; }
 
+    public object DeepClone(object obj)
+    {
+      if (!this.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+      {
+        throw new InvalidOperationException("This mapper has been configured not to perform any cloning by setting Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource to false");
+      }
+
+      if (obj == null)
+      {
+        throw new ArgumentNullException("obj");
+      }
+
+      var type = obj.GetType();
+
+      var instance = Activator.CreateInstance(type);
+
+      return Map(obj, instance);
+    }
 
     public TSource DeepClone<TSource>(TSource source) where TSource : new()
     {
@@ -622,7 +521,7 @@ namespace ThisMember.Core
 
       if (!this.maps.TryGetValue(pair, out map))
       {
-        map = MappingStrategy.CreateMapProposal(pair, parameters: typeof(TParam)).FinalizeMap();
+        map = MappingStrategy.CreateMapProposal<TSource, TDestination, TParam>().FinalizeMap();
       }
       if (BeforeMapping != null) BeforeMapping(this, pair, source);
 

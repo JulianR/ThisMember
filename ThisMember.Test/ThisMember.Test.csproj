@@ -71,6 +71,7 @@
     <Compile Include="MapperOptionsTests.cs" />
     <Compile Include="MappingProfilesTests.cs" />
     <Compile Include="MapRepositoryTests.cs" />
+    <Compile Include="MemberMapMappingFunctionTests.cs" />
     <Compile Include="MemberMapperTests.cs" />
     <Compile Include="NullableValueTypesTests.cs" />
     <Compile Include="OptionTests.cs" />
