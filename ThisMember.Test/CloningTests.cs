@@ -68,6 +68,32 @@ namespace ThisMember.Test
     }
 
     [TestMethod]
+    public void NonGenericDeepCloneMethodWorks()
+    {
+      var mapper = new MemberMapper();
+
+      object source = new SourceType { Name = "test", Value = 1, Values = new[] { 1 } };
+
+      var result = mapper.DeepClone(source) as SourceType;
+
+      var src = source as SourceType;
+
+      Assert.AreEqual(1, result.Value);
+      Assert.IsFalse(object.ReferenceEquals(result.Values, src.Values));
+      Assert.IsTrue(result.Values.SequenceEqual(src.Values));
+      Assert.IsTrue(object.ReferenceEquals(result.Name, src.Name));
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(ArgumentNullException))]
+    public void NonGenericDeepCloneMethodThrowsArgumentNullException()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.DeepClone(null);
+    }
+
+    [TestMethod]
     [ExpectedException(typeof(InvalidOperationException))]
     public void DeepCloneThrowsIfOptionIsTurnedOff()
     {
