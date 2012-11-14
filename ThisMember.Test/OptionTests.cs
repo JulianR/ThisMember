@@ -367,6 +367,8 @@ namespace ThisMember.Test
       public int NonNullableID { get; set; }
       public DateTime NonNullableDate { get; set; }
       public bool NonNullableBool { get; set; }
+
+      public int? Nullable { get; set; }
     }
 
     class DestObjectComplexType
@@ -385,6 +387,8 @@ namespace ThisMember.Test
       public int NonNullableID { get; set; }
       public DateTime NonNullableDate { get; set; }
       public bool NonNullableBool { get; set; }
+
+      public int? Nullable { get; set; }
     }
 
     [TestMethod]
@@ -403,7 +407,8 @@ namespace ThisMember.Test
         Complex = new DestObjectComplexType
         {
           Name = "Name"
-        }
+        },
+        Nullable = 100
       };
 
       mapper.Map(new SourceObjectWithDefaultMembers(), destination);
@@ -417,6 +422,7 @@ namespace ThisMember.Test
       Assert.AreEqual(default(int), destination.NonNullableID);
       Assert.AreEqual(default(DateTime), destination.NonNullableDate);
       Assert.AreEqual(default(bool), destination.NonNullableBool);
+      Assert.AreEqual(100, destination.Nullable);
 
       mapper.Map(new SourceObjectWithDefaultMembers { Complex = new SourceObjectComplexType { Name = "Foo" } },
         destination);

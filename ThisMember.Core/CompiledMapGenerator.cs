@@ -205,7 +205,10 @@ namespace ThisMember.Core
       {
         source = Expression.Condition(Expression.NotEqual(source, Expression.Constant(null)), source, destination);
       }
-
+      else if (destination.Type.IsNullableValueType() && source.Type.IsNullableValueType())
+      {
+        source = HandleNullableValueTypes(destination, source);
+      }
 
       if (!source.Type.IsAssignableFrom(destination.Type))
       {
@@ -214,6 +217,20 @@ namespace ThisMember.Core
       }
 
       return Expression.Assign(destination, source);
+    }
+
+    private Expression HandleNullableValueTypes(MemberExpression destination, Expression source)
+    {
+      // If the source is null then ignore it if option is turned on, preserving the 
+      // original value.
+      Expression elseClause = options.Conventions.IgnoreMembersWithNullValueOnSource ?
+      (Expression)destination : Expression.Default(source.Type);
+
+      // Depending on the above option this can either be
+      // source.Member.HasValue ? source.Member.Value : default(T)
+      // OR source.Member.HasValue ? source.Member.Value : dest.Member
+      source = Expression.Condition(Expression.IsTrue(Expression.Property(source, "HasValue")), Expression.Convert(Expression.Property(source, "Value"), source.Type), elseClause);
+      return source;
     }
 
     private Expression HandleSourceNullableValueType(MemberExpression destination, Expression source)
@@ -1213,7 +1230,7 @@ namespace ThisMember.Core
       {
         if (moduleBuilder == null)
         {
-          var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("ThisMemberFunctionsAssembly_" + Guid.NewGuid().ToString("N")), AssemblyBuilderAccess.RunAndSave);
+          var assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName("ThisMemberFunctionsAssembly_" + Guid.NewGuid().ToString("N")), AssemblyBuilderAccess.RunAndCollect);
 
           moduleBuilder = assemblyBuilder.DefineDynamicModule("Module");
         }
