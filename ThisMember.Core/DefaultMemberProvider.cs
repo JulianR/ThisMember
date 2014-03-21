@@ -35,10 +35,26 @@ namespace ThisMember.Core
         // Example: User.FirstName won't match to a property UserFirstName here, because it will have split it to 'User', 'First' and 'Name'.
         // This extra check will make sure it also tries to find a property 'First' + 'Name' on the source type before giving up.
         // TODO: Expand this to allow a property to consist of more than two 'camelcased' parts.
-        if (index + 1 < members.Count)
+        index++;
+
+        var memberName = name;
+
+        while (index < members.Count)
         {
-          member = type.GetMember(name + members[index + 1], BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy).FirstOrDefault();
+          memberName += members[index];
+
+          member = type.GetMember(memberName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy).FirstOrDefault();
+
           index++;
+
+          if (member != null) break;
+        }
+
+        if (index < members.Count)
+        {
+          memberStack.Add(member);
+
+          return GetMemberOnType(((PropertyOrFieldInfo)member).PropertyOrFieldType, members, index, memberStack);
         }
 
         if (member == null)

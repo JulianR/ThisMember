@@ -203,23 +203,27 @@ namespace ThisMember.Test
     class User
     {
       public string FirstName { get; set; }
+      public string HasBeenDeleted { get; set; }
     }
 
     class UserDto
     {
-      public string FirstName { get; set; }
     }
 
     class Test
     {
       public User User { get; set; }
+      public User CreatedByUser { get; set; }
     }
 
     class TestDto
     {
-      public UserDto User { get; set; }
       public string UserFirstName { get; set; }
       public int UserFirstNameLength { get; set; }
+      public string CreatedByUserHasBeenDeleted { get; set; }
+      public int CreatedByUserHasBeenDeletedLength { get; set; }
+      public string CreatedbyUserHasBeenDeletedPartial { get; set; }
+      public string CreatedbyUserHasBeenDeletedPartialMatch { get; set; }
     }
 
     [TestMethod]
@@ -240,6 +244,46 @@ namespace ThisMember.Test
 
       Assert.AreEqual("test", result[0].UserFirstName);
       Assert.AreEqual(4, result[0].UserFirstNameLength);
+    }
+
+    [TestMethod]
+    public void FlattenHierarchyWorksForArbitraryCamelCasingDepth()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map
+      (
+        new[] 
+        { 
+          new Test
+          {
+            CreatedByUser = new User { HasBeenDeleted = "True" }
+          }
+        }, new List<TestDto>()
+      );
+
+      Assert.AreEqual("True", result[0].CreatedByUserHasBeenDeleted);
+      Assert.AreEqual(4, result[0].CreatedByUserHasBeenDeletedLength);
+    }
+
+    [TestMethod]
+    public void PartialMatchesAreNotMapped()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map
+      (
+        new[] 
+        { 
+          new Test
+          {
+            CreatedByUser = new User { HasBeenDeleted = "True" }
+          }
+        }, new List<TestDto>()
+      );
+
+      Assert.IsNull(result[0].CreatedbyUserHasBeenDeletedPartial);
+      Assert.IsNull(result[0].CreatedbyUserHasBeenDeletedPartialMatch);
     }
   }
 }
