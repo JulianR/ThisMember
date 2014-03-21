@@ -199,6 +199,47 @@ namespace ThisMember.Test
 
       Assert.IsNull(result.OneTwo);
     }
-  
+
+    class User
+    {
+      public string FirstName { get; set; }
+    }
+
+    class UserDto
+    {
+      public string FirstName { get; set; }
+    }
+
+    class Test
+    {
+      public User User { get; set; }
+    }
+
+    class TestDto
+    {
+      public UserDto User { get; set; }
+      public string UserFirstName { get; set; }
+      public int UserFirstNameLength { get; set; }
+    }
+
+    [TestMethod]
+    public void UserDtoTest()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map(new[] 
+      { 
+        new Test
+        {
+          User = new User
+          {
+            FirstName = "test"
+          }
+        }
+      }, new List<TestDto>());
+
+      Assert.AreEqual("test", result[0].UserFirstName);
+      Assert.AreEqual(4, result[0].UserFirstNameLength);
+    }
   }
 }
