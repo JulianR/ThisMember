@@ -28,7 +28,24 @@ namespace ThisMember.Core
 
       var member = type.GetMember(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy).FirstOrDefault();
 
-      if (member == null) return false;
+      if (member == null)
+      {
+        // We couldn't find a property with that name, so in case that there's another property in the list after this one
+        // try appending that and see if that results in a valid member.
+        // Example: User.FirstName won't match to a property UserFirstName here, because it will have split it to 'User', 'First' and 'Name'.
+        // This extra check will make sure it also tries to find a property 'First' + 'Name' on the source type before giving up.
+        // TODO: Expand this to allow a property to consist of more than two 'camelcased' parts.
+        if (index + 1 < members.Count)
+        {
+          member = type.GetMember(name + members[index + 1], BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy).FirstOrDefault();
+          index++;
+        }
+
+        if (member == null)
+        {
+          return false;
+        }
+      }
 
       if (!PropertyOrFieldInfo.IsPropertyOrField(member))
       {
@@ -54,9 +71,9 @@ namespace ThisMember.Core
 
     public ProposedHierarchicalMapping ProposeHierarchicalMapping(PropertyOrFieldInfo destinationMember)
     {
-      
+
       var split = CamelCaseHelper.SplitOnCamelCase(destinationMember.Name);
-      
+
       if (split.Count <= 1)
       {
         return null;
