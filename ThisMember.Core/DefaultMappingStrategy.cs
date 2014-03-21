@@ -8,16 +8,19 @@ using System.Collections;
 using System.Linq.Expressions;
 using ThisMember.Core.Exceptions;
 using ThisMember.Core.Options;
+using ThisMember.Core.Misc;
+using ThisMember.Extensions;
+using System.Collections.Concurrent;
 
 namespace ThisMember.Core
 {
   internal class DefaultMappingStrategy : IMappingStrategy
   {
     // Cache for type mappings we have found so far
-    private readonly Dictionary<TypePair, ProposedTypeMapping> mappingCache = new Dictionary<TypePair, ProposedTypeMapping>();
+    private readonly ConcurrentDictionary<TypePair, ProposedTypeMapping> mappingCache = new ConcurrentDictionary<TypePair, ProposedTypeMapping>();
 
     // Cache for custom mappings 
-    private readonly Dictionary<TypePair, CustomMapping> customMappingCache = new Dictionary<TypePair, CustomMapping>();
+    private readonly ConcurrentDictionary<TypePair, CustomMapping> customMappingCache = new ConcurrentDictionary<TypePair, CustomMapping>();
 
     private readonly IMemberMapper mapper;
 
@@ -29,25 +32,45 @@ namespace ThisMember.Core
 
     public IMemberProviderFactory MemberProviderFactory { get; set; }
 
-    public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMappingExpression = null)
+    public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MemberOptions options = null, Expression<Func<TSource, object>> customMappingExpression = null)
     {
-      var processor = new StrategyProcessor(this, mapper, mappingCache, customMappingCache);
+      var mapperOptions = GetMapperOptions(mapper, typeof(TSource), typeof(TDestination));
+
+      var processor = new StrategyProcessor(this, mapper, mappingCache, customMappingCache, mapperOptions);
 
       return processor.CreateMapProposal<TSource, TDestination>(options, customMappingExpression);
     }
 
-    public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(MappingOptions options = null, Expression<Func<TSource, TParam, object>> customMappingExpression = null)
+    public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(MemberOptions options = null, Expression<Func<TSource, TParam, object>> customMappingExpression = null)
     {
-      var processor = new StrategyProcessor(this, mapper, mappingCache, customMappingCache);
+      var mapperOptions = GetMapperOptions(mapper, typeof(TSource), typeof(TDestination));
+
+      var processor = new StrategyProcessor(this, mapper, mappingCache, customMappingCache, mapperOptions);
 
       return processor.CreateMapProposal<TSource, TDestination, TParam>(options, customMappingExpression);
     }
 
-    public ProposedMap CreateMapProposal(TypePair pair, MappingOptions options = null, LambdaExpression customMappingExpression = null, params Type[] parameters)
+    public ProposedMap CreateMapProposal(TypePair pair, MemberOptions options = null, LambdaExpression customMappingExpression = null, params Type[] parameters)
     {
-      var processor = new StrategyProcessor(this, mapper, mappingCache, customMappingCache);
+      var mapperOptions = GetMapperOptions(mapper, pair.SourceType, pair.DestinationType);
+
+      var processor = new StrategyProcessor(this, mapper, mappingCache, customMappingCache, mapperOptions);
 
       return processor.CreateMapProposal(pair, options, customMappingExpression, parameters);
+    }
+
+    private MapperOptions GetMapperOptions(IMemberMapper mapper, Type sourceType, Type destinationType)
+    {
+      var destOptions = mapper.Data.TryGetMapperOptions(destinationType, MappingSides.Destination);
+
+      if (destOptions != null)
+      {
+        return destOptions;
+      }
+
+      var sourceOptions = mapper.Data.TryGetMapperOptions(sourceType, MappingSides.Source);
+
+      return sourceOptions ?? mapper.Options;
     }
 
     public void ClearMapCache()
@@ -64,40 +87,47 @@ namespace ThisMember.Core
     {
       private readonly IMemberMapper mapper;
 
-      private readonly Dictionary<TypePair, ProposedTypeMapping> mappingCache;
+      private readonly ConcurrentDictionary<TypePair, ProposedTypeMapping> mappingCache;
 
-      private readonly Dictionary<TypePair, CustomMapping> customMappingCache;
+      private readonly ConcurrentDictionary<TypePair, CustomMapping> customMappingCache;
 
       private readonly DefaultMappingStrategy strategy;
 
-      public StrategyProcessor(DefaultMappingStrategy strategy,  IMemberMapper mapper, Dictionary<TypePair, ProposedTypeMapping> mappingCache, Dictionary<TypePair, CustomMapping> customMappingCache)
+      // Keep a stack to deal with recursive members on types
+      private Stack<TypePair> typeStack = new Stack<TypePair>();
+
+      private readonly MapperOptions options;
+
+      public StrategyProcessor(DefaultMappingStrategy strategy,
+        IMemberMapper mapper,
+        ConcurrentDictionary<TypePair, ProposedTypeMapping> mappingCache,
+        ConcurrentDictionary<TypePair, CustomMapping> customMappingCache,
+        MapperOptions options)
       {
         this.mapper = mapper;
         this.mappingCache = mappingCache;
         this.customMappingCache = customMappingCache;
         this.strategy = strategy;
+        this.options = options;
       }
-
-      // Keep a stack to deal with recursive members on types
-      private Stack<TypePair> typeStack = new Stack<TypePair>();
 
       /// <summary>
       /// Returns a type mapping of the TypePair you pass in. 
       /// </summary>
       /// <returns></returns>
-      private ProposedTypeMapping GetTypeMapping(int currentDepth, TypePair pair, MappingOptions options = null, CustomMapping customMapping = null)
+      private ProposedTypeMapping GetTypeMapping(int currentDepth, TypePair pair, MemberOptions options = null, CustomMapping customMapping = null)
       {
         if (!typeStack.Contains(pair))
         {
           typeStack.Push(pair);
         }
-        else if (mapper.Options.Safety.IfRecursiveRelationshipIsDetected == RecursivePropertyOptions.ThrowIfRecursionIsDetected)
+        else if (this.options.Safety.IfRecursiveRelationshipIsDetected == RecursivePropertyOptions.ThrowIfRecursionIsDetected)
         {
           // Oh noes, recursion!
           throw new RecursiveRelationshipException(pair);
         }
         // if it's a recursive relationship, by default we return null which is handled after the method returns
-        else 
+        else
         {
           return null;
         }
@@ -137,6 +167,7 @@ namespace ThisMember.Core
         foreach (var mapping in GetTypeMembers(memberProvider, options, currentDepth))
         {
           var destinationMember = mapping.Destination;
+          var sourceMember = mapping.Source;
 
           // Does the memberprovider see any reason to ignore this member?
           if (memberProvider.IsMemberIgnored(sourceType, destinationMember))
@@ -144,15 +175,22 @@ namespace ThisMember.Core
             continue;
           }
 
+
           Expression customExpression = null;
 
           // Try to extract an expression that was supplied for this destination member
           if (customMapping != null)
           {
             customExpression = customMapping.GetExpressionForMember(destinationMember);
+
+            if (mapping.ConversionFunction == null)
+            {
+              var conversionFunction = customMapping.GetConversionFunction(sourceMember, destinationMember);
+
+              mapping.ConversionFunction = conversionFunction;
+            }
           }
 
-          var sourceMember = mapping.Source;
 
           // Did the user supply a function to transform the source member's value?
           if (mapping.ConversionFunction != null)
@@ -165,7 +203,8 @@ namespace ThisMember.Core
               {
                 DestinationType = destinationType
               };
-              customMappingCache.Add(pair, customMapping);
+
+              customMappingCache.AddOrUpdate(pair, customMapping, (k, v) => customMapping);
 
               typeMapping.CustomMapping = customMapping;
             }
@@ -174,13 +213,17 @@ namespace ThisMember.Core
             customMapping.AddConversionFunction(sourceMember, destinationMember, mapping.ConversionFunction);
 
           }
+          else if (customMapping != null)
+          {
+
+          }
 
           ProposedHierarchicalMapping hierarchicalMapping = null;
 
           // No source member or can't write to the destination?
           if (HasNoSourceMember(customExpression, sourceMember) || !destinationMember.CanWrite)
           {
-            if (mapper.Options.Conventions.AutomaticallyFlattenHierarchies)
+            if (this.options.Conventions.AutomaticallyFlattenHierarchies)
             {
               // Propose a mapping that flattens a hierarchy if possible.
               // For example, map type.CompanyName to otherType.Company.Name
@@ -190,7 +233,7 @@ namespace ThisMember.Core
             // No way to map this thing? Add it to incompatible members if the option has been turned on.
             // Will cause an (intended) exception later on, allowing you to verify your mappings
             // for correctness and completeness.
-            if (hierarchicalMapping == null && mapper.Options.Strictness.ThrowWithoutCorrespondingSourceMember)
+            if (hierarchicalMapping == null && this.options.Strictness.ThrowWithoutCorrespondingSourceMember)
             {
               typeMapping.IncompatibleMappings.Add(destinationMember);
             }
@@ -218,7 +261,7 @@ namespace ThisMember.Core
           }
           // No simple assignment, but a custom expression is supplied
           // and that's just as good as having a direct assignment mapping
-          else if(customExpression != null)
+          else if (customExpression != null || mapping.ConversionFunction != null)
           {
             typeMapping.ProposedMappings.Add
             (
@@ -269,10 +312,7 @@ namespace ThisMember.Core
         // at a depth at which the full depth CAN be explored.
         if (!typeMapping.DoNotCache)
         {
-          lock (mappingCache)
-          {
-            mappingCache[pair] = typeMapping;
-          }
+          mappingCache[pair] = typeMapping;
         }
 
         typeStack.Pop();
@@ -287,7 +327,7 @@ namespace ThisMember.Core
         public LambdaExpression ConversionFunction { get; set; }
       }
 
-      private static IEnumerable<SourceDestinationMapping> GetTypeMembers(IMemberProvider memberProvider, MappingOptions options, int currentDepth)
+      private IEnumerable<SourceDestinationMapping> GetTypeMembers(IMemberProvider memberProvider, MemberOptions options, int currentDepth)
       {
         var destinationMembers = memberProvider.GetDestinationMembers();
 
@@ -303,9 +343,10 @@ namespace ThisMember.Core
             // A class that allows you to customize a few things about a mapping
             var option = new MemberOption(sourceMember, destinationMember);
 
-            // Execute the user supplied function
-            options(sourceMember, destinationMember, option, currentDepth);
+            var ctx = new MappingContext(sourceMember, destinationMember, currentDepth, this.mapper);
 
+            // Execute the user supplied function
+            options(ctx, option);
 
             conversion = option.ConversionFunction;
 
@@ -364,7 +405,7 @@ namespace ThisMember.Core
       /// <summary>
       /// Go one deeper into the type hierarchy to map between a source and destination member.
       /// </summary>
-      private void GenerateComplexTypeMapping(int currentDepth, MappingOptions options, CustomMapping customMapping, ProposedTypeMapping typeMapping, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
+      private void GenerateComplexTypeMapping(int currentDepth, MemberOptions options, CustomMapping customMapping, ProposedTypeMapping typeMapping, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
       {
         var complexPair = new TypePair(sourceMember.PropertyOrFieldType, destinationMember.PropertyOrFieldType);
 
@@ -395,12 +436,12 @@ namespace ThisMember.Core
         }
       }
 
-      private void GenerateEnumerableMapping(int currentDepth, MappingOptions options, CustomMapping customMapping, ProposedTypeMapping typeMapping, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
+      private void GenerateEnumerableMapping(int currentDepth, MemberOptions options, CustomMapping customMapping, ProposedTypeMapping typeMapping, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember)
       {
         var typeOfSourceEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(sourceMember.PropertyOrFieldType);
         var typeOfDestinationEnumerable = CollectionTypeHelper.GetTypeInsideEnumerable(destinationMember.PropertyOrFieldType);
 
-        var canAssignSourceItemsToDestination = CanAssignSourceItemsToDestination(mapper, destinationMember, sourceMember, typeOfSourceEnumerable, typeOfDestinationEnumerable);
+        var canAssignSourceItemsToDestination = CanAssignSourceItemsToDestination(destinationMember, sourceMember, typeOfSourceEnumerable, typeOfDestinationEnumerable);
 
         if (canAssignSourceItemsToDestination)
         {
@@ -442,7 +483,7 @@ namespace ThisMember.Core
         }
       }
 
-      private static bool CanAssignSourceItemsToDestination(IMemberMapper mapper, PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type typeOfSourceEnumerable, Type typeOfDestinationEnumerable)
+      private bool CanAssignSourceItemsToDestination(PropertyOrFieldInfo destinationMember, PropertyOrFieldInfo sourceMember, Type typeOfSourceEnumerable, Type typeOfDestinationEnumerable)
       {
         if (typeOfDestinationEnumerable == typeOfSourceEnumerable)
         {
@@ -452,7 +493,7 @@ namespace ThisMember.Core
             return true;
           }
 
-          if (sourceMember.DeclaringType == destinationMember.DeclaringType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+          if (sourceMember.DeclaringType == destinationMember.DeclaringType && this.options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
           {
             return false;
           }
@@ -500,7 +541,7 @@ namespace ThisMember.Core
           }
         }
 
-        if (pair.SourceType == pair.DestinationType && mapper.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+        if (pair.SourceType == pair.DestinationType && this.options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
         {
           if (sourceMemberType.IsValueType || sourceMemberType == typeof(string))
           {
@@ -516,7 +557,7 @@ namespace ThisMember.Core
         // generator which can determine if we need to preserve the contents of the enumerable.
         if (CollectionTypeHelper.IsEnumerable(destinationMember.PropertyOrFieldType)
           && CollectionTypeHelper.IsEnumerable(sourceMemberType)
-          && mapper.Options.Conventions.PreserveDestinationListContents) // but only if the option is turned on at all
+          && this.options.Conventions.PreserveDestinationListContents) // but only if the option is turned on at all
         {
           return false;
         }
@@ -524,7 +565,7 @@ namespace ThisMember.Core
         return true;
       }
 
-      
+
 
       private bool HasNoSourceMember(Expression customExpression, PropertyOrFieldInfo sourceMember)
       {
@@ -532,11 +573,11 @@ namespace ThisMember.Core
                   && customExpression == null;
       }
 
-      private ProposedTypeMapping GetComplexTypeMapping(int currentDepth, TypePair complexPair, MappingOptions options, CustomMapping customMapping, bool skipCache = false)
+      private ProposedTypeMapping GetComplexTypeMapping(int currentDepth, TypePair complexPair, MemberOptions options, CustomMapping customMapping, bool skipCache = false)
       {
         if (complexPair.SourceType == complexPair.DestinationType)
         {
-          var maxDepth = mapper.Options.Cloning.MaxCloneDepth;
+          var maxDepth = this.options.Cloning.MaxCloneDepth;
 
           if (maxDepth.HasValue && currentDepth > maxDepth)
           {
@@ -545,7 +586,7 @@ namespace ThisMember.Core
         }
         else
         {
-          var maxDepth = mapper.Options.Conventions.MaxDepth;
+          var maxDepth = this.options.Conventions.MaxDepth;
 
           if (maxDepth.HasValue && currentDepth > maxDepth)
           {
@@ -572,14 +613,11 @@ namespace ThisMember.Core
         return complexTypeMapping;
       }
 
-      public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MappingOptions options = null, Expression<Func<TSource, object>> customMappingExpression = null)
+      public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(MemberOptions options = null, Expression<Func<TSource, object>> customMappingExpression = null)
       {
-        var map = new ProposedMap<TSource, TDestination>(this.mapper);
+        var map = new ProposedMap<TSource, TDestination>(this.mapper, this.options);
 
         var pair = new TypePair(typeof(TSource), typeof(TDestination));
-
-        map.SourceType = pair.SourceType;
-        map.DestinationType = pair.DestinationType;
 
         CustomMapping customMapping = null;
 
@@ -594,7 +632,7 @@ namespace ThisMember.Core
 
         TryGetCustomMapping(pair, out customMapping);
 
-        var mapping = GetComplexTypeMapping(0, pair, options, customMapping, true);
+        var mapping = GetComplexTypeMapping(0, pair, options ?? mapper.DefaultMemberOptions, customMapping, true);
 
 
         if (mapping.CustomMapping == null)
@@ -607,17 +645,14 @@ namespace ThisMember.Core
         return map;
       }
 
-      public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(MappingOptions options = null, Expression<Func<TSource, TParam, object>> customMappingExpression = null)
+      public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(MemberOptions options = null, Expression<Func<TSource, TParam, object>> customMappingExpression = null)
       {
-        var map = new ProposedMap<TSource, TDestination, TParam>(this.mapper);
+        var map = new ProposedMap<TSource, TDestination, TParam>(this.mapper, this.options);
 
         map.ParameterTypes.Add(typeof(TParam));
 
         var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-        map.SourceType = pair.SourceType;
-        map.DestinationType = pair.DestinationType;
-
         CustomMapping customMapping = null;
 
         //if (customMappingExpression != null)
@@ -631,7 +666,7 @@ namespace ThisMember.Core
 
         TryGetCustomMapping(pair, out customMapping);
 
-        var mapping = GetComplexTypeMapping(0, pair, options, customMapping, true);
+        var mapping = GetComplexTypeMapping(0, pair, options ?? mapper.DefaultMemberOptions, customMapping, true);
 
 
         if (mapping.CustomMapping == null)
@@ -644,26 +679,23 @@ namespace ThisMember.Core
         return map;
       }
 
-      public ProposedMap CreateMapProposal(TypePair pair, MappingOptions options = null, LambdaExpression customMappingExpression = null, params Type[] parameters)
+      public ProposedMap CreateMapProposal(TypePair pair, MemberOptions options = null, LambdaExpression customMappingExpression = null, params Type[] parameters)
       {
 
-        var map = new ProposedMap(this.mapper);
+        var map = new ProposedMap(pair.SourceType, pair.DestinationType, this.mapper, this.options);
 
         foreach (var param in parameters)
         {
           map.ParameterTypes.Add(param);
         }
 
-        map.SourceType = pair.SourceType;
-        map.DestinationType = pair.DestinationType;
-
         CustomMapping customMapping = null;
 
         customMapping = GetCustomMappingFromExpression(pair, customMappingExpression, customMapping);
 
         TryGetCustomMapping(pair, out customMapping);
 
-        var mapping = GetComplexTypeMapping(0, pair, options, customMapping, true);
+        var mapping = GetComplexTypeMapping(0, pair, options ?? mapper.DefaultMemberOptions, customMapping, true);
 
         if (mapping.CustomMapping == null)
         {
@@ -678,14 +710,12 @@ namespace ThisMember.Core
 
       private CustomMapping GetCustomMappingFromExpression(TypePair pair, LambdaExpression customMappingExpression, CustomMapping customMapping)
       {
-        lock (customMappingCache)
+        if (customMappingExpression != null)
         {
-          if (customMappingExpression != null)
-          {
-            customMapping = CustomMapping.GetCustomMapping(pair.DestinationType, customMappingExpression);
-            customMappingCache[pair] = customMapping;
-          }
+          customMapping = CustomMapping.GetCustomMapping(pair.DestinationType, customMappingExpression);
+          customMappingCache[pair] = customMapping;
         }
+
         return customMapping;
       }
 
@@ -711,14 +741,22 @@ namespace ThisMember.Core
           var destination = CollectionTypeHelper.GetTypeInsideEnumerable(pair.DestinationType);
           pair = new TypePair(source, destination);
         }
+        IEnumerable<CustomMapping> matchingMappings;
 
         customMappingCache.TryGetValue(pair, out customMapping);
 
-        var matchingMappings = (from m in customMappingCache
-                                where m.Key.DestinationType.IsAssignableFrom(pair.DestinationType)
-                                && m.Key.DestinationType != pair.DestinationType
-                                orderby DistanceFromType(pair.DestinationType, m.Key.DestinationType, 0) ascending
-                                select m.Value).ToList();
+        matchingMappings = (from m in customMappingCache
+                            where m.Key.DestinationType.IsAssignableFrom(pair.DestinationType)
+                            && m.Key.DestinationType != pair.DestinationType
+                            orderby DistanceFromType(pair.DestinationType, m.Key.DestinationType, 0) ascending
+                            select m.Value);
+
+        matchingMappings = matchingMappings.Union(from m in customMappingCache
+                                                  where m.Key.SourceType.IsAssignableFrom(pair.SourceType)
+                                                  && m.Key.SourceType != pair.SourceType
+                                                  orderby DistanceFromType(pair.SourceType, m.Key.SourceType, 0) ascending
+                                                  select m.Value).ToList();
+
 
         customMapping = customMapping ?? matchingMappings.FirstOrDefault();
 

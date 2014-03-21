@@ -13,14 +13,13 @@ namespace ThisMember.Core
 
     public static bool IsEnumerable(TypePair pair)
     {
-      return typeof(IEnumerable).IsAssignableFrom(pair.SourceType) &&
-        typeof(IEnumerable).IsAssignableFrom(pair.DestinationType);
+      return IsEnumerable(pair.SourceType) && IsEnumerable(pair.DestinationType);
     }
 
     public static bool IsEnumerable(ProposedTypeMapping mapping)
     {
-      return typeof(IEnumerable).IsAssignableFrom(mapping.SourceMember.PropertyOrFieldType)
-            && typeof(IEnumerable).IsAssignableFrom(mapping.DestinationMember.PropertyOrFieldType);
+      return IsEnumerable(mapping.SourceMember.PropertyOrFieldType) 
+        && IsEnumerable(mapping.DestinationMember.PropertyOrFieldType);
     }
 
     public static bool IsEnumerable(Type t)
@@ -39,7 +38,7 @@ namespace ThisMember.Core
                                where m.Name == "GetEnumerator"
                                orderby m.ReturnType.IsGenericType descending
                                select m).FirstOrDefault();
-                               
+
       }
 
       if (getEnumeratorMethod == null) return null;
@@ -47,7 +46,7 @@ namespace ThisMember.Core
       if (getEnumeratorMethod.ReturnType.IsGenericType)
       {
         var args = getEnumeratorMethod.ReturnType.GetGenericArguments();
-        
+
         if (typeof(IDictionary).IsAssignableFrom(type) && args.Length == 2)
         {
           return typeof(KeyValuePair<,>).MakeGenericType(args[0], args[1]);

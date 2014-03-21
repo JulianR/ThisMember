@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ThisMember.Core.Interfaces;
+using System.Collections.Concurrent;
 
 namespace ThisMember.Core
 {
@@ -15,11 +16,11 @@ namespace ThisMember.Core
 
     private class MapFuncWrapper
     {
-      public Func<IMemberMapper, MappingOptions, ProposedMap> CreateMapFunction { get; set; }
+      public Func<IMemberMapper, MemberOptions, ProposedMap> CreateMapFunction { get; set; }
       public bool InUse { get; set; }
     }
 
-    private Dictionary<TypePair, MapFuncWrapper> cache = new Dictionary<TypePair, MapFuncWrapper>();
+    private ConcurrentDictionary<TypePair, MapFuncWrapper> cache = new ConcurrentDictionary<TypePair, MapFuncWrapper>();
 
     public MapRepositoryBase()
     {
@@ -34,20 +35,18 @@ namespace ThisMember.Core
     /// the map, just tells the IMemberMapper how to do so. 
     /// </summary>
     /// <param name="action">The function that describes how the map should be created.</param>
-    protected void DefineMap<TSource, TDestination>(Func<IMemberMapper, MappingOptions, ProposedMap<TSource, TDestination>> action)
+    protected void DefineMap<TSource, TDestination>(Func<IMemberMapper, MemberOptions, ProposedMap<TSource, TDestination>> action)
     {
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-      lock (cache)
+      if (!cache.ContainsKey(pair))
       {
-        if (!cache.ContainsKey(pair))
-        {
-          cache.Add(pair, new MapFuncWrapper { CreateMapFunction = action });
-        }
-        else
-        {
-          throw new InvalidOperationException("Map repository already contains map for types " + pair);
-        }
+        var wrapper = new MapFuncWrapper { CreateMapFunction = action };
+        cache.AddOrUpdate(pair, wrapper, (k, v) => wrapper);
+      }
+      else
+      {
+        throw new InvalidOperationException("Map repository already contains map for types " + pair);
       }
     }
 
@@ -55,15 +54,14 @@ namespace ThisMember.Core
     /// Checks if the mapper repository contains a map and if so, returns it as an out parameter.
     /// </summary>
     /// <returns></returns>
-    public bool TryGetMap(IMemberMapper mapper, MappingOptions options, TypePair pair, out ProposedMap map)
+    public bool TryGetMap(IMemberMapper mapper, MemberOptions options, TypePair pair, out ProposedMap map)
     {
       MapFuncWrapper action;
+
       if (cache.TryGetValue(pair, out action))
       {
-
         lock (action)
         {
-
           if (action.InUse)
           {
             map = null;
@@ -92,7 +90,7 @@ namespace ThisMember.Core
     /// Checks if the mapper repository contains a map and if so, returns it as an out parameter.
     /// </summary>
     /// <returns></returns>
-    public bool TryGetMap<TSource, TDestination>(IMemberMapper mapper, MappingOptions options, out ProposedMap<TSource, TDestination> map)
+    public bool TryGetMap<TSource, TDestination>(IMemberMapper mapper, MemberOptions options, out ProposedMap<TSource, TDestination> map)
     {
       MapFuncWrapper action;
       if (cache.TryGetValue(new TypePair(typeof(TSource), typeof(TDestination)), out action))

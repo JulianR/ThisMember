@@ -58,9 +58,14 @@
     <Compile Include="Exceptions\CodeGenerationException.cs" />
     <Compile Include="Exceptions\IncompatibleMappingException.cs" />
     <Compile Include="Exceptions\MapNotFoundException.cs" />
+    <Compile Include="Exceptions\MappingTerminatedException.cs" />
     <Compile Include="Exceptions\MemberNotFoundException.cs" />
     <Compile Include="Exceptions\RecursiveRelationshipException.cs" />
+    <Compile Include="Extensions\DictionaryExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
+    <Compile Include="Fluent\DestinationTypeModifier.cs" />
+    <Compile Include="Fluent\SourceTypeModifier.cs" />
+    <Compile Include="Fluent\VariableDefinition.cs" />
     <Compile Include="IgnoreMemberAttribute.cs" />
     <Compile Include="Interfaces\IMemberProvider.cs" />
     <Compile Include="IndexedParameterExpression.cs" />
@@ -75,6 +80,7 @@
     <Compile Include="Interfaces\IProjectionGenerator.cs" />
     <Compile Include="Interfaces\IProjectionGeneratorFactory.cs" />
     <Compile Include="MapCollection.cs" />
+    <Compile Include="Misc\MapperDataAccessor.cs" />
     <Compile Include="NullableTypeHelper.cs" />
     <Compile Include="Options\MapperOptions.cs" />
     <Compile Include="MemberOption.cs" />
@@ -82,6 +88,7 @@
     <Compile Include="MapProposalProcessor.cs" />
     <Compile Include="MapRepositoryBase.cs" />
     <Compile Include="DefaultMemberMapperConfiguration.cs" />
+    <Compile Include="Options\MappingContext.cs" />
     <Compile Include="Projectables\IProjectable.cs" />
     <Compile Include="Projectables\QueryableExtensions.cs" />
     <Compile Include="Projectables\QueryableProjectable.cs" />
@@ -93,7 +100,7 @@
     <Compile Include="MemberMap.cs" />
     <Compile Include="MemberMapper.cs" />
     <Compile Include="ProposedMap.cs" />
-    <Compile Include="MappingPropositionModifier.cs" />
+    <Compile Include="Fluent\MappingPropositionModifier.cs" />
     <Compile Include="ProposedTypeMapping.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TypePair.cs" />

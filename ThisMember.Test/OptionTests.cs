@@ -179,64 +179,6 @@ namespace ThisMember.Test
       var dto = mapper.Map<Customer, SimpleCustomerDto>(customer);
     }
 
-    public class StringSource
-    {
-      public string Date { get; set; }
-    }
-
-    public class DateTimeDestination
-    {
-      public DateTime Date { get; set; }
-    }
-
-    [TestMethod]
-    public void StringIsParsedToDateTime()
-    {
-      var mapper = new MemberMapper();
-
-      mapper.Options.Conventions.DateTime.ParseStringsToDateTime = true;
-      mapper.Options.Conventions.DateTime.ParseCulture = new CultureInfo("en-US");
-
-      var result = mapper.Map<StringSource, DateTimeDestination>(new StringSource { Date = "12-31-2001" });
-
-      Assert.AreEqual(new DateTime(2001, 12, 31), result.Date);
-
-    }
-
-    [TestMethod]
-    public void StringIsParsedToDateTimeWithDifferentCulture()
-    {
-      var mapper = new MemberMapper();
-
-      mapper.Options.Conventions.DateTime.ParseStringsToDateTime = true;
-      mapper.Options.Conventions.DateTime.ParseCulture = new CultureInfo("nl-NL");
-
-      var result = mapper.Map<StringSource, DateTimeDestination>(new StringSource { Date = "31-12-2001" });
-
-      Assert.AreEqual(new DateTime(2001, 12, 31), result.Date);
-    }
-
-    [TestMethod]
-    [ExpectedException(typeof(CodeGenerationException))]
-    public void ExceptionIsThrownWithMappingToDateTimeTurnedOff()
-    {
-      var mapper = new MemberMapper();
-
-      mapper.Options.Conventions.DateTime.ParseStringsToDateTime = false;
-
-      var result = mapper.Map<StringSource, DateTimeDestination>(new StringSource { Date = "31-12-2001" });
-    }
-
-    [TestMethod]
-    [ExpectedException(typeof(FormatException))]
-    public void ExceptionIsThrownWithInvalidFormat()
-    {
-      var mapper = new MemberMapper();
-
-      mapper.Options.Conventions.DateTime.ParseStringsToDateTime = true;
-
-      var result = mapper.Map<StringSource, DateTimeDestination>(new StringSource { Date = "3a1-31-2001abc" });
-    }
 
     private class ReuseSourceType
     {
@@ -425,6 +367,8 @@ namespace ThisMember.Test
       public int NonNullableID { get; set; }
       public DateTime NonNullableDate { get; set; }
       public bool NonNullableBool { get; set; }
+
+      public int? Nullable { get; set; }
     }
 
     class DestObjectComplexType
@@ -443,6 +387,8 @@ namespace ThisMember.Test
       public int NonNullableID { get; set; }
       public DateTime NonNullableDate { get; set; }
       public bool NonNullableBool { get; set; }
+
+      public int? Nullable { get; set; }
     }
 
     [TestMethod]
@@ -461,7 +407,8 @@ namespace ThisMember.Test
         Complex = new DestObjectComplexType
         {
           Name = "Name"
-        }
+        },
+        Nullable = 100
       };
 
       mapper.Map(new SourceObjectWithDefaultMembers(), destination);
@@ -475,6 +422,7 @@ namespace ThisMember.Test
       Assert.AreEqual(default(int), destination.NonNullableID);
       Assert.AreEqual(default(DateTime), destination.NonNullableDate);
       Assert.AreEqual(default(bool), destination.NonNullableBool);
+      Assert.AreEqual(100, destination.Nullable);
 
       mapper.Map(new SourceObjectWithDefaultMembers { Complex = new SourceObjectComplexType { Name = "Foo" } },
         destination);

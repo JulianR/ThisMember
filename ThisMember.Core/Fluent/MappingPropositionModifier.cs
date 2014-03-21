@@ -5,7 +5,7 @@ using System.Text;
 using System.Linq.Expressions;
 using ThisMember.Core.Interfaces;
 
-namespace ThisMember.Core
+namespace ThisMember.Core.Fluent
 {
   public class MappingPropositionModifier<TSource, TDestination>
   {

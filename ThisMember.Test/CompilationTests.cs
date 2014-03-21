@@ -28,7 +28,7 @@ namespace ThisMember.Test
     {
       Expression<Func<int, int, int>> expr = (a, b) => a + b;
 
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
 
@@ -50,7 +50,7 @@ namespace ThisMember.Test
     {
       Expression<Func<PublicSource, PublicDest, int>> expr = (a, b) => a.Foo + b.Bar;
 
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
 
@@ -72,7 +72,7 @@ namespace ThisMember.Test
     {
       Expression<Func<InternalSource, InternalDest, int>> expr = (a, b) => a.Foo + b.Bar;
 
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
 
@@ -94,7 +94,7 @@ namespace ThisMember.Test
     {
       Expression<Func<PrivateSource, PrivateDest, int>> expr = (a, b) => a.Foo + b.Bar;
 
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
 
@@ -116,7 +116,7 @@ namespace ThisMember.Test
     {
       Expression<Func<GenericSource<int>, GenericDest<int>, int>> expr = (a, b) => a.Foo + b.Bar;
 
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
 
@@ -128,7 +128,7 @@ namespace ThisMember.Test
     {
       Expression<Func<int, int, int>> expr = (a, b) => Foo();
 
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
 
@@ -140,7 +140,7 @@ namespace ThisMember.Test
     {
       Expression<Func<int, int, int>> expr = (a, b) => Bar();
 
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
 
@@ -153,7 +153,7 @@ namespace ThisMember.Test
       var i = 1;
       Expression<Func<int, int, int>> expr = (a, b) => a + b + i;
 
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
 
@@ -167,7 +167,7 @@ namespace ThisMember.Test
 
       Expression<Func<int, int, int>> expr = (a, b) => a + b + info.EnglishName.Length;
 
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
 
@@ -182,7 +182,7 @@ namespace ThisMember.Test
   [TestClass]
   public class MoreCompilationTests
   {
-    
+
     public class NestedClass
     {
       public int Bar()
@@ -216,7 +216,7 @@ namespace ThisMember.Test
     {
 
       var expr = new NestedClass().GenerateExpression();
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
 
@@ -228,9 +228,62 @@ namespace ThisMember.Test
     {
 
       var expr = new PrivateNestedClass().GenerateExpression();
-      var processor = new MapExpressionProcessor(new MemberMapper());
+      var processor = new MapProposalProcessor(new MemberMapper());
 
       processor.Process(expr);
+
+      Assert.IsTrue(processor.NonPublicMembersAccessed);
+    }
+  }
+
+  [TestClass]
+  public class EvenMoreCompilationTests
+  {
+    interface ISource
+    {
+      bool Valid { get; set; }
+    }
+
+    public class Source : ISource
+    {
+      public bool Valid { get; set; }
+    }
+
+    public class Dest
+    {
+      public bool Valid { get; set; }
+    }
+
+
+    [TestMethod]
+    public void NonPublicInterfaceAccessIsDetected()
+    {
+      Expression<Func<ISource, Dest, bool>> expr = (a, b) => a.Valid & b.Valid;
+
+      var processor = new MapProposalProcessor(new MemberMapper());
+
+      processor.Process(expr);
+
+      Assert.IsTrue(processor.NonPublicMembersAccessed);
+    }
+
+    [TestMethod]
+    public void NonPublicInterfaceAccessIsDetected_1()
+    {
+      var mapper = new MemberMapper();
+
+      mapper.Options.Debug.DebugInformationEnabled = true;
+
+      mapper.CreateMap<ISource, Dest>(src => new Dest
+      {
+        Valid = !src.Valid
+      });
+
+      var map = mapper.CreateMap<Source, Dest>();
+
+      var processor = new MapProposalProcessor(mapper);
+
+      processor.Process(map.DebugInformation.MappingExpression);
 
       Assert.IsTrue(processor.NonPublicMembersAccessed);
     }

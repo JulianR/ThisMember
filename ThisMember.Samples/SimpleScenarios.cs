@@ -174,17 +174,17 @@ namespace ThisMember.Samples
       map.FinalizeMap();
 
       // The third way:
-      mapper.CreateMap<UserDto, User>(options: (source, destination, option, depth) =>
+      mapper.CreateMap<UserDto, User>(options: (ctx, option) =>
       {
         // You can make this as complicated as you want
-        if (destination.Name == "Password")
+        if (ctx.Destination.Name == "Password")
         {
           option.IgnoreMember();
         }
 
         // For example, check for the presence of an attribute 
         // that determines if a user has rights to map this property
-        var attr = destination
+        var attr = ctx.Destination
           .PropertyOrFieldType
           .GetCustomAttributes(typeof(MappingRequiresPermissionAttribute), false)
           .FirstOrDefault() as MappingRequiresPermissionAttribute;

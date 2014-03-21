@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using ThisMember.Core.Interfaces;
 using System.Linq.Expressions;
+using ThisMember.Core.Options;
 
 namespace ThisMember.Core
 {
@@ -35,6 +36,11 @@ namespace ThisMember.Core
     {
       this.Source = source;
       this.Destination = destination;
+    }
+
+    public void Convert<TSource>(Expression<Func<TSource, TSource>> conversion)
+    {
+      Convert(((LambdaExpression)conversion));
     }
 
     public void Convert<TSource, TDestination>(Expression<Func<TSource, TDestination>> conversion)
@@ -70,6 +76,5 @@ namespace ThisMember.Core
     {
       State = MemberOptionState.Ignored;
     }
-
   }
 }

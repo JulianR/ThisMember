@@ -13,7 +13,7 @@ namespace ThisMember.Core
     public PropertyOrFieldInfo SourceMember { get; set; }
     public PropertyOrFieldInfo DestinationMember { get; set; }
 
-    public CustomMapping CustomMapping { get; set; }
+    internal CustomMapping CustomMapping { get; set; }
 
     public bool Ignored { get; set; }
 
@@ -34,7 +34,7 @@ namespace ThisMember.Core
 
     public IList<ProposedMemberMapping> ProposedMappings { get; set; }
 
-    public IList<PropertyOrFieldInfo> IncompatibleMappings { get; set; }
+    internal IList<PropertyOrFieldInfo> IncompatibleMappings { get; set; }
 
     public ProposedTypeMapping Clone()
     {
@@ -66,5 +66,7 @@ namespace ThisMember.Core
     {
       return this.DestinationMember.GetHashCode() ^ this.SourceMember.GetHashCode();
     }
+
+    internal bool NewInstanceCreated { get; set; }
   }
 }

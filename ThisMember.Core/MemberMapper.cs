@@ -6,26 +6,41 @@ using ThisMember.Core.Interfaces;
 using System.Linq.Expressions;
 using ThisMember.Core.Exceptions;
 using ThisMember.Core.Options;
+using ThisMember.Core.Misc;
+using System.Threading;
 
 namespace ThisMember.Core
 {
   public class MemberMapper : IMemberMapper
   {
+    /// <summary>
+    /// Allows you to set various options with regards to mapping and map generation.
+    /// 
+    /// Note that any option you change on how maps are generated may not have any effect on the maps that 
+    /// have already been generated. Those are changed only after you call CreateMap again or call ClearMapCache.
+    /// </summary>
     public MapperOptions Options { get; set; }
 
     public event Action<IMemberMapper, TypePair, object> BeforeMapping;
     public event Action<IMemberMapper, TypePair, object> AfterMapping;
 
+    /// <summary>
+    /// Where the IMemberMapper gets its IMapGenerator from.
+    /// </summary>
     public IMapGeneratorFactory MapGeneratorFactory { get; set; }
 
     public IProjectionGeneratorFactory ProjectionGeneratorFactory { get; set; }
 
-    private readonly Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
+    private Dictionary<TypePair, MemberMap> maps = new Dictionary<TypePair, MemberMap>();
 
-    private readonly Dictionary<TypePair, Projection> projections = new Dictionary<TypePair, Projection>();
+    private byte[] mapsWriteLock = new byte[0];
+    private byte[] projectionsWriteLock = new byte[0];
+
+    private Dictionary<TypePair, Projection> projections = new Dictionary<TypePair, Projection>();
 
 
-    public MemberMapper() : this(new DefaultMemberMapperConfiguration())
+    public MemberMapper()
+      : this(new DefaultMemberMapperConfiguration())
     {
     }
 
@@ -38,6 +53,8 @@ namespace ThisMember.Core
       this.ProjectionGeneratorFactory = config.GetProjectionGenerator(this);
 
       this.Options = config.GetOptions(this);
+
+      this.Data = new MapperDataAccessor(this);
     }
 
     public MemberMapper(MapperOptions options = null, IMappingStrategy strategy = null, IMapGeneratorFactory generator = null, IProjectionGeneratorFactory projection = null)
@@ -49,108 +66,8 @@ namespace ThisMember.Core
       this.ProjectionGeneratorFactory = projection ?? new DefaultProjectionGeneratorFactory();
 
       this.Options = options ?? new MapperOptions();
-    }
 
-    private MemberMap<TSource, TDestination> ToGenericMemberMap<TSource, TDestination>(MemberMap map)
-    {
-      var newMap = new MemberMap<TSource, TDestination>();
-
-      newMap.DestinationType = map.DestinationType;
-      newMap.SourceType = map.SourceType;
-      newMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TDestination>;
-      newMap.DebugInformation = map.DebugInformation;
-
-      if (newMap.MappingFunction == null)
-      {
-        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called without parameters. Use another overload of Map or recreate the map without a parameter.", typeof(TSource), typeof(TDestination)));
-      }
-
-      var pair = new TypePair(typeof(TSource), typeof(TDestination));
-
-      lock (this.maps)
-      {
-        if (this.maps.ContainsKey(pair))
-        {
-          this.maps.Remove(pair);
-          this.maps.Add(pair, newMap);
-        }
-      }
-      return newMap;
-    }
-
-    private MemberMap<TSource, TDestination, TParam> ToGenericMemberMap<TSource, TDestination, TParam>(MemberMap map)
-    {
-      var newMap = new MemberMap<TSource, TDestination, TParam>();
-
-      newMap.DestinationType = map.DestinationType;
-      newMap.SourceType = map.SourceType;
-      newMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TParam, TDestination>;
-
-      if (newMap.MappingFunction == null)
-      {
-        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called without parameters. Use another overload of Map or recreate the map without a parameter.", typeof(TSource), typeof(TDestination)));
-      }
-
-      var pair = new TypePair(typeof(TSource), typeof(TDestination));
-
-      lock (this.maps)
-      {
-        if (this.maps.ContainsKey(pair))
-        {
-          this.maps.Remove(pair);
-          this.maps.Add(pair, newMap);
-        }
-      }
-      return newMap;
-    }
-
-    private static bool TryToGenericMemberMap<TSource, TDestination>(MemberMap map, out MemberMap<TSource, TDestination> genericMap)
-    {
-      genericMap = new MemberMap<TSource, TDestination>();
-
-      genericMap.DestinationType = map.DestinationType;
-      genericMap.SourceType = map.SourceType;
-      genericMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TDestination>;
-
-      if (genericMap.MappingFunction == null)
-      {
-        return false;
-      }
-
-      ((MemberMap)genericMap).MappingFunction = map.MappingFunction;
-
-      return true;
-    }
-
-    private static bool TryToGenericMemberMap<TSource, TDestination, TParam>(MemberMap map, out MemberMap<TSource, TDestination, TParam> genericMap)
-    {
-      genericMap = new MemberMap<TSource, TDestination, TParam>();
-
-      genericMap.DestinationType = map.DestinationType;
-      genericMap.SourceType = map.SourceType;
-      genericMap.MappingFunction = map.MappingFunction as Func<TSource, TDestination, TParam, TDestination>;
-
-      if (genericMap.MappingFunction == null)
-      {
-        return false;
-      }
-
-      ((MemberMap)genericMap).MappingFunction = map.MappingFunction;
-
-      return true;
-    }
-
-    private static Projection<TSource, TDestination> ToGenericProjection<TSource, TDestination>(Projection projection)
-    {
-      var newMap = new Projection<TSource, TDestination>();
-
-      newMap.DestinationType = projection.DestinationType;
-      newMap.SourceType = projection.SourceType;
-      newMap.Expression = (Expression<Func<TSource, TDestination>>)projection.Expression;
-
-      ((Projection)newMap).Expression = projection.Expression;
-
-      return newMap;
+      this.Data = new MapperDataAccessor(this);
     }
 
     public TDestination Map<TDestination>(object source) where TDestination : new()
@@ -209,14 +126,28 @@ namespace ThisMember.Core
       return Map(source, destination, param);
     }
 
-    public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
+    /// <summary>
+    /// Creates a map proposal that may be modified later.
+    /// </summary>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    public ProposedMap<TSource, TDestination> CreateMapProposal<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null)
     {
       var proposedMap = this.MappingStrategy.CreateMapProposal<TSource, TDestination>(options, customMapping);
 
       return proposedMap;
     }
 
-    public ProposedMap CreateMapProposal(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null)
+    /// <summary>
+    /// Creates a map proposal that may be modified later.
+    /// </summary>
+    /// <param name="source">The source type</param>
+    /// <param name="destination">The destination type</param>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    public ProposedMap CreateMapProposal(Type source, Type destination, LambdaExpression customMapping = null, MemberOptions options = null)
     {
       var pair = new TypePair(source, destination);
 
@@ -225,7 +156,13 @@ namespace ThisMember.Core
       return proposedMap;
     }
 
-    public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MappingOptions options = null)
+    /// <summary>
+    /// Creates a map proposal that may be modified later.
+    /// </summary>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    public ProposedMap<TSource, TDestination, TParam> CreateMapProposal<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MemberOptions options = null)
     {
       var proposedMap = this.MappingStrategy.CreateMapProposal<TSource, TDestination, TParam>(options, customMapping);
 
@@ -267,7 +204,12 @@ namespace ThisMember.Core
 
     public void RegisterMap(MemberMap map)
     {
-      this.maps[new TypePair(map.SourceType, map.DestinationType)] = map;
+      lock (mapsWriteLock)
+      {
+        var newMaps = new Dictionary<TypePair, MemberMap>(this.maps);
+        newMaps[new TypePair(map.SourceType, map.DestinationType)] = map;
+        Interlocked.CompareExchange(ref this.maps, newMaps, this.maps);
+      }
     }
 
     public TSource Map<TSource>(TSource source) where TSource : new()
@@ -277,31 +219,68 @@ namespace ThisMember.Core
       return Map(source, destination);
     }
 
+    /// <summary>
+    /// The strategy that determines how to map types.
+    /// </summary>
     public IMappingStrategy MappingStrategy { get; set; }
 
-    public MemberMap CreateMap(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null)
+    /// <summary>
+    /// Creates and finalizes a map that may no longer be modified.
+    /// </summary>
+    /// <param name="source">The source type</param>
+    /// <param name="destination">The destination type</param>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    public MemberMap CreateMap(Type source, Type destination, LambdaExpression customMapping = null, MemberOptions options = null)
     {
       return CreateMapProposal(source, destination, customMapping, options).FinalizeMap();
     }
 
-    public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
+    /// <summary>
+    /// Creates and finalizes a map that may no longer be modified.
+    /// </summary>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    public MemberMap<TSource, TDestination> CreateMap<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null)
     {
-      return ToGenericMemberMap<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeMap());
+      return (MemberMap<TSource, TDestination>)CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeMap();
     }
 
-    public MemberMap<TSource, TDestination, TParam> CreateMap<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping, MappingOptions options = null)
+    /// <summary>
+    /// Creates and finalizes a map that may no longer be modified.
+    /// </summary>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    public MemberMap<TSource, TDestination, TParam> CreateMap<TSource, TDestination, TParam>(Expression<Func<TSource, TParam, object>> customMapping = null, MemberOptions options = null)
     {
-      return ToGenericMemberMap<TSource, TDestination, TParam>(CreateMapProposal<TSource, TDestination, TParam>(customMapping, options).FinalizeMap());
+      return (MemberMap<TSource, TDestination, TParam>)CreateMapProposal<TSource, TDestination, TParam>(customMapping, options).FinalizeMap();
     }
 
-    public Projection CreateProjection(Type source, Type destination, LambdaExpression customMapping = null, MappingOptions options = null)
+    /// <summary>
+    /// Creates and finalizes a projection from one type to another that may no longer be modified.
+    /// </summary>
+    /// <param name="source">The source type</param>
+    /// <param name="destination">The destination type</param>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    public Projection CreateProjection(Type source, Type destination, LambdaExpression customMapping = null, MemberOptions options = null)
     {
       return CreateMapProposal(source, destination, customMapping, options).FinalizeProjection();
     }
 
-    public Projection<TSource, TDestination> CreateProjection<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MappingOptions options = null)
+    /// <summary>
+    /// Creates and finalizes a projection from one type to another that may no longer be modified.
+    /// </summary>
+    /// <param name="options">The general mapping convention supplied by a user that is applied to all members</param>
+    /// <param name="customMapping">A lambda expression that describes a custom map supplied by a user</param>
+    /// <returns></returns>
+    public Projection<TSource, TDestination> CreateProjection<TSource, TDestination>(Expression<Func<TSource, object>> customMapping = null, MemberOptions options = null)
     {
-      return ToGenericProjection<TSource, TDestination>(CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeProjection());
+      return (Projection<TSource, TDestination>)CreateMapProposal<TSource, TDestination>(customMapping, options).FinalizeProjection();
     }
 
     public bool HasMap<TSource, TDestination>()
@@ -325,7 +304,12 @@ namespace ThisMember.Core
 
       var genericMap = map as MemberMap<TSource, TDestination>;
 
-      return genericMap ?? ToGenericMemberMap<TSource, TDestination>(map);
+      if (genericMap == null)
+      {
+        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called without parameters. Use another overload of Map or recreate the map without a parameter.", typeof(TSource), typeof(TDestination)));
+      }
+
+      return genericMap;
     }
 
     public MemberMap GetMap(Type source, Type destination)
@@ -336,6 +320,7 @@ namespace ThisMember.Core
       {
         throw new MapNotFoundException(source, destination);
       }
+
       return map;
     }
 
@@ -350,7 +335,12 @@ namespace ThisMember.Core
 
       var genericMap = map as MemberMap<TSource, TDestination, TParam>;
 
-      return genericMap ?? ToGenericMemberMap<TSource, TDestination, TParam>(map);
+      if (genericMap == null)
+      {
+        throw new InvalidOperationException(string.Format("The mapping from {0} to {1} is not configured to be called with parameters. Use another overload of Map or recreate the map with a parameter.", typeof(TSource), typeof(TDestination)));
+      }
+
+      return genericMap;
     }
 
     public bool TryGetMap<TSource, TDestination>(out MemberMap<TSource, TDestination> map)
@@ -365,18 +355,7 @@ namespace ThisMember.Core
 
         if (map == null)
         {
-          var success = TryToGenericMemberMap<TSource, TDestination>(nonGeneric, out map);
-
-          if (!success)
-          {
-            return false;
-          }
-
-          lock (this.maps)
-          {
-            this.maps.Remove(pair);
-            this.maps.Add(pair, map);
-          }
+          return false;
         }
 
         return true;
@@ -408,18 +387,7 @@ namespace ThisMember.Core
 
         if (map == null)
         {
-          var success = TryToGenericMemberMap<TSource, TDestination, TParam>(nonGeneric, out map);
-
-          if (!success)
-          {
-            return false;
-          }
-
-          lock (this.maps)
-          {
-            this.maps.Remove(pair);
-            this.maps.Add(pair, map);
-          }
+          return false;
         }
 
         return true;
@@ -452,7 +420,7 @@ namespace ThisMember.Core
 
       var genericProjection = projection as Projection<TSource, TDestination>;
 
-      return genericProjection ?? ToGenericProjection<TSource, TDestination>(projection);
+      return genericProjection;
     }
 
     public Projection GetProjection(Type source, Type destination)
@@ -468,23 +436,17 @@ namespace ThisMember.Core
 
     public bool TryGetProjection<TSource, TDestination>(out Projection<TSource, TDestination> map)
     {
-      Projection nonGeneric;
+      Projection projection;
 
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
 
-      if (this.projections.TryGetValue(pair, out nonGeneric))
+      if (this.projections.TryGetValue(pair, out projection))
       {
-        map = nonGeneric as Projection<TSource, TDestination>;
+        map = projection as Projection<TSource, TDestination>;
 
         if (map == null)
         {
-          map = ToGenericProjection<TSource, TDestination>(nonGeneric);
-
-          lock (this.maps)
-          {
-            this.projections.Remove(pair);
-            this.projections.Add(pair, map);
-          }
+          return false;
         }
 
         return true;
@@ -504,36 +466,79 @@ namespace ThisMember.Core
       return true;
     }
 
+    /// <summary>
+    /// Clears out the map cache, forcing all maps to be recreated.
+    /// </summary>
     public void ClearMapCache()
     {
-      this.maps.Clear();
+      lock (this.mapsWriteLock)
+      {
+        var newMaps = new Dictionary<TypePair, MemberMap>();
+
+        Interlocked.CompareExchange(ref this.maps, newMaps, this.maps);
+      }
+
       this.MappingStrategy.ClearMapCache();
     }
 
-    private Dictionary<Type, LambdaExpression> constructorCache = new Dictionary<Type, LambdaExpression>();
-
+    /// <summary>
+    /// Adds a constructor for a type that is used for all mappings
+    /// </summary>
     public IMemberMapper AddCustomConstructor<T>(Expression<Func<T>> ctor)
     {
-      constructorCache[typeof(T)] = ctor;
-      return this;
+      return AddCustomConstructor(typeof(T), ctor);
     }
 
+    /// <summary>
+    /// Adds a constructor for a type that is used for all mappings
+    /// </summary>
     public IMemberMapper AddCustomConstructor(Type type, LambdaExpression ctor)
     {
-      constructorCache[type] = ctor;
+      this.Data.AddCustomConstructor(type, ctor);
+
       return this;
     }
 
-    public LambdaExpression GetConstructor(Type t)
+    private LambdaExpression GetConstructor(Type t)
     {
-      LambdaExpression e;
-      constructorCache.TryGetValue(t, out e);
-      return e;
+      return this.Data.GetConstructor(t);
     }
 
+    /// <summary>
+    /// The profile the map operates under, used in conjuction with a MapCollection
+    /// </summary>
     public string Profile { get; set; }
 
+    /// <summary>
+    /// Creates a deep clone of the given source object, mapping the entire object graph.
+    /// </summary>
+    /// <param name="source"></param>
+    /// <returns></returns>
+    public object DeepClone(object obj)
+    {
+      if (!this.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
+      {
+        throw new InvalidOperationException("This mapper has been configured not to perform any cloning by setting Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource to false");
+      }
 
+      if (obj == null)
+      {
+        throw new ArgumentNullException("obj");
+      }
+
+      var type = obj.GetType();
+
+      var instance = Activator.CreateInstance(type);
+
+      return Map(obj, instance);
+    }
+
+    /// <summary>
+    /// Creates a deep clone of the given source object, mapping the entire object graph.
+    /// </summary>
+    /// <typeparam name="TSource"></typeparam>
+    /// <param name="source"></param>
+    /// <returns></returns>
     public TSource DeepClone<TSource>(TSource source) where TSource : new()
     {
       if (!this.Options.Conventions.MakeCloneIfDestinationIsTheSameAsSource)
@@ -544,8 +549,17 @@ namespace ThisMember.Core
       return Map<TSource, TSource>(source);
     }
 
+    /// <summary>
+    /// A map repository is an optional location that is checked by the mapper for map definitions.
+    /// </summary>
     public IMapRepository MapRepository { get; set; }
 
+    /// <summary>
+    /// Creates an expression that returns TDestination as output from a given TSource (a 'projection').
+    /// </summary>
+    /// <typeparam name="TSource"></typeparam>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <returns></returns>
     public Expression<Func<TSource, TDestination>> Project<TSource, TDestination>()
     {
       var pair = new TypePair(typeof(TSource), typeof(TDestination));
@@ -561,7 +575,12 @@ namespace ThisMember.Core
 
     public void RegisterProjection(Projection projection)
     {
-      this.projections[new TypePair(projection.SourceType, projection.DestinationType)] = projection;
+      lock (projectionsWriteLock)
+      {
+        var newProjections = new Dictionary<TypePair, Projection>(projections);
+        newProjections[new TypePair(projection.SourceType, projection.DestinationType)] = projection;
+        Interlocked.CompareExchange(ref this.projections, newProjections, this.projections);
+      }
     }
 
 
@@ -602,7 +621,7 @@ namespace ThisMember.Core
 
       if (!this.maps.TryGetValue(pair, out map))
       {
-        map = MappingStrategy.CreateMapProposal(pair, parameters: typeof(TParam)).FinalizeMap();
+        map = MappingStrategy.CreateMapProposal<TSource, TDestination, TParam>().FinalizeMap();
       }
       if (BeforeMapping != null) BeforeMapping(this, pair, source);
 
@@ -618,6 +637,24 @@ namespace ThisMember.Core
       if (AfterMapping != null) AfterMapping(this, pair, result);
 
       return result;
+    }
+
+    public Fluent.SourceTypeModifier<TSource> ForSourceType<TSource>()
+    {
+      return new Fluent.SourceTypeModifier<TSource>(this);
+    }
+
+    public Misc.MapperDataAccessor Data
+    {
+      get;
+      private set;
+    }
+
+    public MemberOptions DefaultMemberOptions { get; set; }
+
+    public Fluent.DestinationTypeModifier<TDestination> ForDestinationType<TDestination>()
+    {
+      return new Fluent.DestinationTypeModifier<TDestination>(this);
     }
   }
 }

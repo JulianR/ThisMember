@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Collections.Concurrent;
 
 namespace ThisMember.Core.Interfaces
 {
@@ -27,7 +28,7 @@ namespace ThisMember.Core.Interfaces
 
   }
 
-  public class CustomMapping
+  internal class CustomMapping
   {
     public IList<MemberExpressionTuple> Members { get; internal set; }
 
@@ -39,26 +40,63 @@ namespace ThisMember.Core.Interfaces
 
     internal IList<IndexedParameterExpression> ArgumentParameters { get; set; }
 
-    private Dictionary<Tuple<PropertyOrFieldInfo, PropertyOrFieldInfo>, LambdaExpression> conversionFunctions;
+    private class ConversionFunctionKey
+    {
+      public ConversionFunctionKey(PropertyOrFieldInfo source, PropertyOrFieldInfo dest)
+      {
+        if (source != null)
+        {
+          this.sourceAsString = source.DeclaringType.FullName + "." + source.Name;
+        }
+        else
+        {
+          this.sourceAsString = "";
+        }
+        if (dest != null)
+        {
+          this.destinationAsString = dest.DeclaringType.FullName + "." + dest.Name;
+        }
+        else
+        {
+          this.destinationAsString = "";
+        }
+      }
+      private readonly string sourceAsString;
+      private readonly string destinationAsString;
+
+      public override bool Equals(object obj)
+      {
+        var other = obj as ConversionFunctionKey;
+
+        return other != null && other.sourceAsString == this.sourceAsString && other.destinationAsString == this.destinationAsString;
+      }
+
+      public override int GetHashCode()
+      {
+        return (this.sourceAsString.GetHashCode() << 17) ^ this.destinationAsString.GetHashCode();
+      }
+    }
+
+    private ConcurrentDictionary<ConversionFunctionKey, LambdaExpression> conversionFunctions;
 
     public CustomMapping()
     {
       CustomMappings = new List<CustomMapping>();
       Members = new List<MemberExpressionTuple>();
       ArgumentParameters = new List<IndexedParameterExpression>();
-      this.conversionFunctions = new Dictionary<Tuple<PropertyOrFieldInfo, PropertyOrFieldInfo>, LambdaExpression>();
+      this.conversionFunctions = new ConcurrentDictionary<ConversionFunctionKey, LambdaExpression>();
     }
 
     public void AddConversionFunction(PropertyOrFieldInfo source, PropertyOrFieldInfo destination, LambdaExpression conversion)
     {
-      this.conversionFunctions.Add(Tuple.Create(source, destination), conversion);
+      this.conversionFunctions[new ConversionFunctionKey(source, destination)] = conversion;
     }
 
     public LambdaExpression GetConversionFunction(PropertyOrFieldInfo source, PropertyOrFieldInfo destination)
     {
       LambdaExpression conversion;
 
-      this.conversionFunctions.TryGetValue(Tuple.Create(source, destination), out conversion);
+      this.conversionFunctions.TryGetValue(new ConversionFunctionKey(source, destination), out conversion);
 
       return conversion;
     }
@@ -136,35 +174,33 @@ namespace ThisMember.Core.Interfaces
 
     public void CombineWithOtherCustomMappings(CustomMapping root, IEnumerable<CustomMapping> mappings)
     {
-      foreach (var otherMapping in mappings)
+      lock (root)
       {
-        foreach (var m in otherMapping.Members)
+        foreach (var otherMapping in mappings)
         {
-          if (!root.Members.Contains(m))
+          foreach (var m in otherMapping.Members)
           {
-            var oldParams = otherMapping.ArgumentParameters.Select(p => p.Parameter).ToList();
-            var newParams = root.ArgumentParameters.Select(p => p.Parameter).ToList();
-
-            oldParams.Add(otherMapping.SourceParameter);
-            newParams.Add(root.SourceParameter);
-
-            var visitor = new ParameterVisitor(oldParams, newParams);
-
-            var member = new MemberExpressionTuple
+            if (!root.Members.Contains(m))
             {
-              Expression = visitor.Visit(m.Expression),
-              Member = m.Member
-            };
+              var oldParams = otherMapping.ArgumentParameters.Select(p => p.Parameter).ToList();
+              var newParams = root.ArgumentParameters.Select(p => p.Parameter).ToList();
 
-            root.Members.Add(member);
+              oldParams.Add(otherMapping.SourceParameter);
+              newParams.Add(root.SourceParameter);
+
+              var visitor = new ParameterVisitor(oldParams, newParams);
+
+              var member = new MemberExpressionTuple
+              {
+                Expression = visitor.Visit(m.Expression),
+                Member = m.Member
+              };
+
+              root.Members.Add(member);
+            }
           }
         }
       }
-
-      //foreach(var mapping in root.CustomMappings)
-      //{
-      //  CombineWithOtherCustomMappings(mapping.
-      //}
 
     }
 
@@ -205,11 +241,14 @@ namespace ThisMember.Core.Interfaces
 
       if (cm != null)
       {
-        cm.Members.Add(new MemberExpressionTuple
+        lock (cm)
         {
-          Member = member,
-          Expression = expression
-        });
+          cm.Members.Add(new MemberExpressionTuple
+          {
+            Member = member,
+            Expression = expression
+          });
+        }
       }
       else
       {

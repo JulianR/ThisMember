@@ -7,7 +7,7 @@ namespace ThisMember.Core.Interfaces
 {
   public interface IMapRepository
   {
-    bool TryGetMap(IMemberMapper mapper, MappingOptions options, TypePair pair, out ProposedMap map);
-    bool TryGetMap<TSource, TDestination>(IMemberMapper mapper, MappingOptions options, out ProposedMap<TSource, TDestination> map);
+    bool TryGetMap(IMemberMapper mapper, MemberOptions options, TypePair pair, out ProposedMap map);
+    bool TryGetMap<TSource, TDestination>(IMemberMapper mapper, MemberOptions options, out ProposedMap<TSource, TDestination> map);
   }
 }
