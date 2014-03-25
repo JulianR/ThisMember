@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
         <id>ThisMember</id>
-        <version>1.4.4</version>
+        <version>1.4.6</version>
         <authors>Julian Rooze</authors>
         <owners>Julian Rooze</owners>
         <licenseUrl>https://raw.github.com/JulianR/ThisMember/master/license.txt</licenseUrl>
@@ -15,5 +15,7 @@
     </metadata>
     <files>
         <file src="lib\ThisMember.dll" target="lib\ThisMember.dll" />
+        <file src="lib\ThisMember.pdb" target="lib\ThisMember.pdb" />
+        <file src="lib\ThisMember.XML" target="lib\ThisMember.XML" />
     </files>
 </package>
