@@ -285,5 +285,100 @@ namespace ThisMember.Test
       Assert.IsNull(result[0].CreatedbyUserHasBeenDeletedPartial);
       Assert.IsNull(result[0].CreatedbyUserHasBeenDeletedPartialMatch);
     }
+
+
+    public class User1
+    {
+      public string FullName { get; set; }
+    }
+
+    public class UserDto1
+    {
+      public string FullName { get; set; }
+    }
+
+    public class InitialCycleCount
+    {
+      public User1 PreCountedBy { get; set; }
+    }
+
+    public class InitialCycleCountDto
+    {
+      public string PreCountedByFullName { get; set; }
+    }
+
+    [TestMethod]
+    public void RealWorldExample()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map
+      (
+          new InitialCycleCount
+          {
+            PreCountedBy = new User1 { FullName = "Julian Rooze" }
+          }, new InitialCycleCountDto()
+      );
+
+      Assert.AreEqual("Julian Rooze", result.PreCountedByFullName);
+      Assert.AreEqual("Julian Rooze", result.PreCountedByFullName);
+    }
+
+    public class NonNullableSource
+    {
+      public class NonNullableNested
+      {
+        public int ID { get; set; }
+      }
+
+      public NonNullableNested Test { get; set; }
+    }
+
+    public class NullableDestination
+    {
+      public int? TestID { get; set; }
+    }
+
+    [TestMethod]
+    public void Assigning_non_nullable_source_to_nullable_destination_should_not_throw()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map
+      (
+        new NonNullableSource { Test = new NonNullableSource.NonNullableNested { ID = 1 } },
+        new NullableDestination()
+      );
+
+      Assert.AreEqual(1, result.TestID);
+    }
+
+    public class IncompatibleConversionSource
+    {
+      public IncompatibleConversionSourceNested Test { get; set; }
+      public class IncompatibleConversionSourceNested
+      {
+        public string ID { get; set; }
+      }
+    }
+
+    public class IncompatibleConversionDestination
+    {
+      public int TestID { get; set; }
+    }
+
+    [TestMethod]
+    public void When_a_hierarchy_match_is_found_but_a_conversion_is_not_possible_no_mapping_should_be_attempted()
+    {
+      var mapper = new MemberMapper();
+
+      var result = mapper.Map
+      (
+        new IncompatibleConversionSource { Test = new IncompatibleConversionSource.IncompatibleConversionSourceNested { ID = "12" } },
+        new IncompatibleConversionDestination()
+      );
+
+      Assert.AreEqual(0, result.TestID);
+    }
   }
 }

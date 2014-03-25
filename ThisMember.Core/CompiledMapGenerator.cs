@@ -324,6 +324,11 @@ namespace ThisMember.Core
       {
         var accessHierarchy = BuildHierarchicalExpression(source, member.HierarchicalMapping, null);
 
+        if (destMember.Type.IsNullableValueType())
+        {
+          accessHierarchy = Expression.Convert(accessHierarchy, destMember.Type);
+        }
+
         assignSourceToDest = Expression.Assign(destMember, accessHierarchy);
       }
       else
