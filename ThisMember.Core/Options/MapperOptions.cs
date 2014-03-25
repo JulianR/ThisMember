@@ -71,7 +71,11 @@ namespace ThisMember.Core.Options
 
       Debug = new DebugOptions
       {
+#if DEBUG
+        DebugInformationEnabled = true
+#else
         DebugInformationEnabled = false
+#endif
       };
 
     }
