@@ -42,33 +42,4 @@ namespace ThisMember.ConsoleHost
       //return base.VisitParameter(node);
     }
   }
-
-  class Expressions
-  {
-
-    public static Delegate CreateMethod(Expression<Func<Source, Destination, object>> expr)
-    {
-      var x = CustomMapping.GetCustomMapping(typeof(Destination), expr);
-
-      var lambda = expr as LambdaExpression;
-
-      //var newType = lambda.Body as NewExpression;
-
-      var source = Expression.Parameter(typeof(Source), "source");
-      var dest = Expression.Parameter(typeof(Destination), "destination");
-
-      var visitor = new Visitor(expr.Parameters[0], source);
-      var visitor1 = new Visitor(expr.Parameters[1], dest);
-
-      var newExp = visitor.Visit(expr);
-      newExp = visitor1.Visit(newExp);
-
-      var block = Expression.Block(expr, dest);
-
-      var lambda1 = Expression.Lambda<Func<Source, Destination, Destination>>(block, source, dest);
-
-      return lambda1.Compile();
-
-    }
-  }
 }
